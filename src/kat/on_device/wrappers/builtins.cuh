@@ -1,0 +1,202 @@
+/**
+ * @file on_device/wrappers/builtins.cuh
+ *
+ * @brief Namespace with uniform-naming scheme, templated-when-relevant,
+ * wrappers of single PTX instruction .
+ *
+ * @note
+ * 1. This obviously doesn't include those built-ins which are inherent
+ * operators in C++ as a language, i.e. % + / * - << >> and so on.
+ * 2. PTX primitives/single instructions don't always translate to single
+ * SASS (GPU assembly) instructions - as PTX is an intermediate
+ * representation (IR) common to multiple GPU microarchitectures.
+ * 3. No function here performs any computation other beyond a single PTX
+ * instruction; non-built-in operations belong in other files. But
+ * this is only _almost_true. The functions here do have:
+ *    3.1 Type casts
+ *    3.2 Substitutions of a constant, for an instruction parameter,
+ *        especially via default arguments.
+ * 4. The templated builtins are only available for a _subset_ of the
+ *    fundamental C++ types (and never for aggregate types); other files
+ *    utilize these actual built-ins to generalize them to a richer set
+ *    of types.
+ */
+#ifndef CUDA_ON_DEVICE_BUILTINS_CUH_
+#define CUDA_ON_DEVICE_BUILTINS_CUH_
+
+#include <kat/on_device/common.cuh>
+
+#include <kat/define_specifiers.hpp>
+
+using lane_mask_t = unsigned;
+
+enum : lane_mask_t { full_warp_mask = 0xFFFFFFFF };
+
+namespace builtins {
+
+// Arithmetic
+// --------------------------------------------
+
+/**
+ * When multiplying two n-bit numbers, the result may take up to 2n bits.
+ * without upcasting, the value of x * y is the lower n bits of the result;
+ * this lets you get the upper bits, without performing a 2n-by-2n multiplication
+ */
+template <typename T> __fd__  T multiplication_high_bits(T x, T y);
+
+/**
+ * Division which becomes faster and less precise than regular "/",
+ * when --use-fast-math is specified; otherwise it's the same as regular "/".
+ */
+template <typename T> __fd__ T divide(T dividend, T divisor);
+template <typename T> __fd__ T absolute_value(T x);
+template <typename T> __fd__ T minimum(T x, T y);
+template <typename T> __fd__ T maximum(T x, T y);
+template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S z);
+
+
+// --------------------------------------------
+
+
+
+// Bit and byte manipulation
+// --------------------------------------------
+
+template <typename T> __fd__ int population_count(T x);
+template <typename T> __fd__ T bit_reverse(T x);
+
+template <typename T> __fd__ unsigned find_last_non_sign_bit(T x);
+template <typename T> __fd__ T load_global_with_non_coherent_cache(const T* ptr);
+template <typename T> __fd__ int count_leading_zeros(T x);
+
+
+namespace bit_field {
+
+/**
+ * Extracts the bits with 0-based indices @p start_pos ... @p start_pos+ @num_bits - 1, counting
+ * from least to most significant, from a bit field field. Has sign extension semantics
+ * for signed inputs which are bit tricky, see in the PTX ISA guide:
+ *
+ * http://docs.nvidia.com/cuda/parallel-thread-execution/index.html
+ *
+ * TODO: CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
+ * For now only adopting his implementation for the 32-bit case
+ */
+template <typename T> __fd__ T extract(T bit_field, unsigned int start_pos, unsigned int num_bits);
+template <typename T> __fd__ T insert(T bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
+
+} // namespace bit_field
+
+template <typename T> __fd__ T select_bytes(T x, T y, unsigned byte_selector);
+
+/**
+ * Use this to select which variant of the funnel shift intrinsic to use
+ */
+enum class funnel_shift_amount_resolution_mode_t {
+	take_lower_bits,       //!< Shift by shift_amount & (size_in_bits<native_word_t> - 1)
+	cap_at_full_word_size, //!< Shift by max(shift_amount, size_in_bits<native_word_t>)
+};
+
+/**
+ * @brief Performs a right-shift on the combination of the two arguments
+ * into a single, double-the-length, value
+ *
+ * @todo Perhaps make the "amount resolution mode" a template argument?
+ *
+ * @param low_word
+ * @param high_word
+ * @param shift_amount The number of bits to right-shift
+ * @param amount_resolution_mode shift_amount can have values which are
+ * higher than the maximum possible number of bits to right-shift; this
+ * indicates how to interpret such values. Hopefully this should be
+ * gone when inlining
+ * @return the lower bits of the result
+ */
+template <
+	typename T,
+	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
+		funnel_shift_amount_resolution_mode_t::take_lower_bits
+>
+__fd__ native_word_t funnel_shift(
+	native_word_t  low_word,
+	native_word_t  high_word,
+	native_word_t  shift_amount);
+
+// --------------------------------------------
+
+
+
+/**
+ * Special register getter wrappers
+ */
+namespace special_registers {
+
+__fd__ unsigned           lane_index();
+__fd__ unsigned           symmetric_multiprocessor_index();
+__fd__ unsigned long long grid_index();
+__fd__ unsigned int       dynamic_shared_memory_size();
+__fd__ unsigned int       total_shared_memory_size();
+
+} // namespace special_registers
+
+namespace warp {
+
+#if (__CUDACC_VER_MAJOR__ >= 9)
+__fd__ lane_mask_t ballot            (int condition, lane_mask_t lane_mask = full_warp_mask);
+__fd__ int         all_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
+__fd__ int         some_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask);
+__fd__ int         all_lanes_agree   (int condition, lane_mask_t lane_mask = full_warp_mask);
+#else
+__fd__ lane_mask_t ballot            (int condition);
+__fd__ int         all_lanes_satisfy (int condition);
+__fd__ int         some_lanes_satisfy(int condition);
+#endif
+
+#if (__CUDACC_VER_MAJOR__ >= 9)
+template <typename T> __fd__ bool is_uniform_across_lanes(T value, lane_mask_t lane_mask = full_warp_mask);
+template <typename T> __fd__ bool is_uniform_across_warp(T value);
+template <typename T> __fd__ lane_mask_t matching_lanes(T value, lane_mask_t lanes = full_warp_mask);
+#endif
+
+namespace mask_of_lanes {
+
+__fd__ unsigned int preceding();
+__fd__ unsigned int preceding_and_self();
+__fd__ unsigned int self();
+__fd__ unsigned int succeeding_and_self();
+__fd__ unsigned int succeeding();
+
+template <typename T> __fd__ lane_mask_t matching_value(lane_mask_t lane_mask, T value);
+template <typename T> __fd__ lane_mask_t matching_value(T value);
+
+} // namespace mask_of_lanes
+
+namespace shuffle {
+
+#if (__CUDACC_VER_MAJOR__ < 9)
+template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size);
+template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size);
+template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size);
+template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width = warp_size);
+#else
+template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
+#endif
+// Notes:
+// 1. we have to use `xor_` here since `xor` is a reserved word
+// 2. Why is lane_mask an `int` when bitmasks typically use unsigned types?
+//    Because that's how nVIDIA's shuffle-xor signature expects it; probably
+//    no good reason.
+} // namespace shuffle
+
+} // namespace warp
+
+
+} // namespace builtins
+
+#include <kat/undefine_specifiers.hpp>
+#include "detail/builtins.cuh"
+
+#endif /* CUDA_ON_DEVICE_BUILTINS_CUH_ */
