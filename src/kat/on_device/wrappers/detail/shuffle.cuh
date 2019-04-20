@@ -1,12 +1,3 @@
-/**
- * @file Templated warp-shuffle operation variants
- *
- * Originally based on Bryan Catanzaro's CUDA generics
- * https://github.com/bryancatanzaro/generics/
- * Downloaded on: 2016-04-16
- * ... but reimplemented by Eyal Rozenberg, CWI Amsterdam
- */
-
 #pragma once
 #ifndef CUDA_ON_DEVICE_TEMPLATED_SHUFFLE_DETAIL_CUH_
 #define CUDA_ON_DEVICE_TEMPLATED_SHUFFLE_DETAIL_CUH_

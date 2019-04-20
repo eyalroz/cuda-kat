@@ -48,7 +48,7 @@ DEFINE_SPECIAL_REGISTER_GETTER( total_smem_size,    u32); // PTX 4.1
  * %ntid                     - available as blockDim
  * %warpid                   - not interesting
  * %nwarpid                  - not interesting
- * %ctaid                    - available is blockId
+ * %ctaid                    - available as blockId
  * %nctaid                   - available as gridDim
  * %pm0, ..., %pm7           - not interesting, for now (performance monitoring)
  * %pm0_64, ..., %pm7_64     - not interesting, for now (performance monitoring)

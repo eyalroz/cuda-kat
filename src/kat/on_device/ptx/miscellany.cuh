@@ -1,6 +1,6 @@
 /**
- * @file Non-templated wrappers for PTX instructions, which nVIDIA
- * does not provide wrappers for through the CUDA <device_functions.h> header.
+ * @file ptx/miscellany.cuh Non-templated wrappers for PTX instructions, which nVIDIA
+ * does not provide wrappers for through the CUDA `<device_functions.h>` header.
  */
 #pragma once
 #ifndef CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_

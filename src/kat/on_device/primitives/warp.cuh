@@ -742,7 +742,12 @@ __fd__ T active_lanes_increment(T* counter)
 		detail::lane_index_among_active_lanes(lanes_mask);
 }
 
-
+/**
+ * A structure for warp-level search results. Semantically,
+ * it should have been std::optional-like, but that might
+ * incur too much overhead, so we're just encoding the
+ * 'empty' indication using the result fields.
+ */
 template <typename T>
 struct search_result_t {
 	native_word_t lane_index { warp_size };

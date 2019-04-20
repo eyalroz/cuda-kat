@@ -1,6 +1,7 @@
 /**
- * @file Non-templated wrappers for PTX "video" instructions, which nVIDIA
- * does not provide wrappers for through the CUDA <device_functions.h> header
+ * @file ptx/video_instructions.cuh Non-templated wrappers for PTX "video"
+ * instructions, which nVIDIA does not provide wrappers for through the CUDA
+ * `<device_functions.h>` header
  *
  * "Video" instructions are not really about video (although they're probably used
  * for video somehow). Essentially they're instructions which combine another
