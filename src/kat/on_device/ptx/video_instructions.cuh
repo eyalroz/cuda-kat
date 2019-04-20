@@ -29,7 +29,7 @@
 #ifndef CUDA_PTX_VIDEO_INSTRUCTIONS_CUH_
 #define CUDA_PTX_VIDEO_INSTRUCTIONS_CUH_
 
-#include "macros.cuh"
+#include "detail/define_macros.cuh"
 #include <type_traits>
 
 using cuda::native_word_t;
@@ -70,7 +70,7 @@ DEFINE_SHIFT_AND_OP(r,max) // vshr_max
 } // namespace ptx
 
 
-#include "clear_macros.cuh"
+#include "detail/undefine_macros.cuh"
 #include <kat/undefine_specifiers.hpp>
 
 #endif /* CUDA_PTX_VIDEO_INSTRUCTIONS_CUH_ */
