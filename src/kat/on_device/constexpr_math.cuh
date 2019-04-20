@@ -38,26 +38,26 @@ constexpr T ipow(T base, unsigned exponent, T coefficient) {
 
 } // namespace detail
 
-template <typename T>
-constexpr T ipow(T base, unsigned exponent)
+template <typename I>
+constexpr I ipow(I base, unsigned exponent)
 {
 	return detail::ipow(base, exponent, 1);
 }
 
-template <typename T, typename S>
-__fhd__ constexpr T div_rounding_up(const T& dividend, const S& divisor)
+template <typename I, typename I2>
+__fhd__ constexpr I div_rounding_up_unsafe(I dividend, const I2 divisor)
 {
 	return (dividend + divisor - 1) / divisor;
 }
 
-template <typename T, typename S>
-__fhd__ constexpr T div_rounding_up_safe(const T& dividend, const S& divisor)
+template <typename I, typename I2>
+__fhd__ constexpr I div_rounding_up_safe(I dividend, const I2 divisor)
 {
 	return (dividend / divisor) + !!(dividend % divisor);
 }
 
-template <typename T, typename S>
-__fhd__ constexpr T round_down(const T& x, const S& y)
+template <typename I, typename I2>
+__fhd__ constexpr I round_down(const I x, const I2 y)
 {
 	return x - x%y;
 }
@@ -65,8 +65,8 @@ __fhd__ constexpr T round_down(const T& x, const S& y)
 /**
  * @note Don't use this with negative values.
  */
-template <typename T>
-__fhd__ constexpr T round_down_to_warp_size(const T& x)
+template <typename I>
+__fhd__ constexpr I round_down_to_warp_size(I x)
 {
 	return x & ~(warp_size - 1);
 }
@@ -75,36 +75,33 @@ __fhd__ constexpr T round_down_to_warp_size(const T& x)
  * @note implemented in an unsafe way - will overflow for values close
  * to the maximum
  */
-template <typename T, typename S>
-__fhd__ constexpr T round_up(const T& x, const S& y)
+template <typename I, typename I2 = I>
+__fhd__ constexpr I round_up_unsafe(I x, I2 y)
 {
 	return round_down(x+y-1, y);
 }
 
-template <typename T, typename S>
-__fhd__ constexpr typename std::common_type<T,S>::type
-round_down_to_power_of_2(const T& x, const S& power_of_2)
+template <typename I, typename I2 = I>
+__fhd__ constexpr I round_down_to_power_of_2(I x, I2 power_of_2)
 {
-	using result_type = typename std::common_type<T,S>::type;
-	return ((result_type) x) & ~(((result_type) power_of_2) - 1);
+	return (x & ~(I{power_of_2} - 1));
 }
 
 /**
  * @note careful, this may overflow!
  */
-template <typename T, typename S>
-__fhd__ constexpr typename std::common_type<T,S>::type
-round_up_to_power_of_2(const T& x, const S& power_of_2) {
-	using result_type = typename std::common_type<T,S>::type;
-	return round_down_to_power_of_2 ((result_type) x + (result_type) power_of_2 - 1, (result_type) power_of_2);
+template <typename I, typename I2 = I>
+__fhd__ constexpr I round_up_to_power_of_2_unsafe(I x, I2 power_of_2)
+{
+	return round_down_to_power_of_2 (x + I{power_of_2} - 1, power_of_2);
 }
 
 /**
  * @note careful, this may overflow!
  */
-template <typename T>
-__fhd__ constexpr T round_up_to_full_warps(const T& x) {
-	return round_up_to_power_of_2<T, native_word_t>(x, warp_size);
+template <typename I>
+__fhd__ constexpr I round_up_to_full_warps_unsafe(I x) {
+	return round_up_to_power_of_2_unsafe<I, native_word_t>(x, warp_size);
 }
 
 template <typename T, typename Lower = T, typename Upper = T>
@@ -128,11 +125,14 @@ constexpr __fd__ T gcd(T u, T v)
 
 namespace constexpr_ {
 
-template <typename T>
-constexpr __fhd__ int log2(T val) { return val ? 1 + log2(val >> 1) : -1; }
+template <typename I>
+constexpr __fhd__ int log2(I val)
+{
+	return val ? 1 + log2(val >> 1) : -1;
+}
 
-template <typename T, typename S, S Divisor>
-__fhd__ constexpr T div_by_fixed_power_of_2(const T& dividend)
+template <typename I, I Divisor>
+__fhd__ constexpr I div_by_fixed_power_of_2(I dividend)
 {
 	return dividend >> log2(Divisor);
 }
@@ -178,14 +178,14 @@ __fhd__ constexpr T sqrt(T& x)
 } // namespace constexpr_
 
 
-template <typename T, typename S>
-__fhd__ constexpr T div_by_power_of_2(const T& dividend, const S& divisor)
+template <typename I>
+__fhd__ constexpr I div_by_power_of_2(I dividend, I divisor)
 {
 	return dividend >> log2_of_power_of_2(divisor);
 }
 
-template <typename T, typename S, S Divisor>
-__fhd__ constexpr T div_by_fixed_power_of_2_rounding_up(const T& dividend)
+template <typename I, I Divisor>
+__fhd__ constexpr I div_by_fixed_power_of_2_rounding_up(I dividend)
 {
 /*
 	// C++14 and later:
@@ -201,33 +201,33 @@ __fhd__ constexpr T div_by_fixed_power_of_2_rounding_up(const T& dividend)
 		(((dividend & (Divisor - 1)) + (Divisor - 1)) >> constexpr_::log2(Divisor));
 }
 
-template <typename T>
-__fhd__ constexpr T num_warp_sizes_to_cover(const T& x)
+template <typename I>
+__fhd__ constexpr I num_warp_sizes_to_cover(I x)
 {
-	return constexpr_::div_by_fixed_power_of_2<T,unsigned short, warp_size>(x) + ((x & (warp_size-1)) > 0);
+	return constexpr_::div_by_fixed_power_of_2<I, warp_size>(x) + ((x & (warp_size-1)) > 0);
 }
 
 
-template <typename S, typename T>
-constexpr __fhd__ bool divides(const S& divisor, const T& dividend) {
+template <typename I>
+constexpr __fhd__ bool divides(I divisor, I dividend) {
 	return dividend % divisor == 0;
 }
 
-template <typename S, typename T>
-constexpr inline int is_divisible_by(const T& dividend, const S& divisor) {
+template <typename I>
+constexpr inline int is_divisible_by(I dividend, I divisor) {
 	return divides(divisor, dividend);
 }
 
-template <typename S, typename T>
-constexpr inline int is_divisible_by_power_of_2(const T& dividend, const S& divisor) {
+template <typename I>
+constexpr inline bool is_divisible_by_power_of_2(I dividend, I divisor) {
 	return divisor & (dividend-1) == 0;
 }
 
 
-template <typename T>
-constexpr __fhd__ bool is_odd(const T& x)  { return x & (T) 0x1 != 0; }
-template <typename T>
-constexpr __fhd__ bool is_even(const T& x) { return x & (T) 0x1 == 0; }
+template <typename I>
+constexpr __fhd__ bool is_odd(I x)  { return x & (I) 0x1 != 0; }
+template <typename I>
+constexpr __fhd__ bool is_even(I x) { return x & (I) 0x1 == 0; }
 
 
 #include <kat/undefine_specifiers.hpp>
