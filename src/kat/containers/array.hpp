@@ -52,6 +52,7 @@
 
 namespace kat {
 
+///@cond
 template<typename T, size_t NumElements>
 struct array_traits
 {
@@ -69,6 +70,7 @@ struct array_traits<T, 0>
 	__fhd__ static constexpr T& reference(const type&, size_t) noexcept     { return *static_cast<T*>(nullptr); }
 	__fhd__ static constexpr T* pointer(const type&) noexcept               { return nullptr; }
 };
+///@endcond
 
   /**
    *  @brief A standard container for storing a fixed size sequence of elements,

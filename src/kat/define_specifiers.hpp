@@ -1,8 +1,14 @@
 /**
- * @file undefine_specifiers.hpp
+ * @file define_specifiers.hpp
  *
- * @brief A "preprocessor utility" header for undefining the CUDA function declaration specifier shorthands,
- * defined in @ref define_specifiers.hpp .
+ * @brief A "preprocessor utility" header for defining declaration specifier shorthands,
+ * used throughout the cuda-kat library for brevity.
+ *
+ * @note see @ref undefine_specifiers.hpp for the undefining macros - used to avoid
+ * "polluting the macro namespace" after cuda-kat functions have been defined.
+ *
+ * @note This is not intended merely for in-library usage - it is rather useful for
+ * other code as well.
  */
 #ifdef __CUDACC__
 

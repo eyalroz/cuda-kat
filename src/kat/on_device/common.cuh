@@ -1,5 +1,5 @@
 /**
- * @file Some basic type and constant definitions used by all device-side CUDA-related code
+ * @file on_device/common.cuh Some basic type and constant definitions used by all device-side CUDA-related code
  * in this directory; possibly imported from `cuda-api-wrappers`.
  *
  */

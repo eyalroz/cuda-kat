@@ -2,7 +2,7 @@
 #ifndef CUDA_PTX_SPECIAL_REGISTERS_CUH_
 #define CUDA_PTX_SPECIAL_REGISTERS_CUH_
 
-#include "macros.cuh"
+#include "detail/define_macros.cuh"
 
 namespace ptx {
 
@@ -48,7 +48,7 @@ DEFINE_SPECIAL_REGISTER_GETTER( total_smem_size,    u32); // PTX 4.1
  * %ntid                     - available as blockDim
  * %warpid                   - not interesting
  * %nwarpid                  - not interesting
- * %ctaid                    - available is blockId
+ * %ctaid                    - available as blockId
  * %nctaid                   - available as gridDim
  * %pm0, ..., %pm7           - not interesting, for now (performance monitoring)
  * %pm0_64, ..., %pm7_64     - not interesting, for now (performance monitoring)
@@ -60,7 +60,7 @@ DEFINE_SPECIAL_REGISTER_GETTER( total_smem_size,    u32); // PTX 4.1
 
 } // namespace ptx
 
-#include "clear_macros.cuh"
+#include "detail/undefine_macros.cuh"
 
 
 #endif /* CUDA_PTX_SPECIAL_REGISTERS_CUH_ */

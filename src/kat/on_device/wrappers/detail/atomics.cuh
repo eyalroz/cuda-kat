@@ -1,5 +1,4 @@
-/**
- * @file Wrappers for CUDA atomic operations - implementation details
+/*
  *
  * Copyright (c) 2018, Eyal Rozenberg, CWI Amsterdam
  * Copyright (c) 2019, Eyal Rozenberg <eyalroz@technion.ac.il>

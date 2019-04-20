@@ -1,12 +1,12 @@
 /**
- * @file Non-templated wrappers for PTX instructions, which nVIDIA
- * does not provide wrappers for through the CUDA <device_functions.h> header.
+ * @file ptx/miscellany.cuh Non-templated wrappers for PTX instructions, which nVIDIA
+ * does not provide wrappers for through the CUDA `<device_functions.h>` header.
  */
 #pragma once
 #ifndef CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_
 #define CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_
 
-#include "macros.cuh"
+#include "detail/define_macros.cuh"
 #include <cstdint>
 #include <type_traits>
 
@@ -184,25 +184,6 @@ DEFINE_BFE(u64) // bfe
 
 #undef DEFINE_BFE
 
-
-#define DEFINE_BFE(ptx_value_type) \
-__fd__ CPP_TYPE_BY_PTX_TYPE(ptx_value_type) \
-bfe( \
-	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) bits, \
-	uint32_t start_position, \
-	uint32_t num_bits) \
-{ \
-	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) extracted_bits;  \
-	asm ( \
-		"bfi." PTX_STRINGIFY(ptx_value_type) " %0, %1, %2, %3;" \
-		: "=" SIZE_CONSTRAINT(ptx_value_type) (extracted_bits) \
-		: SIZE_CONSTRAINT(ptx_value_type) (bits) \
-		, "r" (start_position) \
-		, "r" (num_bits) \
-	);\
-	return extracted_bits; \
-}
-
 __fd__ uint32_t
 bfi(
 	uint32_t  bits_to_insert,
@@ -243,7 +224,7 @@ bfi(
 
 } // namespace ptx
 
-#include "clear_macros.cuh"
+#include "detail/undefine_macros.cuh"
 #include <kat/undefine_specifiers.hpp>
 
 #endif /* CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_ */

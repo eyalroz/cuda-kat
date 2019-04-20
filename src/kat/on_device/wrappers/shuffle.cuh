@@ -1,6 +1,8 @@
 /**
- * @file Templated warp-shuffle operation variants
- *
+ * @file wrappers/shuffle.cuh Templated warp-shuffle operation variants
+ */
+
+/*
  * Originally based on Bryan Catanzaro's CUDA generics
  * https://github.com/bryancatanzaro/generics/
  * Downloaded on: 2016-04-16
