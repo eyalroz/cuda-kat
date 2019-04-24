@@ -31,6 +31,13 @@ template <typename T>  __fd__ T bitwise_not(T* __restrict__ address);
 template <typename T>  __fd__ T set_bit    (T* __restrict__ address, const unsigned bit_index);
 template <typename T>  __fd__ T unset_bit  (T* __restrict__ address, const unsigned bit_index);
 
+template <typename T>  __fd__ T compare_and_swap(
+    typename std::enable_if<
+        sizeof(T) == sizeof(int) or sizeof(T) == sizeof(long long int), T
+    >::type * __restrict__  address,
+    const T&                compare,
+    const T&                val);
+
 /**
  * Use atomic compare-and-swap to apply a unary function to some value,
  * replacing it at its memory location with the result before anything
