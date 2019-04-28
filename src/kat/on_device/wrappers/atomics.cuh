@@ -32,11 +32,10 @@ template <typename T>  __fd__ T set_bit    (T* __restrict__ address, const unsig
 template <typename T>  __fd__ T unset_bit  (T* __restrict__ address, const unsigned bit_index);
 
 template <typename T>  __fd__ T compare_and_swap(
-    typename std::enable_if<
-        sizeof(T) == sizeof(int) or sizeof(T) == sizeof(long long int), T
-    >::type * __restrict__  address,
-    const T&                compare,
-    const T&                val);
+    T* __restrict__  address,
+    const T&         compare,
+    const T&         val);
+
 
 /**
  * Use atomic compare-and-swap to apply a unary function to some value,

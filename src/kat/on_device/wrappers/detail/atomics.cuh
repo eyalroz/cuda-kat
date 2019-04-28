@@ -33,11 +33,13 @@
 #ifndef CUDA_ON_DEVICE_ATOMICS_DETAIL_CUH_
 #define CUDA_ON_DEVICE_ATOMICS_DETAIL_CUH_
 
-#include <cuda/api/constants.hpp>
+#include <kat/on_device/common.cuh>
 #include <device_atomic_functions.h>
+#include <kat/detail/pointers.cuh>
 
 #include <functional>
 #include <type_traits>
+#include <climits>
 
 #include <kat/define_specifiers.hpp>
 
@@ -60,12 +62,35 @@ __fd__ unsigned long int atomicAdd(unsigned long int *address, unsigned long int
 
 namespace atomic {
 
-template <typename T>  __fd__ T compare_and_swap(
-	typename std::enable_if<
-		sizeof(T) == sizeof(int) or sizeof(T) == sizeof(long long int), T
-	>::type	* __restrict__ address,
-	const T& compare,
-	const T& val)
+namespace detail {
+
+template <unsigned NBytes> struct uint;
+
+template<> struct uint<1> { using type = uint8_t;  };
+template<> struct uint<2> { using type = uint16_t; };
+template<> struct uint<4> { using type = uint32_t; };
+template<> struct uint<8> { using type = uint64_t; };
+
+template <typename T1, typename T2>
+T1 replace_bytes_at_offset(T1 larger_value ,T2 replacement, std::size_t offset_into_larger_value)
+{
+    static_assert(sizeof(T1) > sizeof(T2), "invalid sizes");
+    static_assert(std::is_trivial<T1>::value, "T1 must be a trivial type");
+    static_assert(std::is_trivial<T2>::value, "T2 must be a trivial type");
+    auto shift_amount = offset_into_larger_value * CHAR_BIT;
+    using larger_uint_type      = uint<sizeof(larger_value)>;
+    using replacement_uint_type = uint<sizeof(replacement)>;
+    auto&       v1_as_uint = *reinterpret_cast<larger_uint_type*>(&larger_value);
+    const auto& v2_as_uint = *reinterpret_cast<replacement_uint_type*>(&replacement);
+
+    auto mask = ~( (larger_uint_type{1} << (sizeof(T2) * CHAR_BIT) - 1) << shift_amount);
+    auto shifted_replacement = larger_uint_type{v2_as_uint} <<  shift_amount;
+    return (larger_value & mask ) | shifted_replacement;
+}
+
+
+template <typename T>
+__fd__ T compare_and_swap(std::true_type, T* __restrict__ address, const T& compare, const T& val)
 {
 	// This switch is necessary due to atomicCAS being defined
 	// only for a very small selection of types - int and unsigned long long
@@ -84,6 +109,53 @@ template <typename T>  __fd__ T compare_and_swap(
 			));
 	default: return T(); // should not be able to get here
 	}
+}
+
+template <typename T>
+__fd__ T compare_and_swap(std::false_type, T* __restrict__ address, const T& compare, const T& val)
+{
+	// The idea is to apply compare-and-swap on more memory than the T type actually takes
+	// up. However, we can't just have that larger stretch of memory start at `address`, since
+	// NVIDIA GPUs require operands to machine instructions to be naturally-aligned (e.g.
+	// a 4-byte-sized operand must start at an address being a multiple of 4). That means we
+	// could theoretically have "slack" bytes we use in the compare-and-swap both before and
+	// after the value we're actually interested in. We'll have to "contend" for atomic access
+	// to both the proper bytes of interest and the slack bytes, together.
+
+	static_assert (sizeof(T) <= sizeof(long long int), "Type size too large for atomic compare-and-swap");
+	using cas_builtin_type = typename std::conditional<sizeof(T) < sizeof(int), int, unsigned long long int>::type;
+
+	auto address_for_builtin = kat::detail::align_down(address);
+	auto address_difference = raw_address_difference(address, address_for_builtin);
+	cas_builtin_type actual_value_at_addr = *address_for_builtin;
+	cas_builtin_type expected_value_at_addr;
+	do {
+		auto expected_value_at_addr { actual_value_at_addr };
+		auto larger_value_to_set { replace_bytes_at_offset(expected_value_at_addr, val, address_difference) };
+		actual_value_at_addr = atomic::compare_and_swap<cas_builtin_type>(
+			address_for_builtin, expected_value_at_addr, larger_value_to_set);
+	} while (actual_value_at_addr != expected_value_at_addr);
+	return reinterpret_cast<const T&>(reinterpret_cast<char*>(&actual_value_at_addr) + address_difference);
+}
+
+
+
+} // namespace detail
+
+template <typename T>  __fd__ T compare_and_swap(
+    T* __restrict__  address,
+    const T&         compare,
+    const T&         val)
+{
+	static_assert(sizeof(T) <= sizeof(long long int),
+		"nVIDIA GPUs do not support atomic operations on data larger than long long int");
+
+	constexpr bool cuda_has_builtin_with_appropriate_size =
+		sizeof(T) == sizeof(int) or sizeof(T) == sizeof(unsigned long long int);
+
+	return detail::compare_and_swap<T>(
+		std::integral_constant<bool, cuda_has_builtin_with_appropriate_size>{},
+		address, compare, val);
 }
 
 
