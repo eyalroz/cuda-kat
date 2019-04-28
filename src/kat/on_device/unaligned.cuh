@@ -10,7 +10,7 @@
 #define CUDA_ON_DEVICE_UNALIGNED_CUH_
 
 #include <kat/on_device/ptx.cuh>
-#include <cuda/pointers.cuh>
+#include <kat/detail/pointers.cuh>
 #include <kat/on_device/miscellany.cuh>
 
 #include <cstdint>

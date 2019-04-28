@@ -79,11 +79,15 @@ namespace bit_field {
  *
  * http://docs.nvidia.com/cuda/parallel-thread-execution/index.html
  *
- * TODO: CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
- * For now only adopting his implementation for the 32-bit case
+ * @todo CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
+ * For now only adopting his implementation for the 32-bit case.
  */
 template <typename T> __fd__ T extract(T bit_field, unsigned int start_pos, unsigned int num_bits);
-template <typename T> __fd__ T insert(T bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
+template <typename T> __fd__ T insert(T original_bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
+
+// TODO: Implement these.
+//template <typename BitField, typename T> __fd__ T extract(BitField bit_field, unsigned int start_pos);
+//template <typename BitField, typename T> __fd__ BitField insert(BitField original_bit_field, T bits_to_insert, unsigned int start_pos);
 
 } // namespace bit_field
 
