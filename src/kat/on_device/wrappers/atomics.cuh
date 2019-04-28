@@ -2,8 +2,8 @@
  * @file wrappers/atomics.cuh Type-generic wrappers for CUDA atomic operations
  */
 
-#ifndef CUDA_ON_DEVICE_ATOMICS_CUH_
-#define CUDA_ON_DEVICE_ATOMICS_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
+#define CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 
 #include <kat/define_specifiers.hpp>
 
@@ -68,4 +68,4 @@ __fd__ T apply_atomically(
 #include <kat/undefine_specifiers.hpp>
 #include "detail/atomics.cuh"
 
-#endif /* CUDA_ON_DEVICE_ATOMICS_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_ATOMICS_CUH_

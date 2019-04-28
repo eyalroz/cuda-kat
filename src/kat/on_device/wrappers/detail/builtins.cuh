@@ -4,8 +4,8 @@
  * cases, or masking an inopportune interface;
  * non-builtin operations belong in other files.
  */
-#ifndef CUDA_ON_DEVICE_BUILTINS_DETAIL_CUH_
-#define CUDA_ON_DEVICE_BUILTINS_DETAIL_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_
+#define CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_
 
 #include <device_functions.h> // Do we really need this here?
 #include <kat/on_device/ptx.cuh>
@@ -228,4 +228,4 @@ template <> __fd__ double              maximum<double            >(double x, dou
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_BUILTINS_DETAIL_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_

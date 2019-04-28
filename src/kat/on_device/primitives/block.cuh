@@ -547,4 +547,4 @@ __fd__ T* __restrict__ set_to_copy_of(
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* BLOCK_LEVEL_PRIMITIVES_CUH_ */
+#endif // BLOCK_LEVEL_PRIMITIVES_CUH_

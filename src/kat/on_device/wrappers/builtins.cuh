@@ -21,8 +21,8 @@
  *    utilize these actual built-ins to generalize them to a richer set
  *    of types.
  */
-#ifndef CUDA_ON_DEVICE_BUILTINS_CUH_
-#define CUDA_ON_DEVICE_BUILTINS_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_BUILTINS_CUH_
+#define CUDA_KAT_ON_DEVICE_BUILTINS_CUH_
 
 #include <kat/on_device/common.cuh>
 
@@ -203,4 +203,4 @@ template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int wi
 #include <kat/undefine_specifiers.hpp>
 #include "detail/builtins.cuh"
 
-#endif /* CUDA_ON_DEVICE_BUILTINS_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_BUILTINS_CUH_

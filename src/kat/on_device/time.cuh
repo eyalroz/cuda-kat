@@ -4,8 +4,8 @@
  * @brief CUDA device-side functions having to do with timing and the hardware clock.
  */
 
-#ifndef CUDA_ON_DEVICE_TIME_CUH_
-#define CUDA_ON_DEVICE_TIME_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_TIME_CUH_
+#define CUDA_KAT_ON_DEVICE_TIME_CUH_
 
 #include <kat/define_specifiers.hpp>
 
@@ -70,4 +70,4 @@ __fd__ void sleep<sleep_resolution::clock_cycles>(
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_TIME_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_TIME_CUH_

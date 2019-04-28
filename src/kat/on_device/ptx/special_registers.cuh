@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CUDA_PTX_SPECIAL_REGISTERS_CUH_
-#define CUDA_PTX_SPECIAL_REGISTERS_CUH_
+#ifndef CUDA_KAT_PTX_SPECIAL_REGISTERS_CUH_
+#define CUDA_KAT_PTX_SPECIAL_REGISTERS_CUH_
 
 #include "detail/define_macros.cuh"
 
@@ -63,4 +63,4 @@ DEFINE_SPECIAL_REGISTER_GETTER( total_smem_size,    u32); // PTX 4.1
 #include "detail/undefine_macros.cuh"
 
 
-#endif /* CUDA_PTX_SPECIAL_REGISTERS_CUH_ */
+#endif // CUDA_KAT_PTX_SPECIAL_REGISTERS_CUH_

@@ -278,4 +278,4 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_STL_ARRAY_CUH_ */
+#endif // CUDA_STL_ARRAY_CUH_

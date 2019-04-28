@@ -4,8 +4,8 @@
  * @brief Mathematical function definitions for our troubled world
  */
 #pragma once
-#ifndef CUDA_ON_DEVICE_MATH_CUH_
-#define CUDA_ON_DEVICE_MATH_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_MATH_CUH_
+#define CUDA_KAT_ON_DEVICE_MATH_CUH_
 
 // Though this is an include file, it should not be visible outside
 // the op store's implementation
@@ -59,4 +59,4 @@ __fd__ unsigned ilog2(std::enable_if<std::is_unsigned<T>::value, T> x) {
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_MATH_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_MATH_CUH_

@@ -57,5 +57,5 @@
  */
 #define CPP_TYPE_BY_PTX_TYPE(ptx_value_type) CPP_TYPE_BY_PTX_TYPE_ ## ptx_value_type
 
-#endif /* PTX_UTILITY_MACROS_DEFINED */
+#endif // PTX_UTILITY_MACROS_DEFINED
 

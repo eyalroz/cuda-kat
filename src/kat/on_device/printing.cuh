@@ -7,8 +7,8 @@
  */
 
 #pragma once
-#ifndef SRC_CUDA_ON_DEVICE_PRINTING_CUH_
-#define SRC_CUDA_ON_DEVICE_PRINTING_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_PRINTING_CUH_
+#define CUDA_KAT_ON_DEVICE_PRINTING_CUH_
 
 #include <kat/on_device/miscellany.cuh>
 // Necessary for printf()'ing in kernel code
@@ -258,4 +258,4 @@ constexpr __fd__ const char* ordinal_suffix(int n)
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* SRC_CUDA_ON_DEVICE_PRINTING_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_PRINTING_CUH_

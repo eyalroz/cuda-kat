@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CUDA_POINTERS_CUH_
-#define CUDA_POINTERS_CUH_
+#ifndef CUDA_KAT_POINTERS_CUH_
+#define CUDA_KAT_POINTERS_CUH_
 
 #include <type_traits>
 
@@ -101,4 +101,4 @@ __fhd__ T* align_down(T* ptr) noexcept
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_POINTERS_CUH_ */
+#endif // CUDA_KAT_POINTERS_CUH_

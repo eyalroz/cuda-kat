@@ -30,8 +30,8 @@
  *
  */
 #pragma once
-#ifndef CUDA_ON_DEVICE_ATOMICS_DETAIL_CUH_
-#define CUDA_ON_DEVICE_ATOMICS_DETAIL_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_
+#define CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_
 
 #include <kat/on_device/common.cuh>
 #include <device_atomic_functions.h>
@@ -421,4 +421,4 @@ template <typename T>  __fd__ T logical_xor(T* __restrict__ address, const T& va
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_ATOMICS_DETAIL_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_

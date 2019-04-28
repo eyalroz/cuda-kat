@@ -3,8 +3,8 @@
  * does not provide wrappers for through the CUDA `<device_functions.h>` header.
  */
 #pragma once
-#ifndef CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_
-#define CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
+#define CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
 
 #include "detail/define_macros.cuh"
 #include <cstdint>
@@ -227,5 +227,5 @@ bfi(
 #include "detail/undefine_macros.cuh"
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_PTX_MISCELLANY_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
 

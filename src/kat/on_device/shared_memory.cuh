@@ -5,8 +5,8 @@
  * code.
  */
 
-#ifndef CUDA_ON_DEVICE_SHARED_MEMORY_CUH_
-#define CUDA_ON_DEVICE_SHARED_MEMORY_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_SHARED_MEMORY_CUH_
+#define CUDA_KAT_ON_DEVICE_SHARED_MEMORY_CUH_
 
 #include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/ptx.cuh>
@@ -154,4 +154,4 @@ __fd__ T* strided(offset_t base_offset = 0)
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif // CUDA_ON_DEVICE_SHARED_MEMORY_CUH_
+#endif // CUDA_KAT_ON_DEVICE_SHARED_MEMORY_CUH_

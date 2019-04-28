@@ -7,8 +7,8 @@
  * the latter have their own namespace (although maybe they shouldn't)
  */
 #pragma once
-#ifndef CUDA_ON_DEVICE_CONSTEXPR_MATH_CUH_
-#define CUDA_ON_DEVICE_CONSTEXPR_MATH_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_CONSTEXPR_MATH_CUH_
+#define CUDA_KAT_ON_DEVICE_CONSTEXPR_MATH_CUH_
 
 #include "common.cuh" // for warp_size
 
@@ -232,4 +232,4 @@ constexpr __fhd__ bool is_even(I x) { return x & (I) 0x1 == 0; }
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_CONSTEXPR_MATH_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_CONSTEXPR_MATH_CUH_

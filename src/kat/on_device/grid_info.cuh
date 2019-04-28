@@ -10,8 +10,8 @@
  */
 
 #pragma once
-#ifndef SRC_CUDA_ON_DEVICE_GRID_INFO_CUH_
-#define SRC_CUDA_ON_DEVICE_GRID_INFO_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_GRID_INFO_CUH_
+#define CUDA_KAT_ON_DEVICE_GRID_INFO_CUH_
 
 #include <kat/on_device/common.cuh>
 
@@ -354,4 +354,4 @@ __fd__ bool is_last_in_grid()        { return warp::is_last_in_block() && block:
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* SRC_CUDA_ON_DEVICE_GRID_INFO_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_GRID_INFO_CUH_

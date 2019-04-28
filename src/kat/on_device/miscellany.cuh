@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CUDA_ON_DEVICE_MISCELLANY_CUH_
-#define CUDA_ON_DEVICE_MISCELLANY_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_MISCELLANY_CUH_
+#define CUDA_KAT_ON_DEVICE_MISCELLANY_CUH_
 
 #include "common.cuh"
 
@@ -100,4 +100,4 @@ void* long_memcpy(
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_MISCELLANY_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_MISCELLANY_CUH_

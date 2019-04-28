@@ -26,8 +26,8 @@
  * we do implement - we'll only choose some of the variants.
  */
 #pragma once
-#ifndef CUDA_PTX_VIDEO_INSTRUCTIONS_CUH_
-#define CUDA_PTX_VIDEO_INSTRUCTIONS_CUH_
+#ifndef CUDA_KAT_PTX_VIDEO_INSTRUCTIONS_CUH_
+#define CUDA_KAT_PTX_VIDEO_INSTRUCTIONS_CUH_
 
 #include "detail/define_macros.cuh"
 #include <type_traits>
@@ -73,5 +73,4 @@ DEFINE_SHIFT_AND_OP(r,max) // vshr_max
 #include "detail/undefine_macros.cuh"
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_PTX_VIDEO_INSTRUCTIONS_CUH_ */
-
+#endif // CUDA_KAT_PTX_VIDEO_INSTRUCTIONS_CUH_
