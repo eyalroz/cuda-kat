@@ -10,8 +10,8 @@
  */
 
 #pragma once
-#ifndef CUDA_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_
-#define CUDA_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_
+#define CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_
 
 #include <kat/on_device/common.cuh>
 
@@ -28,4 +28,4 @@ template<typename T> __fd__ T shuffle_xor(const T& t, const int& lane_mask);
 #include <kat/undefine_specifiers.hpp>
 #include "detail/shuffle.cuh"
 
-#endif /* CUDA_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_

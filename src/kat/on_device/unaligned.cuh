@@ -6,8 +6,8 @@
  */
 
 #pragma once
-#ifndef CUDA_ON_DEVICE_UNALIGNED_CUH_
-#define CUDA_ON_DEVICE_UNALIGNED_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_UNALIGNED_CUH_
+#define CUDA_KAT_ON_DEVICE_UNALIGNED_CUH_
 
 #include <kat/on_device/ptx.cuh>
 #include <kat/detail/pointers.cuh>
@@ -266,4 +266,4 @@ __fd__ T read_unaligned(const T* __restrict__ ptr)
 #include <kat/undefine_specifiers.hpp>
 
 
-#endif /* CUDA_ON_DEVICE_UNALIGNED_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_UNALIGNED_CUH_

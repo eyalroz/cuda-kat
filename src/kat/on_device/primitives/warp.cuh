@@ -10,8 +10,8 @@
  */
 
 #pragma once
-#ifndef SRC_CUDA_WARP_LEVEL_PRIMITIVES_CUH_
-#define SRC_CUDA_WARP_LEVEL_PRIMITIVES_CUH_
+#ifndef CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
+#define CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 
 #include "common.cuh"
 #include "../grid_info.cuh"
@@ -1064,4 +1064,4 @@ __fd__ T merge_sorted_half_warps(T lane_element)
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* SRC_CUDA_WARP_LEVEL_PRIMITIVES_CUH_ */
+#endif // CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_

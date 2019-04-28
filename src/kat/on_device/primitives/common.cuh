@@ -5,8 +5,8 @@
  * block, warp, thread and lane).
  */
 
-#ifndef CUDA_ON_DEVICE_PRIMITIVES_COMMON_CUH_
-#define CUDA_ON_DEVICE_PRIMITIVES_COMMON_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_
+#define CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_
 
 #include <cuda/api/types.hpp>
 #include <kat/on_device/miscellany.cuh>
@@ -45,4 +45,4 @@ struct elements_per_lane_in_full_warp_write {
 } // namespace primitives
 } // namespace cuda
 
-#endif /* CUDA_ON_DEVICE_PRIMITIVES_COMMON_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_

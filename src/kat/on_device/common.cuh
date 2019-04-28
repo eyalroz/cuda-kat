@@ -4,8 +4,8 @@
  *
  */
 #pragma once
-#ifndef CUDA_DEVICE_SIDE_COMMON_CUH_
-#define CUDA_DEVICE_SIDE_COMMON_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_COMMON_CUH_
+#define CUDA_KAT_ON_DEVICE_COMMON_CUH_
 
 
 //#if defined(HAVE_CUDA_API_WRAPPERS) || (defined(CUDA_API_WRAPPERS_TYPES_HPP_) && defined(CUDA_API_WRAPPERS_CONSTANTS_HPP_))
@@ -66,4 +66,4 @@ constexpr __fhd__ bool operator==(const int3& lhs, const int3& rhs)
 #include <kat/undefine_specifiers.hpp>
 
 
-#endif // CUDA_DEVICE_SIDE_COMMON_CUH_
+#endif // CUDA_KAT_ON_DEVICE_COMMON_CUH_

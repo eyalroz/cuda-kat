@@ -7,8 +7,8 @@
  */
 
 #pragma once
-#ifndef CUDA_ON_DEVICE_PRIMITIVES_GRID_CUH_
-#define CUDA_ON_DEVICE_PRIMITIVES_GRID_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_PRIMITIVES_GRID_CUH_
+#define CUDA_KAT_ON_DEVICE_PRIMITIVES_GRID_CUH_
 
 #include "common.cuh"
 
@@ -260,4 +260,4 @@ __fd__ void accumulation_to_scalar(
 
 #include <kat/undefine_specifiers.hpp>
 
-#endif /* CUDA_ON_DEVICE_PRIMITIVES_GRID_CUH_ */
+#endif // CUDA_KAT_ON_DEVICE_PRIMITIVES_GRID_CUH_
