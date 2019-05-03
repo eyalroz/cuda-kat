@@ -31,14 +31,19 @@ CTestTestfile.cmake
 # IDE-related files
 .project
 .cproject
+.settings
 
 # Patching
 *.diff
 *.rej
 *.orig
 
-# Third-party files downloaded as part of the build
+# Files/folders downloaded from other repositories as part of the build
+external/*
 third-party/*
 
 # Miscellaneous
 tags
+
+# Doxygen
+doxygen.log
