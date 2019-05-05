@@ -53,13 +53,17 @@ namespace kat {
 // a single PTX instruction
 __fd__ unsigned long int atomicAdd(unsigned long int *address, unsigned long int val)
 {
+	static_assert(
+		sizeof (unsigned long int) == sizeof(unsigned long long int) or
+		sizeof (unsigned long int) == sizeof(unsigned int),
+		"Unexpected size of unsigned long int");
     if (sizeof (unsigned long int) == sizeof(unsigned long long int)) {
         return ::atomicAdd(reinterpret_cast<unsigned long long int*>(address), val);
     }
-    else if (sizeof (unsigned long int) == sizeof(unsigned int)) {
+    else {
+        // It holds that sizeof (unsigned long int) == sizeof(unsigned int)
         return  ::atomicAdd(reinterpret_cast<unsigned int*>(address), val);
     }
-    else return 0;
 }
 
 namespace atomic {
@@ -139,8 +143,6 @@ __fd__ T compare_and_swap(std::false_type, T* __restrict__ address, const T& com
 	} while (actual_value_at_addr != expected_value_at_addr);
 	return reinterpret_cast<const T&>(reinterpret_cast<char*>(&actual_value_at_addr) + address_difference);
 }
-
-
 
 } // namespace detail
 
@@ -396,20 +398,84 @@ template<> __fd__ unsigned long atomicMax<unsigned long>(
 
 #endif /* __CUDA_ARCH__ >= 320 */
 
+namespace detail {
+
+template <typename T>
+__fd__ T increment  (
+	std::true_type,
+	T* __restrict__  address,
+	const T&         wraparound_value)
+{
+	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
+	return (T) (atomicInc(
+		reinterpret_cast<unsigned int*      >(address),
+		reinterpret_cast<const unsigned int&>(wraparound_value)
+	));
+}
+
+template <typename T>
+__fd__ T increment  (
+	std::false_type,
+	T* __restrict__  address,
+	const T&         wraparound_value)
+{
+	auto do_increment = [&](auto x) { return x + wraparound_value;};
+	return apply_atomically(do_increment, address);
+}
+
+} // namespace detail
+
 template <typename T>
 __fd__ T increment  (
 	T* __restrict__  address,
 	const T&         wraparound_value)
 {
-	return atomicInc(address, wraparound_value);
+	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
+
+	return detail::increment<T>(
+		std::integral_constant<bool, can_act_directly>{},
+		address, wraparound_value);
 }
 
-template <typename T>  __fd__ T decrement  (
+namespace detail {
+
+template <typename T>
+__fd__ T decrement (
+	std::true_type,
 	T* __restrict__  address,
-	const T&         wraparound_value )
+	const T&         wraparound_value)
 {
-	return atomicDec(address, wraparound_value);
+	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
+	return (T) (atomicDec(
+		reinterpret_cast<unsigned int*      >(address),
+		reinterpret_cast<const unsigned int&>(wraparound_value)
+	));
 }
+
+template <typename T>
+__fd__ T decrement (
+	std::false_type,
+	T* __restrict__  address,
+	const T&         wraparound_value)
+{
+	auto do_decrement = [&](auto x) { return x - wraparound_value;};
+	return apply_atomically(do_decrement, address);
+}
+
+} // namespace detail
+
+template <typename T>
+__fd__ T decrement (
+	T* __restrict__  address,
+	const T&         wraparound_value)
+{
+	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
+
+	return detail::decrement<T>(
+		std::integral_constant<bool, can_act_directly>{},
+		address, wraparound_value);
+}
+
 
 template <typename T>  __fd__ T subtract   (T* __restrict__ address, const T& val)  { return atomicSub(address, val);  }
 template <typename T>  __fd__ T exchange   (T* __restrict__ address, const T& val)  { return atomicExch(address, val); }
