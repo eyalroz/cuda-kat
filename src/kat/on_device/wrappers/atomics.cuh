@@ -17,8 +17,8 @@ namespace atomic {
  */
 template <typename T>  __fd__ T add        (T* __restrict__ address, const T& val);
 template <typename T>  __fd__ T subtract   (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T increment  (T* __restrict__ address, const T& wraparound_value);
-template <typename T>  __fd__ T decrement  (T* __restrict__ address, const T& wraparound_value);
+template <typename T>  __fd__ T increment  (T* __restrict__ address, const T& wraparound_value = T{1});
+template <typename T>  __fd__ T decrement  (T* __restrict__ address, const T& wraparound_value = T{1});
 template <typename T>  __fd__ T exchange   (T* __restrict__ address, const T& val);
 template <typename T>  __fd__ T min        (T* __restrict__ address, const T& val);
 template <typename T>  __fd__ T max        (T* __restrict__ address, const T& val);
