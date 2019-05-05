@@ -8,6 +8,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 template <typename T>
 __fd__  void swap(T& x, T& y) {
    T _x = x;
@@ -97,6 +99,8 @@ void* long_memcpy(
 	}
 	return destination;
 }
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

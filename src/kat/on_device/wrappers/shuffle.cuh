@@ -17,6 +17,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 // The functions here can be used to shuffle types as large as you like. Of course,
 // if they're not plain-old-data, shuffle at your peril.
 
@@ -24,6 +26,8 @@ template<typename T> __fd__ T shuffle_arbitrary(const T& t, const int& source_la
 template<typename T> __fd__ T shuffle_down(const T& t, const unsigned int& delta);
 template<typename T> __fd__ T shuffle_up(const T& t, const unsigned int& delta);
 template<typename T> __fd__ T shuffle_xor(const T& t, const int& lane_mask);
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 #include "detail/shuffle.cuh"

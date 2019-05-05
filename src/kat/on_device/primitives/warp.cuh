@@ -30,6 +30,7 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
 namespace cuda {
 namespace primitives {
 namespace warp {
@@ -37,11 +38,11 @@ namespace warp {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = ::grid_info::linear::grid;
-namespace block  = ::grid_info::linear::block;
-namespace warp   = ::grid_info::linear::warp;
-namespace thread = ::grid_info::linear::thread;
-namespace lane   = ::grid_info::linear::lane;
+namespace grid   = grid_info::linear::grid;
+namespace block  = grid_info::linear::block;
+namespace warp   = grid_info::linear::warp;
+namespace thread = grid_info::linear::thread;
+namespace lane   = grid_info::linear::lane;
 
 // lane conditions
 // ----------------------------
@@ -305,8 +306,9 @@ __fd__ typename std::result_of<Function()>::type have_last_lane_compute(Function
  * or not the calling thread (lane) satisfies the condition; typed
  * as an int since that's what CUDA primitives take mostly.
  *
- * @return index of the first lane in the warp for which condition is non-zero,
- * or warp_size in case no lanes in the warp satisfy the condition
+ * @return index of the first lane in the warp for which condition is non-zero.
+ * If no lane has non-zero condition, either warp_size or -1 is returned
+ * (depending on the value of @tparam WarpSizeOnNone
  */
 __fd__ native_word_t first_lane_satisfying(int condition)
 {
@@ -1061,6 +1063,7 @@ __fd__ T merge_sorted_half_warps(T lane_element)
 } // namespace warp
 } // namespace primitives
 } // namespace cuda
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

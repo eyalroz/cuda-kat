@@ -16,6 +16,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 template <typename T, typename S>
 __fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
 {
@@ -56,6 +58,8 @@ template <typename T>
 __fd__ unsigned ilog2(std::enable_if<std::is_unsigned<T>::value, T> x) {
   return (CHAR_BIT * sizeof(T) - 1) - builtins::count_leading_zeros(x);
 }
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

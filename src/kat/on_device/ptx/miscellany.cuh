@@ -7,12 +7,14 @@
 #define CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
 
 #include "detail/define_macros.cuh"
+#include <kat/on_device/common.cuh>
+
 #include <cstdint>
 #include <type_traits>
 
-using cuda::native_word_t;
-
 #include <kat/define_specifiers.hpp>
+
+namespace kat {
 
 template <typename Size>
 using promoted_size_t = typename std::common_type<Size, native_word_t>::type;
@@ -223,6 +225,8 @@ bfi(
 }
 
 } // namespace ptx
+} // namespace kat
+
 
 #include "detail/undefine_macros.cuh"
 #include <kat/undefine_specifiers.hpp>

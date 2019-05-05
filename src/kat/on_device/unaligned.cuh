@@ -20,6 +20,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 /**
  * Read a value from a potentially-unaligned location in memory
  *
@@ -262,6 +264,8 @@ __fd__ T read_unaligned(const T* __restrict__ ptr)
 	return read_unaligned_unsafe(ptr);
 }
 */
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

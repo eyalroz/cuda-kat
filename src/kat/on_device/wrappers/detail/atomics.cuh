@@ -43,6 +43,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 // Annoyingly, CUDA - upto and including version 10.0 - provide atomic
 // operation wrappers for unsigned int and unsigned long long int, but
 // not for the in-between type of unsigned long int. So - we
@@ -52,10 +54,10 @@
 __fd__ unsigned long int atomicAdd(unsigned long int *address, unsigned long int val)
 {
     if (sizeof (unsigned long int) == sizeof(unsigned long long int)) {
-        return atomicAdd(reinterpret_cast<unsigned long long int*>(address), val);
+        return ::atomicAdd(reinterpret_cast<unsigned long long int*>(address), val);
     }
     else if (sizeof (unsigned long int) == sizeof(unsigned int)) {
-        return  atomicAdd(reinterpret_cast<unsigned int*>(address), val);
+        return  ::atomicAdd(reinterpret_cast<unsigned int*>(address), val);
     }
     else return 0;
 }
@@ -418,6 +420,7 @@ template <typename T>  __fd__ T logical_or (T* __restrict__ address, const T& va
 template <typename T>  __fd__ T logical_xor(T* __restrict__ address, const T& val)  { return atomicXor(address, val);  }
 
 } // namespace atomic
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 
