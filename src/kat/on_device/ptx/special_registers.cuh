@@ -4,6 +4,7 @@
 
 #include "detail/define_macros.cuh"
 
+namespace kat {
 namespace ptx {
 
 /**
@@ -59,6 +60,8 @@ DEFINE_SPECIAL_REGISTER_GETTER( total_smem_size,    u32); // PTX 4.1
 } // namespace special_registers
 
 } // namespace ptx
+
+} // namespace kat
 
 #include "detail/undefine_macros.cuh"
 

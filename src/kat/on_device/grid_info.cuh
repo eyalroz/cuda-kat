@@ -17,6 +17,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 //#if defined(HAVE_CUDA_API_WRAPPERS) || (defined(CUDA_API_WRAPPERS_TYPES_HPP_) && defined(CUDA_API_WRAPPERS_CONSTANTS_HPP_))
 #if 0
 using cuda::dimensions_t;
@@ -303,7 +305,7 @@ __fd__ unsigned block_stride_start_position(unsigned serialization_factor = 1)
 
 } // namespace thread
 
-namespace lane = ::grid_info::lane;
+namespace lane = ::kat::grid_info::lane;
 
 namespace thread {
 
@@ -351,6 +353,8 @@ __fd__ bool is_last_in_grid()        { return warp::is_last_in_block() && block:
 } // namespace linear
 
 } // namespace grid_info
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

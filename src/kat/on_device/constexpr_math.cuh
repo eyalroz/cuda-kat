@@ -16,6 +16,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 template <typename T>
 __fhd__ constexpr bool is_power_of_2(T val) { return (val & (val-1)) == 0; }
 	// Yes, this works: Only if val had exactly one 1 bit will subtracting 1 switch
@@ -228,6 +230,8 @@ template <typename I>
 constexpr __fhd__ bool is_odd(I x)  { return x & (I) 0x1 != 0; }
 template <typename I>
 constexpr __fhd__ bool is_even(I x) { return x & (I) 0x1 == 0; }
+
+} // namespace kat
 
 
 #include <kat/undefine_specifiers.hpp>

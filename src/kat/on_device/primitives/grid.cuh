@@ -16,7 +16,7 @@
 
 #include <kat/define_specifiers.hpp>
 
-namespace cuda {
+namespace kat {
 namespace primitives {
 namespace grid {
 namespace linear {
@@ -24,11 +24,11 @@ namespace linear {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = ::grid_info::linear::grid;
-namespace block  = ::grid_info::linear::block;
-namespace warp   = ::grid_info::linear::warp;
-namespace thread = ::grid_info::linear::thread;
-namespace lane   = ::grid_info::linear::lane;
+namespace grid   = kat::grid_info::linear::grid;
+namespace block  = kat::grid_info::linear::block;
+namespace warp   = kat::grid_info::linear::warp;
+namespace thread = kat::grid_info::linear::thread;
+namespace lane   = kat::grid_info::linear::lane;
 
 /**
  * Have all kernel threads perform some action over the linear range
@@ -256,7 +256,7 @@ __fd__ void accumulation_to_scalar(
 
 } // namespace block_to_grid
 } // namespace primitives
-} // namespace cuda
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

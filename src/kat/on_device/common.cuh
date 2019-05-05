@@ -7,6 +7,9 @@
 #ifndef CUDA_KAT_ON_DEVICE_COMMON_CUH_
 #define CUDA_KAT_ON_DEVICE_COMMON_CUH_
 
+#include <type_traits>
+
+namespace kat {
 
 //#if defined(HAVE_CUDA_API_WRAPPERS) || (defined(CUDA_API_WRAPPERS_TYPES_HPP_) && defined(CUDA_API_WRAPPERS_CONSTANTS_HPP_))
 #if 0
@@ -23,7 +26,6 @@ using cuda::native_word_t;
 
 #else
 
-#include <type_traits>
 
 /**
  * CUDA kernels are launched in grids of blocks of threads, in 3 dimensions.
@@ -50,6 +52,8 @@ enum : native_word_t { warp_size = 32 };
 enum : native_word_t { log_warp_size = 5 };
 
 #endif
+
+} // namespace kat
 
 #include <kat/define_specifiers.hpp>
 

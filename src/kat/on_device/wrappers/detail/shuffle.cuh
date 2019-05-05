@@ -11,6 +11,7 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
 namespace detail {
 
 template<typename InputIterator, typename OutputIterator, class UnaryOperation>
@@ -192,6 +193,8 @@ __fd__ T shuffle_xor(const T& t, const int& lane_mask) {
 	}
     return result;
 }
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

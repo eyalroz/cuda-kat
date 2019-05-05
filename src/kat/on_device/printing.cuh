@@ -16,6 +16,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 
 /**
  * A wrapper for the printf function, which prefixes the printed string with
@@ -255,6 +257,8 @@ constexpr __fd__ const char* ordinal_suffix(int n)
 		(n % 100 == 3 ? "rd" :
 		"th")));
 }
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

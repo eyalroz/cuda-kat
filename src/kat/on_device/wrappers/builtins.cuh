@@ -28,6 +28,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 using lane_mask_t = unsigned;
 
 enum : lane_mask_t { full_warp_mask = 0xFFFFFFFF };
@@ -199,6 +201,7 @@ template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int wi
 
 
 } // namespace builtins
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 #include "detail/builtins.cuh"

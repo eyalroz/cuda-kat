@@ -13,6 +13,7 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
 /**
  * @note Only regards dynamic shared memory.
  */
@@ -146,11 +147,9 @@ __fd__ T* strided(offset_t base_offset = 0)
 }
 
 } // namespace dynamic
-
-
 } // namespace linear_grid
-
 } // namespace shared_memory
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

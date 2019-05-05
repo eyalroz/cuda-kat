@@ -20,7 +20,7 @@
 
 #include <kat/define_specifiers.hpp>
 
-namespace cuda {
+namespace kat {
 
 namespace primitives {
 
@@ -543,7 +543,7 @@ __fd__ T* __restrict__ set_to_copy_of(
 
 } // namespace block
 } // namespace primitives
-} // namespace cuda
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 

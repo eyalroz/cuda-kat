@@ -30,12 +30,12 @@
 #define CUDA_KAT_PTX_VIDEO_INSTRUCTIONS_CUH_
 
 #include "detail/define_macros.cuh"
+#include <kat/on_device/common.cuh>
 #include <type_traits>
-
-using cuda::native_word_t;
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
 namespace ptx {
 
 /**
@@ -68,6 +68,7 @@ DEFINE_SHIFT_AND_OP(r,max) // vshr_max
 
 
 } // namespace ptx
+} // namespace kat
 
 
 #include "detail/undefine_macros.cuh"

@@ -7,6 +7,7 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
 namespace atomic {
 
 /*
@@ -64,6 +65,7 @@ __fd__ T apply_atomically(
 
 
 } // namespace atomic
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 #include "detail/atomics.cuh"

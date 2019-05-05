@@ -17,7 +17,7 @@
 
 #include <type_traits>
 
-namespace cuda {
+namespace kat {
 namespace primitives {
 
 enum inclusivity_t : bool {
@@ -43,6 +43,6 @@ struct elements_per_lane_in_full_warp_write {
 } // namespace detail
 
 } // namespace primitives
-} // namespace cuda
+} // namespace kat
 
 #endif // CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_

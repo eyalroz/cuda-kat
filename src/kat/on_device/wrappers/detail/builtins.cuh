@@ -16,6 +16,7 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
 
 // TODO: Consider using "sized types" (from cstdint) more. It makes more sense when hardware is involved,
 // although - CUDA-provided functions don't really do that and just make implicit assumptions about
@@ -225,6 +226,8 @@ template <> __fd__ float               maximum<float             >(float x, floa
 template <> __fd__ double              maximum<double            >(double x, double y)                         { return fmax(x,y);   }
 
 } // namespace builtins
+} // namespace kat
+
 
 #include <kat/undefine_specifiers.hpp>
 

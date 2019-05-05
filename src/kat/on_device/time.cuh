@@ -9,6 +9,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+namespace kat {
+
 enum class sleep_resolution { clock_cycles, nanoseconds };
 
 using clock_value_t = long long;
@@ -67,6 +69,8 @@ __fd__ void sleep<sleep_resolution::clock_cycles>(
 }
 
 #endif // __CUDA_ARCH__ >= 700
+
+} // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
 
