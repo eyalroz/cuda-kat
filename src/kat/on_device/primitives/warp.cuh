@@ -13,25 +13,21 @@
 #ifndef CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 #define CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 
-#include "common.cuh"
+#include <kat/on_device/primitives/common.cuh>
 #include "../grid_info.cuh"
 
 #include <kat/on_device/wrappers/shuffle.cuh>
 #include <kat/on_device/wrappers/builtins.cuh>
 #include <kat/on_device/wrappers/atomics.cuh>
+#include <kat/on_device/non-builtins.cuh>
 #include <kat/on_device/ptx.cuh>
 #include <kat/on_device/math.cuh>
-
-#include <cuda/miscellany.h>
-#include <cuda/bit_operations.cuh>
-#include <cuda/functors.hpp>
 
 #include <type_traits>
 
 #include <kat/define_specifiers.hpp>
 
 namespace kat {
-namespace cuda {
 namespace primitives {
 namespace warp {
 
@@ -56,7 +52,7 @@ namespace lane   = grid_info::linear::lane;
  */
 __fd__  bool all_lanes_satisfy(int condition)
 {
-	return ::builtins::warp::all_lanes_satisfy(condition);
+	return builtins::warp::all_lanes_satisfy(condition);
 }
 
 
@@ -81,7 +77,7 @@ __fd__  bool no_lanes_satisfy(int condition)
  */
 __fd__  bool all_lanes_agree_on(int condition)
 {
-	auto ballot_results = ::builtins::warp::ballot(condition);
+	auto ballot_results = builtins::warp::ballot(condition);
 	return
 		    ballot_results == 0  // none satisfy the condition
 		or ~ballot_results == 0; // all satisfy the condition);
@@ -109,7 +105,7 @@ __fd__  bool some_lanes_satisfy(int condition)
  */
 __fd__ native_word_t num_lanes_satisfying(int condition)
 {
-	return ::builtins::population_count(::builtins::warp::ballot(condition));
+	return builtins::population_count(builtins::warp::ballot(condition));
 }
 
 /**
@@ -152,10 +148,36 @@ template <typename T> __fd__ bool in_unique_lane_with(T value, lane_mask_t lane_
 {
 	// Note: This assumes a lane's bit is always on in the result of matching_lanes(). The PTX
 	// reference implies that this is the case but is not explicit about it
-	return ::builtins::warp::matching_lanes(value, lane_mask) !=
-		::builtins::warp::mask_of_lanes::self();
+	return builtins::warp::matching_lanes(value, lane_mask) !=
+		builtins::warp::mask_of_lanes::self();
 }
 
+namespace detail {
+
+template<typename LHS, typename RHS = LHS, typename Result = LHS>
+struct plus {
+	using first_argument_type = LHS;
+	using second_argument_type = RHS;
+	using result_type = Result;
+
+	__fhd__ Result operator() (const LHS& x, const RHS& y) const noexcept { return x + y; }
+	struct accumulator {
+		__fhd__ Result operator()(
+			typename std::enable_if<std::is_same<LHS, RHS>::value, Result>::type& x,
+			const RHS& y) const noexcept { return x += y; }
+		struct atomic {
+#ifdef __CUDA_ARCH__
+			__fd__ Result operator()(
+				typename std::enable_if<std::is_same<LHS,RHS>::value, Result>::type& x,
+				const RHS& y) const noexcept { return kat::atomic::add(&x,y); }
+#endif // __CUDA_ARCH__
+		};
+		__fhd__ static Result neutral_value() noexcept { return 0; };
+	};
+	__fhd__ static Result neutral_value() noexcept { return 0; };
+};
+
+} // namespace detail
 
 /**
  * Performs a reduction (e.g. a summation of multiplication) of all elements passed into
@@ -192,7 +214,7 @@ __fd__ typename ReductionOp::result_type reduce(typename ReductionOp::first_argu
 template <typename Datum>
 __fd__ Datum sum(Datum value)
 {
-	return reduce<cuda::functors::plus<Datum>>(value);
+	return reduce<detail::plus<Datum>>(value);
 }
 
 /**
@@ -238,7 +260,7 @@ __fd__ typename ReductionOp::result_type scan(InputDatum value)
 template <typename T, inclusivity_t Inclusivity = inclusivity_t::Inclusive, typename Result = T>
 __fd__ T prefix_sum(T value)
 {
-	return scan<cuda::functors::plus<Result>, T, Inclusivity>(value);
+	return scan<detail::plus<Result>, T, Inclusivity>(value);
 }
 
 template <typename T, typename Result = T>
@@ -312,7 +334,7 @@ __fd__ typename std::result_of<Function()>::type have_last_lane_compute(Function
  */
 __fd__ native_word_t first_lane_satisfying(int condition)
 {
-	return count_trailing_zeros(::builtins::warp::ballot(condition));
+	return non_builtins::count_trailing_zeros(builtins::warp::ballot(condition));
 }
 
 /**
@@ -369,6 +391,11 @@ __fd__ void naive_copy(
 	{
 		target[pos] = source[pos];
 	}
+}
+
+template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
+{
+	return x & ~((1 << k) - 1);
 }
 
 
@@ -428,7 +455,7 @@ __fd__ void copy_n(
 			// ... so this has either 1 or 2 elements and its overall size is 4
 
 		promoted_size_t<Size> truncated_length = MayHaveSlack ?
-			clear_lower_k_bits(length, constexpr_::log2(elements_per_lane_in_full_warp_write)) :
+			detail::clear_lower_bits(length, constexpr_::log2(elements_per_lane_in_full_warp_write)) :
 			length;
 
 		// TODO: Should I pragma-unroll this by a fixed amount? Should
@@ -585,7 +612,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 
 __fd__ unsigned active_lanes_mask()
 {
-	return ::builtins::warp::ballot(1);
+	return builtins::warp::ballot(1);
 		// the result will only have bits set for the lanes which are active;
 		// there's no "inference" about what inactive lanes might have passed
 		// to the ballot function
@@ -608,7 +635,7 @@ __fd__ unsigned select_leader_lane(unsigned active_lanes_mask)
 	// otherwise clz will return -1
 	return PreferFirstLane ?
 		builtins::count_leading_zeros(active_lanes_mask) :
-		count_trailing_zeros(active_lanes_mask);
+		non_builtins::count_trailing_zeros(active_lanes_mask);
 }
 
 template <bool PreferFirstLane = true>
@@ -855,7 +882,7 @@ template <
 	Predicate&        predicate,
 	Size              length)
 {
-	static_assert(warp_size == size_in_bits<standard_bit_container_t>::value,
+	static_assert(warp_size == size_in_bits<native_word_t>(),
 		"The assumption of having as many threads in a warp "
 		"as there are bits in the native register size - "
 		"doesn't hold; you cant use this function.");
@@ -891,7 +918,7 @@ template <
 		    writing_lane++, input_pos += warp_size)
 		{
 			auto thread_result = predicate(input_pos);
-			auto warp_results = ::builtins::warp::ballot(thread_result);
+			auto warp_results = builtins::warp::ballot(thread_result);
 			if (lane::index() == writing_lane) { warp_results_write_buffer = warp_results; }
 		}
 		computed_predicate[output_pos] = warp_results_write_buffer;
@@ -908,14 +935,14 @@ template <
 
 		promoted_size_t<Size> full_warp_reads_output_slack_length =
 			full_warp_reads_output_length - full_warp_writes_output_length;
-		standard_bit_container_t warp_results_write_buffer;
+		native_word_t warp_results_write_buffer;
 		if (full_warp_reads_output_slack_length > 0) {
 			for (native_word_t writing_lane = 0;
 				 writing_lane < full_warp_reads_output_slack_length;
 				 writing_lane++, input_pos += warp_size)
 			{
 				auto thread_result = predicate(input_pos);
-				auto warp_results = ::builtins::warp::ballot(thread_result);
+				auto warp_results = builtins::warp::ballot(thread_result);
 				if (lane::index() == writing_lane) {
 					warp_results_write_buffer = warp_results;
 				}
@@ -926,7 +953,7 @@ template <
 			native_word_t input_slack_length = length % warp_size; // let's hope this gets optimized...
 			if (input_slack_length > 0) {
 				auto thread_result = (input_pos < length) ? predicate(input_pos) : false;
-				auto warp_results = ::builtins::warp::ballot(thread_result);
+				auto warp_results = builtins::warp::ballot(thread_result);
 				if (lane::index() == num_writing_lanes) { warp_results_write_buffer = warp_results; }
 				num_writing_lanes++;
 			}
@@ -1062,7 +1089,6 @@ __fd__ T merge_sorted_half_warps(T lane_element)
 
 } // namespace warp
 } // namespace primitives
-} // namespace cuda
 } // namespace kat
 
 #include <kat/undefine_specifiers.hpp>

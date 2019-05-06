@@ -35,6 +35,10 @@
 
 #include <kat/on_device/common.cuh>
 #include <device_atomic_functions.h>
+#if (CUDART_VERSION >= 8000)
+#include <sm_60_atomic_functions.h>
+#include <cuda_fp16.h>
+#endif
 #include <kat/detail/pointers.cuh>
 
 #include <functional>
@@ -42,8 +46,6 @@
 #include <climits>
 
 #include <kat/define_specifiers.hpp>
-
-namespace kat {
 
 // Annoyingly, CUDA - upto and including version 10.0 - provide atomic
 // operation wrappers for unsigned int and unsigned long long int, but
@@ -65,6 +67,19 @@ __fd__ unsigned long int atomicAdd(unsigned long int *address, unsigned long int
         return  ::atomicAdd(reinterpret_cast<unsigned int*>(address), val);
     }
 }
+
+__fd__ long int atomicAdd(long* address, long val)
+{
+	return atomicAdd(reinterpret_cast<unsigned long*>(address), static_cast<unsigned long>(val));
+}
+
+__fd__ long long int atomicAdd(long long* address, long long val)
+{
+	return ::atomicAdd(reinterpret_cast<unsigned long long*>(address), static_cast<unsigned long long>(val));
+}
+
+
+namespace kat {
 
 namespace atomic {
 
@@ -232,87 +247,44 @@ template<> __fd__ unsigned long long int reinterpret<double, unsigned long long 
 template<> __fd__ float reinterpret<int, float>(int x) { return __int_as_float(x); }
 template<> __fd__ int reinterpret<float, int>(float x) { return __float_as_int(x); }
 
-// The default (which should be 32-or-less-bit types
-template <typename T, typename = void>
-struct add_impl {
-	__fd__ T operator()(T*  __restrict__ address, const T& val) const
-	{
-		return atomicAdd(address, val);
-	}
-};
-
-template <typename T>
-struct add_impl<T,
-	typename std::enable_if<
-		!std::is_same<T, unsigned long long int>::value &&
-		sizeof(T) == sizeof(unsigned long long int)
-	>::type> {
-	using surrogate_t = unsigned long long int;
-
-	__fd__ T operator()(T*  __restrict__ address, const T& val) const
-	{
-		auto address_ = reinterpret_cast<surrogate_t*>(address);
-
-		// TODO: Use apply_atomically
-
-		surrogate_t previous_ = *address_;
-		surrogate_t expected_previous_;
-		do {
-			expected_previous_ = previous_;
-			T updated_value = reinterpret<surrogate_t, T>(previous_) + val;
-			previous_ = atomicCAS(address_, expected_previous_,
-				reinterpret<T, surrogate_t>(updated_value));
-		} while (expected_previous_ != previous_);
-		T rv = reinterpret<surrogate_t, T>(previous_);
-		return rv;
-	}
-};
-
 } // namespace detail
-
-template <typename T>
-__fd__ T add(T* __restrict__ address, const T& val)
-{
-	return detail::add_impl<T>()(address, val);
-}
-
 
 // TODO: Consider making apply_atomically take functors,
 // including the functors header and having using statements here
 // instead of actual definitions
 template <typename T>
-__fd__ T bitwise_or (T* __restrict__ address, const T& val)
+__fd__ T bitwise_or (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x | y; };
-	return apply_atomically(f, address, val);
+	return apply_atomically<T>(f, address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_and (T* __restrict__ address, const T& val)
+__fd__ T bitwise_and (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x & y; };
-	return apply_atomically(f, address, val);
+	return apply_atomically<T>(f, address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_xor (T* __restrict__ address, const T& val)
+__fd__ T bitwise_xor (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x ^ y; };
-	return apply_atomically(f, address, val);
+	return apply_atomically<T>(f, address, val);
 }
 
 template <typename T>
 __fd__ T bitwise_not (T* __restrict__ address)
 {
 	auto f = [](const T& x) { return ~x; };
-	return apply_atomically(f, address);
+	return apply_atomically<T>(f, address);
 }
 
 template <typename T>
 __fd__ T set_bit (T* __restrict__ address, const unsigned bit_index)
 {
 	auto f = [](const T& x, const unsigned y) { return x | 1 << y; };
-	return apply_atomically(f, address, bit_index);
+	return apply_atomically<T>(f, address, bit_index);
 }
 template <typename T>
 __fd__ T unset_bit (T* __restrict__ address, const unsigned bit_index)
@@ -328,35 +300,35 @@ __fd__ T unset_bit (T* __restrict__ address, const unsigned bit_index)
 #if __CUDA_ARCH__ < 320
 
 template <typename T>
-__fd__ T atomicMin (T* __restrict__ address, const T& val)
+__fd__ T atomicMin (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x < y ? x : y; };
 	return apply_atomically(f, address, val);
 }
 
 template <typename T>
-__fd__ T atomicMax (T* __restrict__ address, const T& val)
+__fd__ T atomicMax (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x > y ? x : y; };
 	return apply_atomically(f, address, val);
 }
 
 template <typename T>
-__fd__ T atomicAnd (T* __restrict__ address, const T& val)
+__fd__ T atomicAnd (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x && y; };
 	return apply_atomically(f, address, val);
 }
 
 template <typename T>
-__fd__ T atomicOr (T* __restrict__ address, const T& val)
+__fd__ T atomicOr (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return x || y; };
 	return apply_atomically(f, address, val);
 }
 
 template <typename T>
-__fd__ T atomicXor (T* __restrict__ address, const T& val)
+__fd__ T atomicXor (T* __restrict__ address, T val)
 {
 	auto f = [](const T& x, const T& y) { return (x && !y) || (y && !x); };
 	return apply_atomically(f, address, val);
@@ -365,21 +337,19 @@ __fd__ T atomicXor (T* __restrict__ address, const T& val)
 #else
 
 template <typename T>
-__fd__ T atomicMin(
-	T* __restrict__ address, const T& val)
+__fd__ T atomicMin(T* __restrict__ address, T val)
 {
 	return ::atomicMin(address, val);
 }
 
 template <typename T>
-__fd__ T atomicMax(
-	T* __restrict__ address, const T& val)
+__fd__ T atomicMax(T* __restrict__ address, T val)
 {
 	return ::atomicMax(address, val);
 }
 
 template<> __fd__ unsigned long atomicMin<unsigned long>(
-	unsigned long* __restrict__ address, const unsigned long& val)
+	unsigned long* __restrict__ address, const unsigned long val)
 {
 	return ::atomicMin(
 		reinterpret_cast<unsigned long long*>(address),
@@ -388,7 +358,7 @@ template<> __fd__ unsigned long atomicMin<unsigned long>(
 }
 
 template<> __fd__ unsigned long atomicMax<unsigned long>(
-	unsigned long* __restrict__ address, const unsigned long& val)
+	unsigned long* __restrict__ address, const unsigned long val)
 {
 	return ::atomicMax(
 		reinterpret_cast<unsigned long long*>(address),
@@ -401,10 +371,10 @@ template<> __fd__ unsigned long atomicMax<unsigned long>(
 namespace detail {
 
 template <typename T>
-__fd__ T increment  (
+__fd__ T increment_impl  (
 	std::true_type,
 	T* __restrict__  address,
-	const T&         wraparound_value)
+	T                wraparound_value)
 {
 	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
 	return (T) (atomicInc(
@@ -414,10 +384,10 @@ __fd__ T increment  (
 }
 
 template <typename T>
-__fd__ T increment  (
+__fd__ T increment_impl  (
 	std::false_type,
 	T* __restrict__  address,
-	const T&         wraparound_value)
+	T                wraparound_value)
 {
 	auto do_increment = [&](auto x) { return x + wraparound_value;};
 	return apply_atomically(do_increment, address);
@@ -428,11 +398,11 @@ __fd__ T increment  (
 template <typename T>
 __fd__ T increment  (
 	T* __restrict__  address,
-	const T&         wraparound_value)
+	T                wraparound_value)
 {
 	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
 
-	return detail::increment<T>(
+	return detail::increment_impl<T>(
 		std::integral_constant<bool, can_act_directly>{},
 		address, wraparound_value);
 }
@@ -440,10 +410,10 @@ __fd__ T increment  (
 namespace detail {
 
 template <typename T>
-__fd__ T decrement (
+__fd__ T decrement_impl (
 	std::true_type,
 	T* __restrict__  address,
-	const T&         wraparound_value)
+	T                wraparound_value)
 {
 	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
 	return (T) (atomicDec(
@@ -453,10 +423,10 @@ __fd__ T decrement (
 }
 
 template <typename T>
-__fd__ T decrement (
+__fd__ T decrement_impl (
 	std::false_type,
 	T* __restrict__  address,
-	const T&         wraparound_value)
+	T                wraparound_value)
 {
 	auto do_decrement = [&](auto x) { return x - wraparound_value;};
 	return apply_atomically(do_decrement, address);
@@ -467,23 +437,87 @@ __fd__ T decrement (
 template <typename T>
 __fd__ T decrement (
 	T* __restrict__  address,
-	const T&         wraparound_value)
+	T                wraparound_value)
 {
 	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
 
-	return detail::decrement<T>(
+	return detail::decrement_impl<T>(
 		std::integral_constant<bool, can_act_directly>{},
 		address, wraparound_value);
 }
 
+namespace detail {
 
-template <typename T>  __fd__ T subtract   (T* __restrict__ address, const T& val)  { return atomicSub(address, val);  }
-template <typename T>  __fd__ T exchange   (T* __restrict__ address, const T& val)  { return atomicExch(address, val); }
-template <typename T>  __fd__ T min        (T* __restrict__ address, const T& val)  { return atomicMin(address, val);  }
-template <typename T>  __fd__ T max        (T* __restrict__ address, const T& val)  { return atomicMax(address, val);  }
-template <typename T>  __fd__ T logical_and(T* __restrict__ address, const T& val)  { return atomicAnd(address, val);  }
-template <typename T>  __fd__ T logical_or (T* __restrict__ address, const T& val)  { return atomicOr(address, val);   }
-template <typename T>  __fd__ T logical_xor(T* __restrict__ address, const T& val)  { return atomicXor(address, val);  }
+template <typename T>
+__fd__ T add_impl  (
+	std::true_type,
+	T* __restrict__  address,
+	T                val)
+{
+	static_assert(
+		   std::is_same< T,int                >::value
+		or std::is_same< T,long int           >::value
+		or std::is_same< T,long long int      >::value
+		or std::is_same< T,unsigned           >::value
+		or std::is_same< T,unsigned long      >::value
+		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,float              >::value
+ #if __CUDA_ARCH__ >= 600
+		or std::is_same< T,half               >::value
+		or std::is_same< T,double             >::value
+#endif
+		,
+		"invalid type");
+	return ::atomicAdd(address, val);
+}
+
+template <typename T>
+__fd__ T add_impl  (
+	std::false_type,
+	T* __restrict__  address,
+	T                val)
+{
+	auto do_addition = [](T x, T val) { return x + val; };
+	return apply_atomically(do_addition, address, val);
+}
+
+// TODO: Double-check (no pun intended) that pre-Pascal cards, or Pascal-and-onwards
+// cards running CC 3.0 code, handle doubles properly - I have my doubts.
+
+} // namespace detail
+
+template <typename T>
+__fd__ T add (
+	T* __restrict__  address,
+	T                val)
+{
+	constexpr bool can_act_directly =
+		   std::is_same< T,int                >::value
+		or std::is_same< T,long int           >::value
+		or std::is_same< T,long long int      >::value
+		or std::is_same< T,unsigned           >::value
+		or std::is_same< T,unsigned long      >::value
+		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,float              >::value
+#if __CUDA_ARCH__ >= 600
+		or std::is_same< T,half               >::value
+		or std::is_same< T,double             >::value
+#endif
+		;
+	return detail::add_impl<T>(
+		std::integral_constant<bool, can_act_directly>{},
+		//std::integral_constant<bool, false>{},
+		address, val);
+}
+
+
+template <typename T>  __fd__ T subtract   (T* __restrict__ address, T val)  { return atomicSub(address, val);  }
+template <typename T>  __fd__ T exchange   (T* __restrict__ address, T val)  { return atomicExch(address, val); }
+template <typename T>  __fd__ T min        (T* __restrict__ address, T val)  { return atomicMin(address, val);  }
+template <typename T>  __fd__ T max        (T* __restrict__ address, T val)  { return atomicMax(address, val);  }
+template <typename T>  __fd__ T logical_and(T* __restrict__ address, T val)  { return atomicAnd(address, val);  }
+template <typename T>  __fd__ T logical_or (T* __restrict__ address, T val)  { return atomicOr(address, val);   }
+template <typename T>  __fd__ T logical_xor(T* __restrict__ address, T val)  { return atomicXor(address, val);  }
 
 } // namespace atomic
 } // namespace kat

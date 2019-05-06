@@ -15,23 +15,24 @@ namespace atomic {
  * - Consider using non-const references instead of pointers (but make sure we get the same PTX)
  * - Consider creating an atomic<T> wrapper class which has these as operators.
  */
-template <typename T>  __fd__ T add        (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T subtract   (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T increment  (T* __restrict__ address, const T& wraparound_value = T{1});
-template <typename T>  __fd__ T decrement  (T* __restrict__ address, const T& wraparound_value = T{1});
-template <typename T>  __fd__ T exchange   (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T min        (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T max        (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T logical_and(T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T logical_or (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T logical_xor(T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T bitwise_or (T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T bitwise_and(T* __restrict__ address, const T& val);
-template <typename T>  __fd__ T bitwise_xor(T* __restrict__ address, const T& val);
+template <typename T>  __fd__ T add        (T* __restrict__ address, T val);
+template <typename T>  __fd__ T subtract   (T* __restrict__ address, T val);
+template <typename T>  __fd__ T increment  (T* __restrict__ address, T wraparound_value = T{1});
+template <typename T>  __fd__ T decrement  (T* __restrict__ address, T wraparound_value = T{1});
+template <typename T>  __fd__ T exchange   (T* __restrict__ address, T val);
+template <typename T>  __fd__ T min        (T* __restrict__ address, T val);
+template <typename T>  __fd__ T max        (T* __restrict__ address, T val);
+template <typename T>  __fd__ T logical_and(T* __restrict__ address, T val);
+template <typename T>  __fd__ T logical_or (T* __restrict__ address, T val);
+template <typename T>  __fd__ T logical_xor(T* __restrict__ address, T val);
+template <typename T>  __fd__ T bitwise_or (T* __restrict__ address, T val);
+template <typename T>  __fd__ T bitwise_and(T* __restrict__ address, T val);
+template <typename T>  __fd__ T bitwise_xor(T* __restrict__ address, T val);
 template <typename T>  __fd__ T bitwise_not(T* __restrict__ address);
 template <typename T>  __fd__ T set_bit    (T* __restrict__ address, const unsigned bit_index);
 template <typename T>  __fd__ T unset_bit  (T* __restrict__ address, const unsigned bit_index);
 
+// Note: We let this one take a const reference
 template <typename T>  __fd__ T compare_and_swap(
     T* __restrict__  address,
     const T&         compare,
