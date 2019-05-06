@@ -34,7 +34,7 @@ __fd__ static void shuffle_arbitrary(
 {
 	transform(
 		in.begin(), in.end(), result.begin(),
-		[&source_lane](const int& x) { return ::builtins::warp::shuffle::arbitrary(x, source_lane); });
+		[&source_lane](const int& x) { return builtins::warp::shuffle::arbitrary(x, source_lane); });
 }
 
 template<int s>
@@ -46,7 +46,7 @@ static void shuffle_down(
 {
 	transform(
 		in.begin(), in.end(), result.begin(),
-		[&delta](const int& x) { return ::builtins::warp::shuffle::down(x, delta); });
+		[&delta](const int& x) { return builtins::warp::shuffle::down(x, delta); });
 }
 
 template<int s>
@@ -57,7 +57,7 @@ __fd__ static void shuffle_up(
 {
 	transform(
 		in.begin(), in.end(), result.begin(),
-		[&delta](const int& x) { return ::builtins::warp::shuffle::up(x, delta); });
+		[&delta](const int& x) { return builtins::warp::shuffle::up(x, delta); });
 }
 
 template<int s>
@@ -68,7 +68,7 @@ __fd__ static void shuffle_xor(
 {
 	transform(
 		in.begin(), in.end(), result.begin(),
-		[&lane_mask](const int& x) { return ::builtins::warp::shuffle::xor_(x, lane_mask); });
+		[&lane_mask](const int& x) { return builtins::warp::shuffle::xor_(x, lane_mask); });
 }
 
 
@@ -93,7 +93,7 @@ __fd__ T shuffle_arbitrary(const T& t, const int& source_lane) {
 		case 2: reinterpret_cast<short&>(surrogate) = reinterpret_cast<const short&>(t_remainder); break;
 		case 3: reinterpret_cast<char3&>(surrogate) = reinterpret_cast<const char3&>(t_remainder); break;
 		}
-    	surrogate = ::builtins::warp::shuffle::arbitrary(surrogate, source_lane, warp_size);
+    	surrogate = builtins::warp::shuffle::arbitrary(surrogate, source_lane, warp_size);
     	int& result_remainder = *(reinterpret_cast<int*>(&result) + num_int_shuffles);
     	switch(sub_int_remainder_size) {
 		case 1: reinterpret_cast<char&> (result_remainder) = reinterpret_cast<char&> (surrogate); break;
@@ -123,7 +123,7 @@ __fd__ T shuffle_down(const T& t, const unsigned int& delta) {
 		case 2: reinterpret_cast<short&>(surrogate) = reinterpret_cast<const short&>(t_remainder); break;
 		case 3: reinterpret_cast<char3&>(surrogate) = reinterpret_cast<const char3&>(t_remainder); break;
 		}
-    	surrogate = ::builtins::warp::shuffle::down(surrogate, delta, warp_size);
+    	surrogate = builtins::warp::shuffle::down(surrogate, delta, warp_size);
     	int& result_remainder = *(reinterpret_cast<int*>(&result) + num_int_shuffles);
     	switch(sub_int_remainder_size) {
 		case 1: reinterpret_cast<char&> (result_remainder) = reinterpret_cast<char&> (surrogate); break;
@@ -153,7 +153,7 @@ __fd__ T shuffle_up(const T& t, const unsigned int& delta) {
 		case 2: reinterpret_cast<short&>(surrogate) = reinterpret_cast<const short&>(t_remainder); break;
 		case 3: reinterpret_cast<char3&>(surrogate) = reinterpret_cast<const char3&>(t_remainder); break;
 		}
-    	surrogate = ::builtins::warp::shuffle::up(surrogate, delta, warp_size);
+    	surrogate = builtins::warp::shuffle::up(surrogate, delta, warp_size);
     	int& result_remainder = *(reinterpret_cast<int*>(&result) + num_int_shuffles);
     	switch(sub_int_remainder_size) {
 		case 1: reinterpret_cast<char&> (result_remainder) = reinterpret_cast<char&> (surrogate); break;
@@ -183,7 +183,7 @@ __fd__ T shuffle_xor(const T& t, const int& lane_mask) {
 		case 2: reinterpret_cast<short&>(surrogate) = reinterpret_cast<const short&>(t_remainder); break;
 		case 3: reinterpret_cast<char3&>(surrogate) = reinterpret_cast<const char3&>(t_remainder); break;
 		}
-    	surrogate = ::builtins::warp::shuffle::xor_(surrogate, lane_mask, warp_size);
+    	surrogate = builtins::warp::shuffle::xor_(surrogate, lane_mask, warp_size);
     	int& result_remainder = *(reinterpret_cast<int*>(&result) + num_int_shuffles);
     	switch(sub_int_remainder_size) {
 		case 1: reinterpret_cast<char&> (result_remainder) = reinterpret_cast<char&> (surrogate); break;

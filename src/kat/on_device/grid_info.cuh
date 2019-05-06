@@ -33,25 +33,31 @@ using cuda::dimensions_t;
 struct dimensions_t // this almost-inherits dim3
 {
     grid_dimension_t x, y, z;
-    constexpr __hd__ dimensions_t(unsigned x_ = 1, unsigned y_ = 1, unsigned z_ = 1)
+    constexpr __hd__ dimensions_t(unsigned x_ = 1, unsigned y_ = 1, unsigned z_ = 1) noexcept
     : x(x_), y(y_), z(z_) {}
 
-    __hd__ constexpr dimensions_t(const uint3& v) : dimensions_t(v.x, v.y, v.z) { }
-    __hd__ constexpr dimensions_t(const dim3& dims) : dimensions_t(dims.x, dims.y, dims.z) { }
+    __hd__ constexpr dimensions_t(const uint3& v) noexcept : dimensions_t(v.x, v.y, v.z) { }
+    __hd__ constexpr dimensions_t(const dim3& dims) noexcept : dimensions_t(dims.x, dims.y, dims.z) { }
 
-    __hd__ constexpr operator uint3(void) const { return { x, y, z }; }
+    __hd__ constexpr operator uint3(void) const noexcept { return { x, y, z }; }
 
     // This _should_ have been constexpr, but nVIDIA have not marked the dim3 constructors
     // as constexpr, so it isn't
-    __hd__ operator dim3(void) const { return { x, y, z }; }
+    __hd__ operator dim3(void) const noexcept { return { x, y, z }; }
 
-    __fhd__ constexpr size_t volume() const { return (size_t) x * y * z; }
-    __fhd__ constexpr bool empty() const {  return volume() == 0; }
-    __fhd__ constexpr unsigned char dimensionality() const
+    __fhd__ constexpr size_t volume() const noexcept { return (size_t) x * y * z; }
+    __fhd__ constexpr bool empty() const noexcept {  return volume() == 0; }
+    __fhd__ constexpr unsigned char dimensionality() const noexcept
     {
         return ((z > 1) + (y > 1) + (x > 1)) * (!empty());
     }
 };
+
+
+constexpr __fhd__ bool operator==(const dimensions_t& lhs, const dimensions_t& rhs) noexcept
+{
+	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
+}
 #endif
 
 namespace detail {

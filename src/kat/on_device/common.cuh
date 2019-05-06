@@ -8,6 +8,7 @@
 #define CUDA_KAT_ON_DEVICE_COMMON_CUH_
 
 #include <type_traits>
+#include <climits> // for CHAR_BIT
 
 namespace kat {
 
@@ -53,19 +54,32 @@ enum : native_word_t { log_warp_size = 5 };
 
 #endif
 
+/**
+ * The number bits in the representation of a value of type T.
+ *
+ * @note with this variant, you'll need to manually specify the type.
+ */
+template <typename T>
+constexpr std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
+
+/**
+ * The number bits in the representation of a value of type T
+ *
+ * @note with this variant, the type will be deduced from the
+ * object you pass.
+ */
+template <typename T>
+constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
+
+
 } // namespace kat
 
 #include <kat/define_specifiers.hpp>
 
-constexpr __fhd__ bool operator==(const uint3& lhs, const uint3& rhs)
-{
-	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
-}
-
-constexpr __fhd__ bool operator==(const int3& lhs, const int3& rhs)
-{
-	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
-}
+//constexpr __fhd__ bool operator==(const dim3& lhs, const dim3& rhs)
+//{
+//	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
+//}
 
 #include <kat/undefine_specifiers.hpp>
 
