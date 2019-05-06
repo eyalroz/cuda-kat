@@ -91,8 +91,7 @@ template <> __fd__ unsigned select_bytes(unsigned x, unsigned y, unsigned byte_s
 
 template <
 	typename T,
-	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
-		funnel_shift_amount_resolution_mode_t::take_lower_bits
+	funnel_shift_amount_resolution_mode_t AmountResolutionMode
 >
 __fd__ native_word_t funnel_shift(
 	native_word_t  low_word,

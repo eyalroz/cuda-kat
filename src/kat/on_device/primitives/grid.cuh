@@ -126,7 +126,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
  * handle (serially)
  * @param f The callable to execute for each element of the sequence.
  */
-template <typename Function, typename Size = size_t, typename SerializationFactor = serialization_factor_t>
+template <typename Function, typename Size = size_t, typename SerializationFactor = unsigned>
 __fd__ void at_block_stride(
 	Size length, const Function& f, SerializationFactor serialization_factor = 1)
 {

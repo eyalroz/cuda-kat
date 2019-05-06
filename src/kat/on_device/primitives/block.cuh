@@ -21,19 +21,17 @@
 #include <kat/define_specifiers.hpp>
 
 namespace kat {
-
 namespace primitives {
-
 namespace block {
 
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = ::grid_info::linear::grid;
-namespace block  = ::grid_info::linear::block;
-namespace warp   = ::grid_info::linear::warp;
-namespace thread = ::grid_info::linear::thread;
-namespace lane   = ::grid_info::linear::lane;
+namespace grid   = grid_info::linear::grid;
+namespace block  = grid_info::linear::block;
+namespace warp   = grid_info::linear::warp;
+namespace thread = grid_info::linear::thread;
+namespace lane   = grid_info::linear::lane;
 
 /*
  * TODO: Implement
@@ -493,7 +491,7 @@ __fd__ void fill(
 template <typename T>
 __fd__ void fill(const T& value)
 {
-	auto length = ::shared_memory::dynamic::size<T>();
+	auto length = shared_memory::dynamic::size<T>();
 	return fill(value, length);
 }
 
@@ -506,7 +504,7 @@ __fd__ void zero(shared_memory::size_t length)
 template <typename T>
 __fd__ void zero()
 {
-	auto length = ::shared_memory::dynamic::size<T>();
+	auto length = shared_memory::dynamic::size<T>();
 	return zero(length);
 }
 
@@ -539,7 +537,6 @@ __fd__ T* __restrict__ set_to_copy_of(
 }
 
 } // namespace dyanmic_shared_memory
-
 
 } // namespace block
 } // namespace primitives
