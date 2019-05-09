@@ -256,6 +256,8 @@ namespace kat {
 
 // Tuple interface to class template array.
 
+///@cond
+
 /// tuple_size
 template<typename T> class tuple_size;
 
@@ -273,6 +275,8 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 	static_assert(Integer < NumElements, "index is out of bounds");
 	typedef T type;
 };
+
+///@endcond
 
 } // namespace kat
 
