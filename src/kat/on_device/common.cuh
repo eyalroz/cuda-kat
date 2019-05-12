@@ -71,6 +71,18 @@ constexpr std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
 template <typename T>
 constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
 
+/**
+ * @brief a size type no smaller than a native word.
+ *
+ * Sometimes, in device code, we only need our size type to cover a small
+ * range of values; but - it is still more effective to use a full native word,
+ * rather than to risk extra instructions to enforce the limits of
+ * sub-native-word values. And while it's true this might not help much,
+ * or be optimized away - let's be on the safe side anyway.
+ */
+template <typename Size>
+using promoted_size_t = typename std::common_type<Size, native_word_t>::type;
+
 
 } // namespace kat
 

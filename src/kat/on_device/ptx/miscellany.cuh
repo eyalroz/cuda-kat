@@ -16,9 +16,6 @@
 
 namespace kat {
 
-template <typename Size>
-using promoted_size_t = typename std::common_type<Size, native_word_t>::type;
-
 namespace ptx {
 
 /**
