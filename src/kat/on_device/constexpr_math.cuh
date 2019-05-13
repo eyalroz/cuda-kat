@@ -19,7 +19,7 @@
 namespace kat {
 
 template <typename T>
-__fhd__ constexpr bool is_power_of_2(T val) { return (val & (val-1)) == 0; }
+constexpr __fhd__ bool is_power_of_2(T val) { return (val & (val-1)) == 0; }
 	// Yes, this works: Only if val had exactly one 1 bit will subtracting 1 switch
 	// all of its 1 bits.
 
@@ -47,19 +47,19 @@ constexpr I ipow(I base, unsigned exponent)
 }
 
 template <typename I, typename I2>
-__fhd__ constexpr I div_rounding_up_unsafe(I dividend, const I2 divisor)
+constexpr __fhd__ I div_rounding_up_unsafe(I dividend, const I2 divisor)
 {
 	return (dividend + divisor - 1) / divisor;
 }
 
 template <typename I, typename I2>
-__fhd__ constexpr I div_rounding_up_safe(I dividend, const I2 divisor)
+constexpr __fhd__ I div_rounding_up_safe(I dividend, const I2 divisor)
 {
 	return (dividend / divisor) + !!(dividend % divisor);
 }
 
 template <typename I, typename I2>
-__fhd__ constexpr I round_down(const I x, const I2 y)
+constexpr __fhd__ I round_down(const I x, const I2 y)
 {
 	return x - x%y;
 }
@@ -68,7 +68,7 @@ __fhd__ constexpr I round_down(const I x, const I2 y)
  * @note Don't use this with negative values.
  */
 template <typename I>
-__fhd__ constexpr I round_down_to_warp_size(I x)
+constexpr __fhd__ I round_down_to_warp_size(I x)
 {
 	return x & ~(warp_size - 1);
 }
@@ -78,13 +78,13 @@ __fhd__ constexpr I round_down_to_warp_size(I x)
  * to the maximum
  */
 template <typename I, typename I2 = I>
-__fhd__ constexpr I round_up_unsafe(I x, I2 y)
+constexpr __fhd__ I round_up_unsafe(I x, I2 y)
 {
 	return round_down(x+y-1, y);
 }
 
 template <typename I, typename I2 = I>
-__fhd__ constexpr I round_down_to_power_of_2(I x, I2 power_of_2)
+constexpr __fhd__ I round_down_to_power_of_2(I x, I2 power_of_2)
 {
 	return (x & ~(I{power_of_2} - 1));
 }
@@ -93,7 +93,7 @@ __fhd__ constexpr I round_down_to_power_of_2(I x, I2 power_of_2)
  * @note careful, this may overflow!
  */
 template <typename I, typename I2 = I>
-__fhd__ constexpr I round_up_to_power_of_2_unsafe(I x, I2 power_of_2)
+constexpr __fhd__ I round_up_to_power_of_2_unsafe(I x, I2 power_of_2)
 {
 	return round_down_to_power_of_2 (x + I{power_of_2} - 1, power_of_2);
 }
@@ -102,7 +102,7 @@ __fhd__ constexpr I round_up_to_power_of_2_unsafe(I x, I2 power_of_2)
  * @note careful, this may overflow!
  */
 template <typename I>
-__fhd__ constexpr I round_up_to_full_warps_unsafe(I x) {
+constexpr __fhd__ I round_up_to_full_warps_unsafe(I x) {
 	return round_up_to_power_of_2_unsafe<I, native_word_t>(x, warp_size);
 }
 
@@ -114,7 +114,7 @@ constexpr inline bool strictly_between(const T& x, const Lower& l, const Upper& 
 
 #if __cplusplus >= 201402L
 template <typename T>
-constexpr __fd__ T gcd(T u, T v)
+constexpr __fhd__ T gcd(T u, T v)
 {
     while (v != 0) {
         T r = u % v;
@@ -134,19 +134,19 @@ constexpr __fhd__ int log2(I val)
 }
 
 template <typename I, I Divisor>
-__fhd__ constexpr I div_by_fixed_power_of_2(I dividend)
+constexpr __fhd__ I div_by_fixed_power_of_2(I dividend)
 {
 	return dividend >> log2(Divisor);
 }
 
 template <typename S, typename T = S>
-__fhd__ constexpr typename std::common_type<S,T>::type gcd(S u, T v)
+constexpr __fhd__ typename std::common_type<S,T>::type gcd(S u, T v)
 {
 	return (v == 0) ? u : gcd(v, u % v);
 }
 
 template <typename S, typename T = S>
-__fhd__ constexpr typename std::common_type<S,T>::type lcm(S u, T v)
+constexpr __fhd__ typename std::common_type<S,T>::type lcm(S u, T v)
 {
 	using result_type = typename std::common_type<S,T>::type;
 	return ((result_type) u / gcd(u,v)) * v;
@@ -155,7 +155,7 @@ __fhd__ constexpr typename std::common_type<S,T>::type lcm(S u, T v)
 
 namespace detail {
 template <typename T>
-__fhd__ constexpr T sqrt_helper(T x, T low, T high)
+constexpr __fhd__ T sqrt_helper(T x, T low, T high)
 {
 	// this ugly macro cant be replaced by a lambda
 	// or the use of temporary variable, as in C++11, a constexpr
@@ -172,7 +172,7 @@ __fhd__ constexpr T sqrt_helper(T x, T low, T high)
 } // namespace detail
 
 template <typename T>
-__fhd__ constexpr T sqrt(T& x)
+constexpr __fhd__ T sqrt(T& x)
 {
   return detail::sqrt_helper(x, 0, x / 2 + 1);
 }
@@ -181,13 +181,13 @@ __fhd__ constexpr T sqrt(T& x)
 
 
 template <typename I>
-__fhd__ constexpr I div_by_power_of_2(I dividend, I divisor)
+constexpr __fhd__ I div_by_power_of_2(I dividend, I divisor)
 {
 	return dividend >> log2_of_power_of_2(divisor);
 }
 
 template <typename I, I Divisor>
-__fhd__ constexpr I div_by_fixed_power_of_2_rounding_up(I dividend)
+constexpr __fhd__ I div_by_fixed_power_of_2_rounding_up(I dividend)
 {
 /*
 	// C++14 and later:
@@ -204,7 +204,7 @@ __fhd__ constexpr I div_by_fixed_power_of_2_rounding_up(I dividend)
 }
 
 template <typename I>
-__fhd__ constexpr I num_warp_sizes_to_cover(I x)
+constexpr __fhd__ I num_warp_sizes_to_cover(I x)
 {
 	return constexpr_::div_by_fixed_power_of_2<I, warp_size>(x) + ((x & (warp_size-1)) > 0);
 }
@@ -227,9 +227,9 @@ constexpr inline bool is_divisible_by_power_of_2(I dividend, I divisor) {
 
 
 template <typename I>
-constexpr __fhd__ bool is_odd(I x)  { return x & (I) 0x1 != 0; }
+constexpr __fhd__ bool is_odd(I x)  { return x & I{0x1} != I{0}; }
 template <typename I>
-constexpr __fhd__ bool is_even(I x) { return x & (I) 0x1 == 0; }
+constexpr __fhd__ bool is_even(I x) { return x & I{0x1} == I{0}; }
 
 } // namespace kat
 
