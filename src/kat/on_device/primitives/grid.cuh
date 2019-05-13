@@ -24,11 +24,11 @@ namespace linear {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = kat::grid_info::linear::grid;
-namespace block  = kat::grid_info::linear::block;
-namespace warp   = kat::grid_info::linear::warp;
-namespace thread = kat::grid_info::linear::thread;
-namespace lane   = kat::grid_info::linear::lane;
+namespace grid   = kat::linear_grid::grid_info::grid;
+namespace block  = kat::linear_grid::grid_info::block;
+namespace warp   = kat::linear_grid::grid_info::warp;
+namespace thread = kat::linear_grid::grid_info::thread;
+namespace lane   = kat::linear_grid::grid_info::lane;
 
 /**
  * Have all kernel threads perform some action over the linear range
@@ -188,7 +188,7 @@ __fd__ void collaborative_append_to_global_memory(
 	T*     __restrict__  fragment_to_append,
 	Size   __restrict__  fragment_length)
 {
-	using namespace grid_info::linear;
+	using namespace grid_info;
 	Size previous_output_size = thread::is_first_in_warp() ?
 		atomic::add(global_output_length, fragment_length) : 0;
 	auto x = grid_info::warp::first_lane;
@@ -247,7 +247,7 @@ __fd__ void accumulation_to_scalar(
 	// at every cycle, at most one block per SM will dispatch its
 	// atomic instruction, but that's still up to 30 of these on
 	// a Pascal Titan card, per cycle - which is a lot.
-	if (grid_info::linear::thread::is_first_in_block()) {
+	if (grid_info::thread::is_first_in_block()) {
 		typename BinaryOp::accumulator::atomic atomic_accumulation_op;
 		atomic_accumulation_op(*accumulator, block_value);
 	}

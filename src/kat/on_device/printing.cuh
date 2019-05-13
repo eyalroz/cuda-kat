@@ -19,105 +19,6 @@
 
 namespace kat {
 
-
-/**
- * A wrapper for the printf function, which prefixes the printed string with
- * the thread's full identification: The In-block thread index, and a
- * block-warp-lane index triplet.
- *
- * Note that only a single printf() call is made for both the prefix id info and
- * the macros' arguments
- *
- * @param format_str the format_string to pass on to printf, for printing after the thread identification
- * @param __VA__ARGS the data to be pluggined into the format string instead of the % tags
- * @return same as printf()
- */
-#define thread_printf(format_str, ... )  \
-	printf("T %0*u = (%0*u,%02u,%02u): " format_str "\n", \
-		::max(2u,num_digits_required(grid_info::linear::grid::num_threads() - 1llu)), \
-		grid_info::linear::thread::global_index(), \
-		::max(2u,num_digits_required(grid_info::linear::grid::num_blocks() - 1llu)), \
-		blockIdx.x, \
-		grid_info::linear::warp::index(), grid_info::lane::index(), __VA_ARGS__);
-#define thread_print(str)  \
-	printf("T %0*u = (%0*u,%02u,%02u): %s\n", \
-		::max(2,num_digits_required(grid_info::linear::grid::num_threads() - 1llu)), \
-		grid_info::linear::thread::global_index(), \
-		::max(2,num_digits_required(grid_info::linear::grid::num_blocks() - 1llu)), \
-		blockIdx.x, \
-		grid_info::linear::warp::index(), grid_info::lane::index(), str);
-#define tprintf thread_printf
-#define tprint thread_print
-
-#define warp_printf(format_str, ... )  \
-	do{ \
-		if (grid_info::lane::is_first()) \
-			printf("W %0*u = (%0*u,%02u): " format_str "\n", \
-				::max(2u,num_digits_required(grid_info::linear::grid::num_warps() - 1)), \
-				grid_info::linear::warp::global_index(), \
-				::max(2u,num_digits_required(grid_info::linear::grid::num_blocks() - 1)), \
-				blockIdx.x, \
-				grid_info::linear::warp::index(), __VA_ARGS__); \
-	} while(0)
-#define warp_print(str)  \
-	do{ \
-		if (grid_info::lane::is_first()) \
-		printf("W %0*u = (%0*u,%02u): %s\n", \
-			::max(2,num_digits_required(grid_info::linear::grid::num_warps() - 1)), \
-			grid_info::linear::warp::global_index(), \
-			::max(2,num_digits_required(grid_info::linear::grid::num_blocks() - 1)), \
-			blockIdx.x, \
-			grid_info::linear::warp::index(), str); \
-	} while(0)
-
-#define block_printf(format_str, ... )  \
-	do{ \
-		if (grid_info::linear::thread::is_first_in_block()) \
-			printf("B %0*u: " format_str "\n", \
-				::max(2u,num_digits_required(grid_info::linear::grid::num_blocks() - 1)), \
-				grid_info::linear::block::index(), __VA_ARGS__); \
-	} while(0)
-#define block_print(str)  \
-	do{ \
-		if (grid_info::linear::thread::is_first_in_block()) \
-		printf("B %0*u: %s\n", \
-			::max(2u,num_digits_required(grid_info::linear::grid::num_blocks() - 1)), \
-				grid_info::linear::block::index(), str); \
-	} while(0)
-#define bprintf block_printf
-#define bprint block_print
-
-#define grid_printf(format_str, ... )  \
-	do { \
-		if (grid_info::thread::is_first_in_grid()) { \
-		    printf("G " format_str "\n", __VA_ARGS__); \
-		} \
-	} while (false)
-#define grid_print(str)  \
-	do { \
-		if (grid_info::linear::thread::global_index() == 0) { \
-		    printf("G %s\n", str); \
-		} \
-	} while (false)
-
-namespace linear {
-
-// Identification is 0-based!
-inline __device__ void print_self_identification()
-{
-	printf("Thread %10d - %05d within block %05d - lane %02d of in-block warp %02d)\n",
-		grid_info::linear::thread::global_index(),
-		threadIdx.x, blockIdx.x, threadIdx.x % warpSize, threadIdx.x / warpSize);
-
-}
-
-#define IDENTIFY_FUNCTION() { \
-	printf_once("Now executing function \"%s\"", __PRETTY_FUNCTION__); \
-	__syncthreads(); \
-}
-
-} // namespace linear
-
 __fd__ unsigned num_digits_required(unsigned long long extremal_value)
 {
 	return ceilf(log10f(extremal_value));
@@ -174,7 +75,6 @@ __fd__ const char* yes_or_no(bool x)
 #define BIT_PRINTING_ARGUMENTS_16BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 8,  BIT_PRINTING_ARGUMENTS_8BIT)
 #define BIT_PRINTING_ARGUMENTS_32BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 16, BIT_PRINTING_ARGUMENTS_16BIT)
 #define BIT_PRINTING_ARGUMENTS_64BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 32, BIT_PRINTING_ARGUMENTS_32BIT)
-
 
 #define printf_32_bits(x) \
 printf( \
@@ -259,6 +159,109 @@ constexpr __fd__ const char* ordinal_suffix(int n)
 		(n % 100 == 3 ? "rd" :
 		"th")));
 }
+
+
+
+namespace linear_grid {
+
+/**
+ * A wrapper for the printf function, which prefixes the printed string with
+ * the thread's full identification: The In-block thread index, and a
+ * block-warp-lane index triplet.
+ *
+ * Note that only a single printf() call is made for both the prefix id info and
+ * the macros' arguments
+ *
+ * @param format_str the format_string to pass on to printf, for printing after the thread identification
+ * @param __VA__ARGS the data to be pluggined into the format string instead of the % tags
+ * @return same as printf()
+ *
+ * @note: I know it's a bit silly putting a macro in a namespace. For now, just assume
+ * thread_printf, warp_printf etc. really only exist for linear grids
+ */
+#define thread_printf(format_str, ... )  \
+	printf("T %0*u = (%0*u,%02u,%02u): " format_str "\n", \
+		::max(2u,num_digits_required(linear_grid::grid_info::grid::num_threads() - 1llu)), \
+		linear_grid::grid_info::thread::global_index(), \
+		::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
+		blockIdx.x, \
+		linear_grid::grid_info::warp::index(), grid_info::lane::index(), __VA_ARGS__);
+#define thread_print(str)  \
+	printf("T %0*u = (%0*u,%02u,%02u): %s\n", \
+		::max(2,num_digits_required(linear_grid::grid_info::grid::num_threads() - 1llu)), \
+		linear_grid::grid_info::thread::global_index(), \
+		::max(2,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
+		blockIdx.x, \
+		linear_grid::grid_info::warp::index(), grid_info::lane::index(), str);
+#define tprintf thread_printf
+#define tprint thread_print
+
+#define warp_printf(format_str, ... )  \
+	do{ \
+		if (grid_info::lane::is_first()) \
+			printf("W %0*u = (%0*u,%02u): " format_str "\n", \
+				::max(2u,num_digits_required(linear_grid::grid_info::grid::num_warps() - 1)), \
+				linear_grid::grid_info::warp::global_index(), \
+				::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+				blockIdx.x, \
+				linear_grid::grid_info::warp::index(), __VA_ARGS__); \
+	} while(0)
+#define warp_print(str)  \
+	do{ \
+		if (grid_info::lane::is_first()) \
+		printf("W %0*u = (%0*u,%02u): %s\n", \
+			::max(2,num_digits_required(linear_grid::grid_info::grid::num_warps() - 1)), \
+			linear_grid::grid_info::warp::global_index(), \
+			::max(2,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+			blockIdx.x, \
+			linear_grid::grid_info::warp::index(), str); \
+	} while(0)
+
+#define block_printf(format_str, ... )  \
+	do{ \
+		if (linear_grid::grid_info::thread::is_first_in_block()) \
+			printf("B %0*u: " format_str "\n", \
+				::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+				linear_grid::grid_info::block::index(), __VA_ARGS__); \
+	} while(0)
+#define block_print(str)  \
+	do{ \
+		if (linear_grid::grid_info::thread::is_first_in_block()) \
+		printf("B %0*u: %s\n", \
+			::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+				linear_grid::grid_info::block::index(), str); \
+	} while(0)
+#define bprintf block_printf
+#define bprint block_print
+
+#define grid_printf(format_str, ... )  \
+	do { \
+		if (grid_info::thread::is_first_in_grid()) { \
+		    printf("G " format_str "\n", __VA_ARGS__); \
+		} \
+	} while (false)
+#define grid_print(str)  \
+	do { \
+		if (linear_grid::grid_info::thread::global_index() == 0) { \
+		    printf("G %s\n", str); \
+		} \
+	} while (false)
+
+// Identification is 0-based!
+inline __device__ void print_self_identification()
+{
+	printf("Thread %10d - %05d within block %05d - lane %02d of in-block warp %02d)\n",
+		linear_grid::grid_info::thread::global_index(),
+		threadIdx.x, blockIdx.x, threadIdx.x % warpSize, threadIdx.x / warpSize);
+
+}
+
+#define IDENTIFY_FUNCTION() { \
+	printf_once("Now executing function \"%s\"", __PRETTY_FUNCTION__); \
+	__syncthreads(); \
+}
+
+} // namespace linear_grid
 
 } // namespace kat
 

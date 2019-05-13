@@ -34,11 +34,11 @@ namespace warp {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = grid_info::linear::grid;
-namespace block  = grid_info::linear::block;
-namespace warp   = grid_info::linear::warp;
-namespace thread = grid_info::linear::thread;
-namespace lane   = grid_info::linear::lane;
+//namespace grid   = grid_info::grid;
+//namespace block  = grid_info::block;
+//namespace warp   = grid_info::warp;
+//namespace thread = grid_info::thread;
+namespace lane   = grid_info::lane;
 
 // lane conditions
 // ----------------------------
@@ -353,7 +353,6 @@ __fd__ void cast_and_copy(
 	const U*  __restrict__  source,
 	Size                    length)
 {
-	using namespace grid_info::linear;
 	// sometimes this next loop can be unrolled (when length is known
 	// at compile time; since the function is inlined)
 	#pragma unroll
@@ -437,7 +436,6 @@ __fd__ void copy_n(
 	const T*  __restrict__  source,
 	Size                    length)
 {
-	using namespace grid_info::linear;
 	enum {
 		elements_per_lane_in_full_warp_write =
 			primitives::detail::elements_per_lane_in_full_warp_write<T>::value
@@ -533,7 +531,6 @@ __fd__ void lookup(
 	const I* __restrict__  indices,
 	Size                   num_indices)
 {
-	using namespace grid_info::linear;
 	#pragma unroll
 	for(promoted_size_t<Size> pos = lane::index(); pos < num_indices; pos += warp_size) {
 		target[pos] = lookup_table[indices[pos]];
@@ -593,9 +590,9 @@ __fd__ void elementwise_accumulate(
 template <typename Function, typename Size = unsigned>
 __fd__ void at_grid_stride(Size length, const Function& f)
 {
-	auto num_warps_in_grid = grid::num_warps();
+	auto num_warps_in_grid = grid_info::grid::num_warps();
 	for(// _not_ the global thread index! - one element per warp
-		promoted_size_t<Size> pos = warp::global_index();
+		promoted_size_t<Size> pos = grid_info::warp::global_index();
 		pos < length;
 		pos += num_warps_in_grid)
 	{
@@ -608,7 +605,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 // Note: make sure the first warp thread has not diverged/exited,
 // or use the leader selection below
 // TODO: Mark this unsafe
-#define once_per_warp if (::grid_info::linear::thread::is_first_in_warp())
+#define once_per_warp if (grid_info::thread::is_first_in_warp())
 
 __fd__ unsigned active_lanes_mask()
 {
@@ -1089,6 +1086,42 @@ __fd__ T merge_sorted_half_warps(T lane_element)
 
 } // namespace warp
 } // namespace primitives
+
+namespace linear_grid {
+namespace primitives {
+namespace warp {
+
+/**
+ * A variant of the one-position-per-thread applicator,
+ * {@ref primitives::grid::at_grid_stride}: Here each warp works on one
+ * input position, advancing by 'grid stride' in the sense of total
+ * warps in the grid.
+ *
+ * TODO: This is not general enough to be in this file; or rather, it's
+ * not clear why each thread doesn't get its own element in the range. Either
+ * it goes into some separate namespace or out of this file completely.
+ *
+ * @param length The length of the range of positions on which to act
+ * @param f The callable for warps to use each position in the sequence
+ */
+template <typename Function, typename Size = unsigned>
+__fd__ void at_grid_stride(Size length, const Function& f)
+{
+	auto num_warps_in_grid = grid_info::grid::num_warps();
+	for(// _not_ the global thread index! - one element per warp
+		promoted_size_t<Size> pos = grid_info::warp::global_index();
+		pos < length;
+		pos += num_warps_in_grid)
+	{
+		f(pos);
+	}
+}
+
+
+} // namespace warp
+} // namespace primitives
+} // namespace linear_grid
+
 } // namespace kat
 
 #include <kat/undefine_specifiers.hpp>

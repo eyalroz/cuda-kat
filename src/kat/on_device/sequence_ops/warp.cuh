@@ -35,17 +35,6 @@ namespace kat {
 namespace primitives {
 namespace warp {
 
-// If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::index()` without prefixing that with anything.
-
-namespace grid   = grid_info::linear::grid;
-namespace block  = grid_info::linear::block;
-namespace warp   = grid_info::linear::warp;
-namespace thread = grid_info::linear::thread;
-namespace lane   = grid_info::linear::lane;
-
-
-
 namespace detail {
 
 template<typename LHS, typename RHS = LHS, typename Result = LHS>
@@ -179,7 +168,7 @@ __fd__ void cast_and_copy(
 	const U*  __restrict__  source,
 	Size                    length)
 {
-	using namespace grid_info::linear;
+	using namespace linear_grid::grid_info;
 	// sometimes this next loop can be unrolled (when length is known
 	// at compile time; since the function is inlined)
 	#pragma unroll
@@ -263,7 +252,7 @@ __fd__ void copy_n(
 	const T*  __restrict__  source,
 	Size                    length)
 {
-	using namespace grid_info::linear;
+	using namespace linear_grid::grid_info;
 	enum {
 		elements_per_lane_in_full_warp_write =
 			primitives::detail::elements_per_lane_in_full_warp_write<T>::value
@@ -359,7 +348,7 @@ __fd__ void lookup(
 	const I* __restrict__  indices,
 	Size                   num_indices)
 {
-	using namespace grid_info::linear;
+	using namespace linear_grid::grid_info;
 	#pragma unroll
 	for(promoted_size_t<Size> pos = lane::index(); pos < num_indices; pos += warp_size) {
 		target[pos] = lookup_table[indices[pos]];

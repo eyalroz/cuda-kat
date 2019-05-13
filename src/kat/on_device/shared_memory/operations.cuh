@@ -16,9 +16,15 @@
 #include <kat/define_specifiers.hpp>
 
 namespace kat {
-namespace shared_memory {
-namespace dynamic {
 namespace linear_grid {
+namespace shared_memory {
+
+using kat::shared_memory::size_t;
+
+namespace dynamic {
+
+using kat::shared_memory::dynamic::proxy;
+using kat::shared_memory::dynamic::size;
 
 /**
  * @brief Collaboratively fill the block's dynamic shared memory with a fixed
@@ -35,7 +41,7 @@ __fd__ void fill(
 	shared_memory::size_t  length)
 {
 	T tmp = value;
-	primitives::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
+	kat::linear_grid::primitives::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
 }
 
 /**
@@ -105,11 +111,16 @@ template <typename T>
 __fd__ T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length)
 {
 	T* __restrict__ data_in_shared_mem = shared_memory::dynamic::proxy<T>();
-	primitives::block::copy(data_in_shared_mem, source, length);
+	kat::linear_grid::primitives::block::copy(data_in_shared_mem, source, length);
 	return data_in_shared_mem;
 }
 
+} // namespace shared_memory
+} // namespace dynamic
 } // namespace linear_grid
+
+namespace shared_memory {
+namespace dynamic {
 
 /**
  * @brief Collaboratively fill the block's dynamic shared memory with a fixed
@@ -126,6 +137,12 @@ template <typename T>
 __fd__ void fill(
 	const T&               value,
 	shared_memory::size_t  length);
+// TODO: Uncomment when the non-linear-grid block primitive is available
+//{
+//	T tmp = value;
+//	kat::primitives::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
+//}
+
 
 /**
  * @brief Collaboratively fill the block's dynamic shared memory with a fixed value.
@@ -172,7 +189,6 @@ __fd__ void zero()
 	return zero(length);
 }
 
-
 /**
  * Sets the (beginning of the dynamic) shared memory of the block
  * to a copy of some area of device memory.
@@ -195,10 +211,16 @@ __fd__ void zero()
  */
 template <typename T>
 __fd__ T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length);
-
+// TODO: Uncomment when the non-linear-grid block primitive is available
+//{
+//	T* __restrict__ data_in_shared_mem = shared_memory::dynamic::proxy<T>();
+//	kat::primitives::block::copy(data_in_shared_mem, source, length);
+//	return data_in_shared_mem;
+//}
 
 } // namespace dynamic
 } // namespace shared_memory
+
 } // namespace kat
 
 

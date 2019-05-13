@@ -21,6 +21,7 @@
 #include <kat/define_specifiers.hpp>
 
 namespace kat {
+namespace linear_grid {
 namespace primitives {
 namespace block {
 
@@ -28,11 +29,11 @@ namespace block {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = grid_info::linear::grid;
-namespace block  = grid_info::linear::block;
-namespace warp   = grid_info::linear::warp;
-namespace thread = grid_info::linear::thread;
-namespace lane   = grid_info::linear::lane;
+namespace grid   = grid_info::grid;
+namespace block  = grid_info::block;
+namespace warp   = grid_info::warp;
+namespace thread = grid_info::thread;
+namespace lane   = grid_info::lane;
 
 ///@endcond
 
@@ -57,14 +58,103 @@ namespace lane   = grid_info::linear::lane;
 template <typename Function, typename Size = size_t>
 __fd__ void at_block_stride(Size length, const Function& f)
 {
+	auto block_length = block::length();
 	#pragma unroll
 	for(promoted_size_t<Size> pos = thread::index_in_block();
 		pos < length;
-		pos += block::length())
+		pos += block_length)
 	{
 		f(pos);
 	}
 }
+
+// TODO: Perhaps make this a "warp to block" primitive?
+/**
+ * Makes one element of type T for each warp, which was previously
+ * only visible to that warp (or rather not known to be otherwise) - visible to,
+ * shared with, the entire block, via shared memory.
+ *
+ * @param datum a warp-specific (but not thread-specific) piece of data,
+ * one for each warp, which is to be shared with the whole block
+ * @param where_to_make_available the various warp-specific data will be
+ * stored here by warp index
+ * @param writing_lane_index which lane in each warp should perform write operations
+ */
+template <typename T, bool Synchronize = true>
+__fd__ void share_warp_datum_with_whole_block(
+	const T&         datum,
+	T* __restrict__  where_to_make_available,
+	unsigned         writing_lane_index = 0)
+{
+	if (lane::index() == writing_lane_index) {
+		where_to_make_available[warp::index()] = datum;
+	}
+	if (Synchronize) __syncthreads();
+}
+
+__fd__ void barrier() { __syncthreads(); }
+
+
+// This macro is a bit ugly, but it might be useful
+//
+// Note: Make sure the first block thread has not diverged/exited
+#define once_per_block  if (thread::is_first_in_block())
+
+
+/**
+ * @brief have all block threads obtain a value held by just
+ * one of the threads (and likely not otherwise easily accessible
+ * to the rest of the block's threads).
+ *
+ * @note uses shared memory for the "broadcast" by the thread holding
+ * the relevant value
+ */
+template <typename T>
+__fd__ T get_from_thread(const T& value, unsigned source_thread_index)
+{
+	__shared__ static T tmp;
+	if (thread::index_in_block() == source_thread_index) {
+		tmp = value;
+	}
+	__syncthreads();
+	return tmp;
+}
+
+template <typename T>
+__fd__ T get_from_first_thread(const T& value)
+{
+	return get_from_thread(value, 0);
+}
+
+} // namespace block
+} // namespace primitives
+} // namespace linear_grid
+
+namespace primitives {
+
+namespace block {
+
+///@cond
+// If we want to refer to other primitives, we'll make those references explicit;
+// but we do want to be able to say `warp::index()` without prefixing that with anything.
+
+namespace grid   = grid_info::grid;
+namespace block  = grid_info::block;
+namespace warp   = grid_info::warp;
+namespace thread = grid_info::thread;
+namespace lane   = grid_info::lane;
+
+///@endcond
+
+/*
+ * TODO: Implement
+ * __fd__  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * __fd__  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * __fd__  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
+ *
+ * at the block level
+ *
+ */
 
 // TODO: Perhaps make this a "warp to block" primitive?
 /**
@@ -99,7 +189,15 @@ __fd__ void barrier() { __syncthreads(); }
 
 
 /**
- * Note: Untested.
+ * @brief have all block threads obtain a value held by just
+ * one of the threads (and likely not otherwise easily accessible
+ * to the rest of the block's threads).
+ *
+ * @note uses shared memory for the "broadcast" by the thread holding
+ * the relevant value
+ *
+ * @note Untested.
+ *
  */
 template <typename T>
 __fd__ T get_from_thread(const T& value, unsigned source_thread_index)

@@ -21,20 +21,12 @@
 #include <kat/define_specifiers.hpp>
 
 namespace kat {
+namespace linear_grid {
 namespace primitives {
+
+using kat::primitives::inclusivity_t;
+
 namespace block {
-
-///@cond
-// If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::index()` without prefixing that with anything.
-
-namespace grid   = grid_info::linear::grid;
-namespace block  = grid_info::linear::block;
-namespace warp   = grid_info::linear::warp;
-namespace thread = grid_info::linear::thread;
-namespace lane   = grid_info::linear::lane;
-
-///@endcond
 
 /*
  * TODO: Implement
@@ -95,7 +87,7 @@ __fd__ void cast_and_copy(
 	const U*  __restrict__  source,
 	Size                    length)
 {
-	using namespace grid_info::linear;
+	using namespace linear_grid::grid_info;
 	#pragma unroll
 	for(promoted_size_t<Size> pos = thread::index_in_block(); pos < length; pos += block::size()) {
 		target[pos] = source[pos];
@@ -172,8 +164,8 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 	ReductionOp op;
 	static __shared__ result_type warp_reductions[warp_size];
 
-	result_type intra_warp_result = primitives::warp::reduce<ReductionOp>(static_cast<result_type>(value));
-	primitives::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
+	result_type intra_warp_result = kat::primitives::warp::reduce<ReductionOp>(static_cast<result_type>(value));
+	kat::linear_grid::primitives::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
@@ -194,7 +186,7 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 		(lane::index() < block::num_warps()) ?
 		warp_reductions[lane::index()] : op.neutral_value();
 
-	return primitives::warp::reduce<ReductionOp>(other_warp_result);
+	return kat::primitives::warp::reduce<ReductionOp>(other_warp_result);
 }
 
 /**
@@ -218,7 +210,7 @@ template<
 	ReductionOp op;
 
 	result_type intra_warp_inclusive_scan_result =
-		primitives::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
+		kat::primitives::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
 
 	primitives::block::share_warp_datum_with_whole_block(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
@@ -236,7 +228,7 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			primitives::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
+			kat::primitives::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
 				scratch[lane::index()]);
 		scratch[lane::index()] = warp_reductions_scan_result;
 	}
@@ -294,7 +286,7 @@ template<
 	typename ReductionOp::accumulator acc_op;
 
 	result_type intra_warp_inclusive_scan_result =
-		primitives::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
+		kat::primitives::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
 			static_cast<result_type>(value));
 
 	primitives::block::share_warp_datum_with_whole_block(
@@ -316,7 +308,7 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			primitives::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
+			kat::primitives::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
 				scratch[lane::index()]);
 		scratch[lane::index()] = warp_reductions_scan_result;
 	}
@@ -399,7 +391,7 @@ __fd__ void elementwise_apply(
 	const RHSDatum*  __restrict__  rhs,
 	Size                           length)
 {
-	using namespace grid_info::linear;
+	using namespace linear_grid::grid_info;
 	Operation op;
 	for(promoted_size_t<Size> pos = thread::index(); pos < length; pos += block::size()) {
 		results[pos] = op(lhs[pos], rhs[pos]);
@@ -408,6 +400,7 @@ __fd__ void elementwise_apply(
 
 } // namespace block
 } // namespace primitives
+} // namespace linear_grid
 } // namespace kat
 
 #include <kat/undefine_specifiers.hpp>
