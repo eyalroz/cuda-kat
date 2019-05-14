@@ -30,10 +30,6 @@
 
 namespace kat {
 
-using lane_mask_t = unsigned;
-
-enum : lane_mask_t { full_warp_mask = 0xFFFFFFFF };
-
 namespace builtins {
 
 // Arithmetic
