@@ -83,10 +83,10 @@ num_full_warps_in_grid_block()
 ```
 the library groups these (and many other related) functions into relevant namespaces. We thus have:
 ```
-grid_info::linear::thread::global_index()
+linear_grid::grid_info::thread::global_index()
 grid_info::lane::index()
-grid_info::linear::thread::is_last_in_block()
-grid_info::linear::block::num_full_warps()
+linear_grid::grid_info::thread::is_last_in_block()
+linear_grid::grid_info::block::num_full_warps()
 ```
 which is easier to browse through if you use auto-complete. The order comes at the expense of brevity... but we can fix this by issuing the appropriate `namespace` or `using namespace` commands. The above can then become simply:
 ```
@@ -97,7 +97,9 @@ block::num_full_warps()
 ```
 in your code. Now _this_ is how I want to write my kernels!
 
-You will note, that most similar phrases you could come up with about positions and sizes within the grid - already have implementations. For example: "I can get the number of full warps, but now I want the number of warps, period"; well, just replace `num_full_warps()` with `num_warps()` and it's there: `grid_info::linear::block::num_warps()` is available.
+You will note, that most similar phrases you could come up with about positions and sizes within the grid - already have implementations. For example: "I can get the number of full warps, but now I want the number of warps, period"; well, just replace `num_full_warps()` with `num_warps()` and it's there: `linear_grid::grid_info::block::num_warps()` is available.
+
+And as a final bonus - if you write a non-linear kernel, with blocks and grids having y and z dimensions other than 1 - you will only need to change your `namespace =` or `using` statements, to be able to write the same code and use 3-d implementations of these functions instead.
 
 ## <a name="feedback"> Bugs, suggestions, feedback
 
