@@ -43,9 +43,15 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRA
 # that definitely needs to be improved. In particular, we should just depend on cuda-api-wrappers which
 # should pull in everything else.
 
+# TODO 2: We're using an extra object target for each test to ensure compilation of .ptx files (the _obj
+# targets). We should try to avoid those.
+
+add_library(shared_memory_obj OBJECT shared_memory.cu)
+target_link_libraries(shared_memory_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
 add_executable(shared_memory shared_memory.cu)
 target_link_libraries(shared_memory PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
 target_include_directories(shared_memory PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+target_include_directories(shared_memory_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
 add_test(
     NAME ${PROJECT_NAME}.shared_memory
     COMMAND shared_memory ${TEST_RUNNER_PARAMS}
@@ -60,9 +66,6 @@ set_target_properties(
     CXX_EXTENSIONS NO
 )
 
-target_compile_options(
-	shared_memory 
-	PRIVATE 
-	"--keep"
-)
+set_property(TARGET shared_memory_obj PROPERTY CUDA_PTX_COMPILATION ON)
+
 # TODO: Something about code coverage perhaps?
