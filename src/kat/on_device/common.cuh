@@ -12,22 +12,6 @@
 
 namespace kat {
 
-//#if defined(HAVE_CUDA_API_WRAPPERS) || (defined(CUDA_API_WRAPPERS_TYPES_HPP_) && defined(CUDA_API_WRAPPERS_CONSTANTS_HPP_))
-#if 0
-
-#include <cuda/api/constants.hpp>
-#include <cuda/api/types.hpp>
-
-// Device-side code doesn't use the cuda:: prefix
-using cuda::log_warp_size;
-using cuda::warp_size;
-using cuda::grid_dimension_t;
-using cuda::dimensions_t;
-using cuda::native_word_t;
-
-#else
-
-
 /**
  * CUDA kernels are launched in grids of blocks of threads, in 3 dimensions.
  * In each of these, the numbers of blocks per grid is specified in this type.
@@ -51,8 +35,6 @@ using grid_block_dimension_t  = grid_dimension_t;
 using native_word_t = unsigned; // TODO: Make this uint32_t perhaps?
 enum : native_word_t { warp_size = 32 };
 enum : native_word_t { log_warp_size = 5 };
-
-#endif
 
 /**
  * @brief a size type no smaller than a native word.

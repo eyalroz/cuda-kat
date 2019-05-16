@@ -6,7 +6,6 @@
 #include <sm_30_intrinsics.h>
 #include <vector_types.h>
 #include <kat/containers/array.hpp>
-#include <cuda/api/types.hpp>
 #include <kat/on_device/wrappers/builtins.cuh>
 
 #include <kat/define_specifiers.hpp>
