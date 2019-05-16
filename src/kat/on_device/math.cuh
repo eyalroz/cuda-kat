@@ -16,6 +16,8 @@
 
 #include <kat/define_specifiers.hpp>
 
+#include <type_traits>
+
 namespace kat {
 
 /**

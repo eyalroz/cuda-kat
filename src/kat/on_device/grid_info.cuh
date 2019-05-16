@@ -14,8 +14,9 @@
 #define CUDA_KAT_ON_DEVICE_GRID_INFO_CUH_
 
 #include <kat/on_device/common.cuh>
-
 #include <kat/define_specifiers.hpp>
+
+#include <cassert>
 
 namespace kat {
 

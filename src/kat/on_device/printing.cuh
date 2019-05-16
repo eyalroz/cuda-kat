@@ -13,6 +13,9 @@
 #include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/wrappers/builtins.cuh>
+
+#include <math_functions.h>
+
 // Necessary for printf()'ing in kernel code
 #include <cstdio>
 
@@ -29,9 +32,12 @@ template <typename T>
 __fd__ unsigned get_bit(T x, unsigned bit_index) { return 0x1 & (x >> bit_index); }
 
 template <typename T>
-__fd__ const char* binary_representation (T x, char *target_buffer, unsigned field_width = 0) {
+__fd__ const char* binary_representation (T x, char *target_buffer, unsigned field_width = 0)
+{
+	auto floor_log_of_x =
+		  (CHAR_BIT * sizeof(T) - 1) - builtins::count_leading_zeros(x);
 
-	unsigned num_bits = (x == 0) ? 0 : ilog_2(x) + 1;
+	unsigned num_bits = (x == 0) ? 0 : floor_log_of_x + 1;
 
 	unsigned leading_zeros = max(field_width - num_bits, 0);
 	#pragma unroll
