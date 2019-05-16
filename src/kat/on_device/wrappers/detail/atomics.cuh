@@ -33,6 +33,8 @@
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_
 #define CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_
 
+///@cond
+
 #include <kat/on_device/common.cuh>
 #include <device_atomic_functions.h>
 #if (CUDART_VERSION >= 8000)
@@ -46,6 +48,7 @@
 #include <climits>
 
 #include <kat/define_specifiers.hpp>
+
 
 // Annoyingly, CUDA - upto and including version 10.0 - provide atomic
 // operation wrappers for unsigned int and unsigned long long int, but
@@ -506,6 +509,9 @@ template <typename T>  __fd__ T logical_xor(T* address, T val)  { return atomicX
 } // namespace atomic
 } // namespace kat
 
+
 #include <kat/undefine_specifiers.hpp>
+
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_

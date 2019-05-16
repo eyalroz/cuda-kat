@@ -1,5 +1,5 @@
 /**
- * @file on_device/wrappers/non-builtins.cuh
+ * @file on_device/non-builtins.cuh
  *
  * @brief Namespace with uniform-naming scheme, templated-when-relevant,
  * wrappers of what could be (or should be) single PTX instruction - but

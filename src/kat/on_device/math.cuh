@@ -18,6 +18,13 @@
 
 namespace kat {
 
+/**
+ * A variant of `div_rounding_up` (which you can find in `constexpr_math.cuh`),
+ * which has (non-constexpr, unfortunately) optimizations based on the knowledge
+ * the divisor is a power of 2
+ *
+ * @return The smallest multiple of divisor above dividend / divisor
+ */
 template <typename T, typename S>
 __fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
 {
@@ -28,17 +35,37 @@ __fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
 	return (dividend >> log_2_of_divisor) + correction_for_rounding_up;
 }
 
-template <typename T>
-__fd__ unsigned log2_of_power_of_2(T p)
+/**
+ * @brief compute the base-two logarithm of a number known to be a power of 2.
+ *
+ * @note Yes, this is trivial to do, but:
+ *   1. This says _what_ you're doing, not _how_ you do it (e.g. left-shifting
+ *      bits and such)
+ *   2. There's a device-side optimization here (which isn't constexpr)
+ *
+ * @param p an integral power of 2
+ * @return the exponent l such than 2^l equals p
+ */
+template <typename I>
+__fd__ unsigned log2_of_power_of_2(I p)
 {
+	static_assert(std::is_integral<I>::value, "Only supported for integers");
 	// Remember 0 is _not_ a power of 2.
 	return  builtins::population_count(p - 1);
 }
 
 #if __cplusplus < 201402L
+/**
+ * @brief compute the greatest common divisor (gcd) of two values.
+ *
+ * @param u One integral value (prefer making this the larger one)
+ * @param v Another integral value (prefer making this the smaller one)
+ * @return the largest I value d such that d divides @p u and d divides @p v.
+ */
 template <typename T>
 constexpr __fd__ T gcd(T u, T v)
 {
+	static_assert(std::is_integral<I>::value, "Only supported for integers");
 	while (v != 0) {
 		T r = u % v;
 		u = v;
@@ -48,14 +75,35 @@ constexpr __fd__ T gcd(T u, T v)
 }
 #endif
 
-template <typename T>
-__fd__ T lcm(T u, T v)
+/**
+ * @brief compute the least common multiple (LCM) of two integer values
+ *
+ * @tparam I an integral (or integral-number-like) type
+ *
+ * @param u One of the numbers which the result must divide
+ * @param v Another one of the numbers which the result must divide
+ * @return The highest I value which divides both @p u and @p v.
+ */
+template <typename I>
+__fd__ I lcm(I u, I v)
 {
+	static_assert(std::is_integral<I>::value, "Only supported for integers at the moment");
 	return (u / gcd(u,v)) * v;
 }
 
+/**
+ * @brief compute the (integral) base-two logarithm of a number
+ *
+ * @note Yes, this is trivial to do, but:
+ *   1. This says _what_ you're doing, not _how_ you do it (e.g. left-shifting
+ *      bits and such)
+ *   2. There's a device-side optimization here (which isn't constexpr)
+ *
+ * @param x a non-negative value
+ * @return floor(log2(x)), i.e. the least exponent l such than 2^l >= x
+ */
 template <typename T>
-__fd__ unsigned ilog2(std::enable_if<std::is_unsigned<T>::value, T> x) {
+__fd__ unsigned log2(std::enable_if<std::is_unsigned<T>::value, T> x) {
   return (CHAR_BIT * sizeof(T) - 1) - builtins::count_leading_zeros(x);
 }
 

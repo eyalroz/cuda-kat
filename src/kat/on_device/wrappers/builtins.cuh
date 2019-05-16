@@ -1,8 +1,7 @@
 /**
  * @file on_device/wrappers/builtins.cuh
  *
- * @brief Namespace with uniform-naming scheme, templated-when-relevant,
- * wrappers of single PTX instruction .
+ * @brief File containing the @ref builtins namespace of PTX wrappers.
  *
  * @note
  * 1. This obviously doesn't include those built-ins which are inherent
@@ -30,6 +29,12 @@
 
 namespace kat {
 
+/**
+ * @brief Uniform-naming scheme, templated-when-relevant wrappers of single PTX instruction
+ *
+ * @note should contain wrappers for all instructions which are not trivially
+ * producible with simple C++ code (e.g. no add or subtract)
+ */
 namespace builtins {
 
 // Arithmetic
@@ -50,7 +55,14 @@ template <typename T> __fd__ T divide(T dividend, T divisor);
 template <typename T> __fd__ T absolute_value(T x);
 template <typename T> __fd__ T minimum(T x, T y);
 template <typename T> __fd__ T maximum(T x, T y);
-template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S z);
+
+/**
+ * @brief Computes @p addend + |@p x- @p y| .
+ *
+ * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
+ * of the PTX ISA reference.
+ */
+template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S addend);
 
 
 // --------------------------------------------

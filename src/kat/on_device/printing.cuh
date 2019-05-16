@@ -12,6 +12,7 @@
 
 #include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/miscellany.cuh>
+#include <kat/on_device/wrappers/builtins.cuh>
 // Necessary for printf()'ing in kernel code
 #include <cstdio>
 
@@ -173,7 +174,7 @@ namespace linear_grid {
  * the macros' arguments
  *
  * @param format_str the format_string to pass on to printf, for printing after the thread identification
- * @param __VA__ARGS the data to be pluggined into the format string instead of the % tags
+ * @param __VA_ARGS__ the data to be pluggined into the format string instead of the % tags
  * @return same as printf()
  *
  * @note: I know it's a bit silly putting a macro in a namespace. For now, just assume

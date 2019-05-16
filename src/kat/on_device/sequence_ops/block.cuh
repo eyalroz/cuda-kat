@@ -95,7 +95,7 @@ __fd__ void cast_and_copy(
 }
 
 /**
- * Same as {@ref cast_copy}, except that no casting is done
+ * Same as {@ref cast_and_copy}, except that no casting is done
  */
 template <typename T, typename Size>
 __fd__ void copy(
@@ -107,7 +107,7 @@ __fd__ void copy(
 }
 
 /**
- * Same as {@ref cast_copy}, except that no casting is done
+ * @todo differentiate between this and copy... for now, they're exactly the same
  */
 template <typename T, typename Size>
 __fd__ void copy_n(
@@ -142,17 +142,17 @@ __fd__ void lookup(
 
 
 /**
- * Perform a reduction over a block's worth of data with a specific
- * binary reduction operation (e.g. sum, or maximum, etc.)
- *
- * @note all threads must participate in this primitive; consider
- * supporting partial participation
- *
+ * @brief Perform a reduction over a block's worth of data with a specific
+ * binary reduction operation (e.g. sum, or maximum, etc.).
  *
  * @param value each thread's contribution to the reduction
  * @return for the first thread of the warp - the reduction result over
  * all @ref value elements of all block threads; for other threads - the
  * result is undefined
+ *
+ * @note all threads must participate in this primitive; consider
+ * supporting partial participation
+ *
  */
 template<
 	typename ReductionOp,
@@ -360,10 +360,10 @@ template<
  * substructure
  * @tparam Size ... so that you don't have to decide whether you want to specify your
  * number of elements as an int, uint, long long int, ulong long etc.
- * @param [inout] destination The array into which we accumulate; holds existing data
+ * @param[inout] destination The array into which we accumulate; holds existing data
  * and is not simply overwritten.
- * @param [in] source The array of partial data to integrate via accumulation.
- * @param [in] num_elements the length in elements of {@ref destination} and {@ref source}
+ * @param[in] source The array of partial data to integrate via accumulation.
+ * @param[in] length the length in elements of {@ref destination} and {@ref source}
  *
  * @todo consider taking a GSL-span-like parameter isntead of a ptr+length
  *

@@ -401,16 +401,9 @@ template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
 } // namespace detail
 
 
-/**
- * Same as {@ref cast_copy}, except that no casting is done
- *
- * @note This version assumes both the source and target are well-aligned,
- * and that length * sizeof(T) % 4 == 0
- *
- */
 
 /**
- * Has the warp copy data from one place to another
+ * @brief Copy data from one place to another, with warp-level collaboration
  *
  *  * @note if the input is not 32-byte (sometimes 128-byte )-aligned,
  * and more importantly, the output is not 128-byte-aligned,
@@ -485,6 +478,13 @@ __fd__ void copy_n(
 	}
 }
 
+/**
+ * Same as @ref cast_copy , except that no casting is done
+ *
+ * @note This version assumes both the source and target are well-aligned,
+ * and that length * sizeof(T) % 4 == 0
+ *
+ */
 template <typename T, bool MayHaveSlack = true>
 __fd__ void copy(
 	const T*  __restrict__  source_start,

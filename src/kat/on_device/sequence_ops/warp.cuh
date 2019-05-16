@@ -6,7 +6,8 @@
  * all lanes in each warp collaborate on the same task.
  *
  * @note Most functions actually in `std::algorithm` are still missing;
- * see @ref https://en.cppreference.com/w/cpp/algorithm for a full list of those.
+ * see <a href="https://en.cppreference.com/w/cpp/algorithm">the cppreference page</a>
+ * for `<algorithm>` for a full list of those.
  *
  * @note some functions here are not actually in `std::algorithm` but might as
  * well have been, e.g. `memzero()` which is like `std::memset()` with 0.

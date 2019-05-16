@@ -20,7 +20,7 @@
 namespace kat {
 
 /**
- * A richer (kind-of-a-)wrapper for CUDA's @ref dim3 class, used
+ * A richer (kind-of-a-)wrapper for CUDA's `dim3` class, used
  * to specify dimensions for blocks and grid (up to 3 dimensions).
  *
  * @note same as `cuda::dimensions_t` from the cuda-api-wrappers library...

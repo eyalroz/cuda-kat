@@ -1,5 +1,6 @@
 /**
- * @file string.h CUDA device-side versions of the C standard library string operations.
+ * @file on_device/c_standard_library/string.cuh
+ * @brief CUDA device-side versions of the C standard library string operations.
  *
  * @note The implementations are not intended to be particularly speedy - merely functional.
  *
@@ -234,7 +235,7 @@ char *strchr(const char *s, int c)
 }
 
 /**
- * @brief same as @ref strchr , except that the search begins
+ * @brief same as @ref std::strchr , except that the search begins
  * at the end of the string
  *
  * @note If @p c is '\0', it _will_ match the nul character
