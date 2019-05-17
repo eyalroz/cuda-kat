@@ -47,7 +47,10 @@
 #include <type_traits>
 #include <climits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 
 // Annoyingly, CUDA - upto and including version 10.0 - provide atomic
@@ -510,7 +513,10 @@ template <typename T>  __fd__ T logical_xor(T* address, T val)  { return atomicX
 } // namespace kat
 
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 ///@endcond
 

@@ -14,7 +14,10 @@
 
 #include "warp.cuh"
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace primitives {
@@ -52,7 +55,7 @@ namespace lane   = kat::linear_grid::grid_info::lane;
  *
  * (the grid is 3 blocks' worth, so block 1 strides 3 blocks
  * from one sequence of indices it processes to the next.)
- * This is unlike @ref at_block_stride, for which instead
+ * This is unlike `at_block_stride()`, for which instead
  * of 1, 2, 3, 1, 2, 3, 1 we would have 1, 1, 1, 2, 2, 2, 3
  * (or 1, 1, 2, 2, 3, 3, 4 if the grid has 4 blocks).
  *
@@ -104,7 +107,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
  *   -------------------------------------------------------
  *
  * (A block strides from one blocks' worth of indices to the next.)
- * This is unlike @ref at_grid_stride, for which instead
+ * This is unlike `at_grid_stride()`, for which instead
  * of 1, 1, 2, 2, 3, 3, 4 we would have 1, 2, 3, 1, 2, 3, 1 (if the
  * grid has 3 blocks) or 1, 2, 3, 4, 1, 2 (if the grid has 4 blocks).
  *
@@ -219,23 +222,18 @@ __fd__ void collaborative_append_to_global_memory(
 namespace block_to_grid {
 
 /**
- * Accumulates the result of some computation from all
- * the blocks into a single, global (=grid-level) scalar -
- * without writes getting lost due to races etc.
+ * Accumulates the result of some computation from all the blocks into a single,
+ * global (=grid-level) scalar - without writes getting lost due to races etc.
  *
- * @note It is necessarily that at least the first thread
- * in every block calls this function, with the appropriate
- * value, otherwise it will fail. Other threads may either
- * call it or fail to call it, and the value they pass is
- * disregarded.
+ * @note It is necessarily that at least the first thread in every block calls
+ * this function, with the appropriate value, otherwise it will fail. Other threads
+ * may either call it or fail to call it, and the value they pass is disregarded.
  *
- * @param accumulator The target in global memory into which
- * block results are accumulated. Typically one should care to
- * initialize it somehow before this primitive is used
- *(probably before the whole kernel is invoked).
- * @param value The result of some block-specific computation
- * (which would be different for threads of different
- * blocks of course)
+ * @param accumulator The target in global memory into which block results are
+ * accumulated. Typically one should care to initialize it somehow before this
+ * primitive is used (probably before the whole kernel is invoked).
+ * @param block_value The result of some block-specific computation (which would be
+ * different for threads of different blocks of course)
  */
 template <typename BinaryOp>
 __fd__ void accumulation_to_scalar(
@@ -258,6 +256,9 @@ __fd__ void accumulation_to_scalar(
 } // namespace primitives
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_PRIMITIVES_GRID_CUH_

@@ -30,7 +30,10 @@
 
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace primitives {
@@ -189,7 +192,7 @@ __fd__ void single_write(T* __restrict__  target, T&& x)
 namespace detail {
 
 /**
- * A version of @ref ::copy which ignores pointer alignment,
+ * A version of `kat::copy()` which ignores pointer alignment,
  * and the memory transaction size, simply making coalesced writes
  * of warp_size elements at a time (except for the last range)
  * @param target
@@ -219,17 +222,9 @@ template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
 
 
 /**
- * Same as {@ref cast_copy}, except that no casting is done
- *
- * @note This version assumes both the source and target are well-aligned,
- * and that length * sizeof(T) % 4 == 0
- *
- */
-
-/**
  * Has the warp copy data from one place to another
  *
- *  * @note if the input is not 32-byte (sometimes 128-byte )-aligned,
+ * @note if the input is not 32-byte (sometimes 128-byte )-aligned,
  * and more importantly, the output is not 128-byte-aligned,
  * performance will likely degrade due to the need to execute a pair
  * of memory transactions for every single 32 x 4 byte write.
@@ -397,6 +392,9 @@ __fd__ void elementwise_accumulate(
 } // namespace primitives
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_

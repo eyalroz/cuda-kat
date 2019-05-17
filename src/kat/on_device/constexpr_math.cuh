@@ -14,7 +14,10 @@
 
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -234,6 +237,9 @@ constexpr __fhd__ bool is_even(I x) { return x & I{0x1} == I{0}; }
 } // namespace kat
 
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_CONSTEXPR_MATH_CUH_

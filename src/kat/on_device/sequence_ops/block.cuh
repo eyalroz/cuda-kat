@@ -6,7 +6,8 @@
  * all lanes in each warp collaborate on the same task.
  *
  * @note Most functions actually in `std::algorithm` are still missing;
- * see @ref https://en.cppreference.com/w/cpp/algorithm for a full list of those.
+ * see the <a href="https://en.cppreference.com/w/cpp/algorithm">`algorithm` page</a>
+ * on cppreference.com for a full list of those.
  *
  * @note some functions here are not actually in `std::algorithm` but might as
  * well have been, e.g. `memzero()` which is like `std::memset()` with 0.
@@ -18,7 +19,10 @@
 
 #include <kat/on_device/primitives/block.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace linear_grid {
@@ -95,7 +99,7 @@ __fd__ void cast_and_copy(
 }
 
 /**
- * Same as {@ref cast_and_copy}, except that no casting is done
+ * Same as `cast_and_copy()`, except that no casting is done
  */
 template <typename T, typename Size>
 __fd__ void copy(
@@ -147,7 +151,7 @@ __fd__ void lookup(
  *
  * @param value each thread's contribution to the reduction
  * @return for the first thread of the warp - the reduction result over
- * all @ref value elements of all block threads; for other threads - the
+ * all @p value elements of all block threads; for other threads - the
  * result is undefined
  *
  * @note all threads must participate in this primitive; consider
@@ -363,7 +367,7 @@ template<
  * @param[inout] destination The array into which we accumulate; holds existing data
  * and is not simply overwritten.
  * @param[in] source The array of partial data to integrate via accumulation.
- * @param[in] length the length in elements of {@ref destination} and {@ref source}
+ * @param[in] length the length in elements of @p destination and @p source
  *
  * @todo consider taking a GSL-span-like parameter isntead of a ptr+length
  *
@@ -403,6 +407,9 @@ __fd__ void elementwise_apply(
 } // namespace linear_grid
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_

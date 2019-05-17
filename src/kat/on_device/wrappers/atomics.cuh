@@ -5,7 +5,10 @@
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 #define CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 #include <limits>
 
 namespace kat {
@@ -82,7 +85,10 @@ __fd__ T apply_atomically(
 } // namespace atomic
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 #include "detail/atomics.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_ATOMICS_CUH_

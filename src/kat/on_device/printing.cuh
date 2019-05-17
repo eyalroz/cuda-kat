@@ -5,7 +5,6 @@
  * and debugging-related functions involving printing.
  *
  */
-
 #pragma once
 #ifndef CUDA_KAT_ON_DEVICE_PRINTING_CUH_
 #define CUDA_KAT_ON_DEVICE_PRINTING_CUH_
@@ -19,11 +18,15 @@
 // Necessary for printf()'ing in kernel code
 #include <cstdio>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
-__fd__ unsigned num_digits_required(unsigned long long extremal_value)
+namespace detail {
+__fd__ unsigned num_digits_required_for(unsigned long long extremal_value)
 {
 	return ceilf(log10f(extremal_value));
 }
@@ -62,12 +65,25 @@ __fd__ const char* yes_or_no(bool x)
 	return x ? "yes" : "no";
 }
 
+constexpr __fd__ const char* ordinal_suffix(int n)
+{
+	return
+		(n % 100 == 1 ? "st" :
+		(n % 100 == 2 ? "nd" :
+		(n % 100 == 3 ? "rd" :
+		"th")));
+}
+
+} // namespace detail
+
+
+///@cond
 #define BIT_PRINTING_PATTERN_4BIT "%04u"
 #define BIT_PRINTING_ARGUMENTS_4BIT(x)\
-	(unsigned) get_bit((x),  0) * 1000 + \
-	(unsigned) get_bit((x),  1) * 100 +  \
-	(unsigned) get_bit((x),  2) * 10 +   \
-	(unsigned) get_bit((x),  3) * 1
+	(unsigned) detail::get_bit((x),  0) * 1000 + \
+	(unsigned) detail::get_bit((x),  1) * 100 +  \
+	(unsigned) detail::get_bit((x),  2) * 10 +   \
+	(unsigned) detail::get_bit((x),  3) * 1
 
 #define DOUBLE_LENGTH_PATTERN(single_length_pattern) single_length_pattern "'" single_length_pattern
 #define DOUBLE_LENGTH_ARGUMENTS(x, single_length, single_length_arguments) \
@@ -82,90 +98,82 @@ __fd__ const char* yes_or_no(bool x)
 #define BIT_PRINTING_ARGUMENTS_16BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 8,  BIT_PRINTING_ARGUMENTS_8BIT)
 #define BIT_PRINTING_ARGUMENTS_32BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 16, BIT_PRINTING_ARGUMENTS_16BIT)
 #define BIT_PRINTING_ARGUMENTS_64BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 32, BIT_PRINTING_ARGUMENTS_32BIT)
+///@endcond
 
 #define printf_32_bits(x) \
 printf( \
 	"%04u'%04u'%04u'%04u'%04u'%04u'%04u'%04u\n", \
-	get_bit(x,  0) * 1000 + \
-	get_bit(x,  1) * 100 + \
-	get_bit(x,  2) * 10 + \
-	get_bit(x,  3) * 1, \
-	get_bit(x,  4) * 1000 + \
-	get_bit(x,  5) * 100 + \
-	get_bit(x,  6) * 10 + \
-	get_bit(x,  7) * 1, \
-	get_bit(x,  8) * 1000 + \
-	get_bit(x,  9) * 100 + \
-	get_bit(x, 10) * 10 + \
-	get_bit(x, 11) * 1, \
-	get_bit(x, 12) * 1000 + \
-	get_bit(x, 13) * 100 + \
-	get_bit(x, 14) * 10 + \
-	get_bit(x, 15) * 1, \
-	get_bit(x, 16) * 1000 + \
-	get_bit(x, 17) * 100 + \
-	get_bit(x, 18) * 10 + \
-	get_bit(x, 19) * 1, \
-	get_bit(x, 20) * 1000 + \
-	get_bit(x, 21) * 100 + \
-	get_bit(x, 22) * 10 + \
-	get_bit(x, 23) * 1, \
-	get_bit(x, 24) * 1000 + \
-	get_bit(x, 25) * 100 + \
-	get_bit(x, 26) * 10 + \
-	get_bit(x, 27) * 1, \
-	get_bit(x, 28) * 1000 + \
-	get_bit(x, 29) * 100 + \
-	get_bit(x, 30) * 10 + \
-	get_bit(x, 31) * 1 \
+	detail::get_bit(x,  0) * 1000 + \
+	detail::get_bit(x,  1) * 100 + \
+	detail::get_bit(x,  2) * 10 + \
+	detail::get_bit(x,  3) * 1, \
+	detail::get_bit(x,  4) * 1000 + \
+	detail::get_bit(x,  5) * 100 + \
+	detail::get_bit(x,  6) * 10 + \
+	detail::get_bit(x,  7) * 1, \
+	detail::get_bit(x,  8) * 1000 + \
+	detail::get_bit(x,  9) * 100 + \
+	detail::get_bit(x, 10) * 10 + \
+	detail::get_bit(x, 11) * 1, \
+	detail::get_bit(x, 12) * 1000 + \
+	detail::get_bit(x, 13) * 100 + \
+	detail::get_bit(x, 14) * 10 + \
+	detail::get_bit(x, 15) * 1, \
+	detail::get_bit(x, 16) * 1000 + \
+	detail::get_bit(x, 17) * 100 + \
+	detail::get_bit(x, 18) * 10 + \
+	detail::get_bit(x, 19) * 1, \
+	detail::get_bit(x, 20) * 1000 + \
+	detail::get_bit(x, 21) * 100 + \
+	detail::get_bit(x, 22) * 10 + \
+	detail::get_bit(x, 23) * 1, \
+	detail::get_bit(x, 24) * 1000 + \
+	detail::get_bit(x, 25) * 100 + \
+	detail::get_bit(x, 26) * 10 + \
+	detail::get_bit(x, 27) * 1, \
+	detail::get_bit(x, 28) * 1000 + \
+	detail::get_bit(x, 29) * 100 + \
+	detail::get_bit(x, 30) * 10 + \
+	detail::get_bit(x, 31) * 1 \
 );
 
 #define thread_printf_32_bits(x) \
 thread_printf( \
 	"%04u'%04u'%04u'%04u'%04u'%04u'%04u'%04u", \
-	get_bit(x,  0) * 1000 + \
-	get_bit(x,  1) * 100 + \
-	get_bit(x,  2) * 10 + \
-	get_bit(x,  3) * 1, \
-	get_bit(x,  4) * 1000 + \
-	get_bit(x,  5) * 100 + \
-	get_bit(x,  6) * 10 + \
-	get_bit(x,  7) * 1, \
-	get_bit(x,  8) * 1000 + \
-	get_bit(x,  9) * 100 + \
-	get_bit(x, 10) * 10 + \
-	get_bit(x, 11) * 1, \
-	get_bit(x, 12) * 1000 + \
-	get_bit(x, 13) * 100 + \
-	get_bit(x, 14) * 10 + \
-	get_bit(x, 15) * 1, \
-	get_bit(x, 16) * 1000 + \
-	get_bit(x, 17) * 100 + \
-	get_bit(x, 18) * 10 + \
-	get_bit(x, 19) * 1, \
-	get_bit(x, 20) * 1000 + \
-	get_bit(x, 21) * 100 + \
-	get_bit(x, 22) * 10 + \
-	get_bit(x, 23) * 1, \
-	get_bit(x, 24) * 1000 + \
-	get_bit(x, 25) * 100 + \
-	get_bit(x, 26) * 10 + \
-	get_bit(x, 27) * 1, \
-	get_bit(x, 28) * 1000 + \
-	get_bit(x, 29) * 100 + \
-	get_bit(x, 30) * 10 + \
-	get_bit(x, 31) * 1 \
+	detail::get_bit(x,  0) * 1000 + \
+	detail::get_bit(x,  1) * 100 + \
+	detail::get_bit(x,  2) * 10 + \
+	detail::get_bit(x,  3) * 1, \
+	detail::get_bit(x,  4) * 1000 + \
+	detail::get_bit(x,  5) * 100 + \
+	detail::get_bit(x,  6) * 10 + \
+	detail::get_bit(x,  7) * 1, \
+	detail::get_bit(x,  8) * 1000 + \
+	detail::get_bit(x,  9) * 100 + \
+	detail::get_bit(x, 10) * 10 + \
+	detail::get_bit(x, 11) * 1, \
+	detail::get_bit(x, 12) * 1000 + \
+	detail::get_bit(x, 13) * 100 + \
+	detail::get_bit(x, 14) * 10 + \
+	detail::get_bit(x, 15) * 1, \
+	detail::get_bit(x, 16) * 1000 + \
+	detail::get_bit(x, 17) * 100 + \
+	detail::get_bit(x, 18) * 10 + \
+	detail::get_bit(x, 19) * 1, \
+	detail::get_bit(x, 20) * 1000 + \
+	detail::get_bit(x, 21) * 100 + \
+	detail::get_bit(x, 22) * 10 + \
+	detail::get_bit(x, 23) * 1, \
+	detail::get_bit(x, 24) * 1000 + \
+	detail::get_bit(x, 25) * 100 + \
+	detail::get_bit(x, 26) * 10 + \
+	detail::get_bit(x, 27) * 1, \
+	detail::get_bit(x, 28) * 1000 + \
+	detail::get_bit(x, 29) * 100 + \
+	detail::get_bit(x, 30) * 10 + \
+	detail::get_bit(x, 31) * 1 \
 );
 
-
-constexpr __fd__ const char* ordinal_suffix(int n)
-{
-	return
-		(n % 100 == 1 ? "st" :
-		(n % 100 == 2 ? "nd" :
-		(n % 100 == 3 ? "rd" :
-		"th")));
-}
 
 
 
@@ -179,25 +187,25 @@ namespace linear_grid {
  * Note that only a single printf() call is made for both the prefix id info and
  * the macros' arguments
  *
- * @param format_str the format_string to pass on to printf, for printing after the thread identification
- * @param __VA_ARGS__ the data to be pluggined into the format string instead of the % tags
- * @return same as printf()
+ * @note the parameters are the same as for @ref std::printf - a format string
+ * with `%` tags, then one argument corresponding to each of the `%` tags.
+ * @return same as @ref std::printf
  *
  * @note: I know it's a bit silly putting a macro in a namespace. For now, just assume
  * thread_printf, warp_printf etc. really only exist for linear grids
  */
 #define thread_printf(format_str, ... )  \
 	printf("T %0*u = (%0*u,%02u,%02u): " format_str "\n", \
-		::max(2u,num_digits_required(linear_grid::grid_info::grid::num_threads() - 1llu)), \
+		::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_threads() - 1llu)), \
 		linear_grid::grid_info::thread::global_index(), \
-		::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
+		::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
 		blockIdx.x, \
 		linear_grid::grid_info::warp::index(), grid_info::lane::index(), __VA_ARGS__);
 #define thread_print(str)  \
 	printf("T %0*u = (%0*u,%02u,%02u): %s\n", \
-		::max(2,num_digits_required(linear_grid::grid_info::grid::num_threads() - 1llu)), \
+		::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_threads() - 1llu)), \
 		linear_grid::grid_info::thread::global_index(), \
-		::max(2,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
+		::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
 		blockIdx.x, \
 		linear_grid::grid_info::warp::index(), grid_info::lane::index(), str);
 #define tprintf thread_printf
@@ -207,9 +215,9 @@ namespace linear_grid {
 	do{ \
 		if (grid_info::lane::is_first()) \
 			printf("W %0*u = (%0*u,%02u): " format_str "\n", \
-				::max(2u,num_digits_required(linear_grid::grid_info::grid::num_warps() - 1)), \
+				::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_warps() - 1)), \
 				linear_grid::grid_info::warp::global_index(), \
-				::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+				::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
 				blockIdx.x, \
 				linear_grid::grid_info::warp::index(), __VA_ARGS__); \
 	} while(0)
@@ -217,9 +225,9 @@ namespace linear_grid {
 	do{ \
 		if (grid_info::lane::is_first()) \
 		printf("W %0*u = (%0*u,%02u): %s\n", \
-			::max(2,num_digits_required(linear_grid::grid_info::grid::num_warps() - 1)), \
+			::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_warps() - 1)), \
 			linear_grid::grid_info::warp::global_index(), \
-			::max(2,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+			::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
 			blockIdx.x, \
 			linear_grid::grid_info::warp::index(), str); \
 	} while(0)
@@ -228,14 +236,14 @@ namespace linear_grid {
 	do{ \
 		if (linear_grid::grid_info::thread::is_first_in_block()) \
 			printf("B %0*u: " format_str "\n", \
-				::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+				::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
 				linear_grid::grid_info::block::index(), __VA_ARGS__); \
 	} while(0)
 #define block_print(str)  \
 	do{ \
 		if (linear_grid::grid_info::thread::is_first_in_block()) \
 		printf("B %0*u: %s\n", \
-			::max(2u,num_digits_required(linear_grid::grid_info::grid::num_blocks() - 1)), \
+			::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
 				linear_grid::grid_info::block::index(), str); \
 	} while(0)
 #define bprintf block_printf
@@ -263,7 +271,7 @@ inline __device__ void print_self_identification()
 
 }
 
-#define IDENTIFY_FUNCTION() { \
+#define identify_function() { \
 	printf_once("Now executing function \"%s\"", __PRETTY_FUNCTION__); \
 	__syncthreads(); \
 }
@@ -272,6 +280,9 @@ inline __device__ void print_self_identification()
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_PRINTING_CUH_

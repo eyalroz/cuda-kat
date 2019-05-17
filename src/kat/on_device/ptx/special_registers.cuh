@@ -1,3 +1,8 @@
+/**
+ * @file kat/on_device/ptx/special_registers.cuh
+ *
+ * @brief PTX instruction wrapper functions for accessing special on-GPU-core registers.
+ */
 #pragma once
 #ifndef CUDA_KAT_PTX_SPECIAL_REGISTERS_CUH_
 #define CUDA_KAT_PTX_SPECIAL_REGISTERS_CUH_
@@ -8,7 +13,10 @@ namespace kat {
 namespace ptx {
 
 /**
- * See @link http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#special-registers
+ * @brief Wrappers for instructions obtaining the value of one of the special hardware registers on nVIDIA GPUs.
+ *
+ * See the <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#special-registers">relevant section</a>
+ * of the PTX instruction set guide for more details.
  */
 namespace special_registers {
 

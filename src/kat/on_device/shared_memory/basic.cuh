@@ -12,7 +12,10 @@
 #include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/ptx.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace shared_memory {
@@ -150,6 +153,9 @@ __fd__ T* strided(offset_t base_offset = 0)
 } // namespace shared_memory
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_SHARED_MEMORY_BASIC_CUH_

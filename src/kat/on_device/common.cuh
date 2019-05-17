@@ -82,14 +82,20 @@ constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
 
 } // namespace kat
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 //constexpr __fhd__ bool operator==(const dim3& lhs, const dim3& rhs)
 //{
 //	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
 //}
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 
 #endif // CUDA_KAT_ON_DEVICE_COMMON_CUH_

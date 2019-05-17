@@ -14,7 +14,10 @@
 #include <kat/on_device/wrappers/builtins.cuh>
 	// for absolute_value(), sum_of_absolute_differences(), minimum(), maximum() etc...
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 #include <type_traits>
 
@@ -111,6 +114,9 @@ __fd__ unsigned log2(std::enable_if<std::is_unsigned<T>::value, T> x) {
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_MATH_CUH_

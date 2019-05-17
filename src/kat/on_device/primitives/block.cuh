@@ -18,7 +18,10 @@
 #include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/shared_memory/basic.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace linear_grid {
@@ -94,12 +97,16 @@ __fd__ void share_warp_datum_with_whole_block(
 
 __fd__ void barrier() { __syncthreads(); }
 
-
-// This macro is a bit ugly, but it might be useful
-//
-// Note: Make sure the first block thread has not diverged/exited
+/**
+ * @brief Execute some code exactly once per block of threads
+ *
+ * @note This macro is a kind of ugly and non-robust way of achieving
+ * the stated effect; but a safe way to do so would be much slower.
+ *
+ * @note You must make sure that first thread of the block hits this
+ * instruction to get the desired effect...
+ */
 #define once_per_block  if (thread::is_first_in_block())
-
 
 /**
  * @brief have all block threads obtain a value held by just
@@ -120,6 +127,13 @@ __fd__ T get_from_thread(const T& value, unsigned source_thread_index)
 	return tmp;
 }
 
+/**
+ * @brief have all block threads obtain a value held by the first
+ * thread in the block (and likely not otherwise easily accessible
+ * to the rest of the block's threads).
+ *
+ * @note uses shared memory for "broadcasting" the value
+ */
 template <typename T>
 __fd__ T get_from_first_thread(const T& value)
 {
@@ -183,11 +197,6 @@ __fd__ void share_warp_datum_with_whole_block(
 __fd__ void barrier() { __syncthreads(); }
 
 
-// A bit ugly, but...
-// Note: Make sure the first block thread has not diverged/exited
-#define once_per_block if (thread::is_first_in_block())
-
-
 /**
  * @brief have all block threads obtain a value held by just
  * one of the threads (and likely not otherwise easily accessible
@@ -195,9 +204,6 @@ __fd__ void barrier() { __syncthreads(); }
  *
  * @note uses shared memory for the "broadcast" by the thread holding
  * the relevant value
- *
- * @note Untested.
- *
  */
 template <typename T>
 __fd__ T get_from_thread(const T& value, unsigned source_thread_index)
@@ -210,6 +216,13 @@ __fd__ T get_from_thread(const T& value, unsigned source_thread_index)
 	return tmp;
 }
 
+/**
+ * @brief have all block threads obtain a value held by the first
+ * thread in the block (and likely not otherwise easily accessible
+ * to the rest of the block's threads).
+ *
+ * @note uses shared memory for "broadcasting" the value
+ */
 template <typename T>
 __fd__ T get_from_first_thread(const T& value)
 {
@@ -220,6 +233,9 @@ __fd__ T get_from_first_thread(const T& value)
 } // namespace primitives
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // BLOCK_LEVEL_PRIMITIVES_CUH_

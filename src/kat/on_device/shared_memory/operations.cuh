@@ -13,7 +13,10 @@
 #include <kat/on_device/shared_memory/basic.cuh>
 #include <kat/on_device/sequence_ops/block.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace linear_grid {
@@ -51,7 +54,7 @@ __fd__ void fill(
  * @param value each element of the block's dynamic shared memory will be
  * set to this value
  *
- * @note This variant of @ref fill() pays a small "penality" for determining
+ * @note This variant of `fill()` pays a small "penality" for determining
  * the size of the shared memory by itself, since it must access a
  * typically-unused special register for this purpose. If you can, prefer
  * passing a length yourself.
@@ -80,7 +83,6 @@ __fd__ void zero(kat::shared_memory::size_t length)
  * @brief Collaboratively zero-out the block's dynamic shared memory
  *
  * @tparam the element type which the block's shared memory is presumed to have
- * @param length the number of T elements to set to zero
  */
 template <typename T>
 __fd__ void zero()
@@ -151,7 +153,7 @@ __fd__ void fill(
  * @param value each element of the block's dynamic shared memory will be
  * set to this value
  *
- * @note This variant of @ref fill() pays a small "penality" for determining
+ * @note This variant of `fill()` pays a small "penality" for determining
  * the size of the shared memory by itself, since it must access a
  * typically-unused special register for this purpose. If you can, prefer
  * passing a length yourself.
@@ -180,7 +182,6 @@ __fd__ void zero(kat::shared_memory::size_t length)
  * @brief Collaboratively zero-out the block's dynamic shared memory
  *
  * @tparam the element type which the block's shared memory is presumed to have
- * @param length the number of T elements to set to zero
  */
 template <typename T>
 __fd__ void zero()
@@ -225,6 +226,9 @@ __fd__ T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t le
 
 
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_SHARED_MEMORY_OPS_CUH

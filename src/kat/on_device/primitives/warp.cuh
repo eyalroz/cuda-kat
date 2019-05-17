@@ -25,7 +25,10 @@
 
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace primitives {
@@ -101,7 +104,7 @@ __fd__  bool some_lanes_satisfy(int condition)
  * Count the lanes in a warp for which some condition holds
  *
  * @param condition the condition value for each lane (true if non-zero)
- * @return the number of threads in the warp whose {@ref condition} is true (non-zero)
+ * @return the number of threads in the warp whose @p condition is true (non-zero)
  */
 __fd__ native_word_t num_lanes_satisfying(int condition)
 {
@@ -112,7 +115,7 @@ __fd__ native_word_t num_lanes_satisfying(int condition)
  * Count the lanes in a warp which have the same condition value as the calling lane
  *
  * @param condition the condition value for each lane (true if non-zero)
- * @return the number of threads in the warp whose {@ref condition} is the same value
+ * @return the number of threads in the warp whose @p condition is the same value
  * as the calling lane
  */
 __fd__  native_word_t num_lanes_agreeing_on(int condition)
@@ -372,7 +375,7 @@ __fd__ void single_write(T* __restrict__  target, T&& x)
 namespace detail {
 
 /**
- * A version of @ref ::copy which ignores pointer alignment,
+ * A version of `kat::copy()` which ignores pointer alignment,
  * and the memory transaction size, simply making coalesced writes
  * of warp_size elements at a time (except for the last range)
  * @param target
@@ -479,7 +482,7 @@ __fd__ void copy_n(
 }
 
 /**
- * Same as @ref cast_copy , except that no casting is done
+ * Same as `cast_and_copy()` , except that no casting is done
  *
  * @note This version assumes both the source and target are well-aligned,
  * and that length * sizeof(T) % 4 == 0
@@ -576,13 +579,9 @@ __fd__ void elementwise_accumulate(
 
 /**
  * A variant of the one-position-per-thread applicator,
- * {@ref primitives::grid::at_grid_stride}: Here each warp works on one
+ * `primitives::grid::at_grid_stride()`: Here each warp works on one
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
- *
- * TODO: This is not general enough to be in this file; or rather, it's
- * not clear why each thread doesn't get its own element in the range. Either
- * it goes into some separate namespace or out of this file completely.
  *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence
@@ -861,7 +860,7 @@ enum predicate_computation_length_slack_t {
  * @param length bits overall - are slack bits; it is assumed
  * we're allowed to write anything to them.
  *
- * @param computer_predicate the result of the computation of the
+ * @param computed_predicate the result of the computation of the
  * predicate for each of the indices in the range
  * @param length The number of elements for which to compute the
  * predicate, which is also the number of bits (not the size in
@@ -965,14 +964,15 @@ template <
 namespace detail {
 
 /**
- * Merge a full warp's worth of data, where each half-warp holds a sorted array,
- * so that the
+ * Merge a full warp's worth of data, where each half-warp holds a sorted array.
  *
- * @note Untested as of yet
+ * @param v A lane-specific value; over the entire warp, these constitute
+ * all values to merge
  *
- * @param source_a One sorted half-warp's worth of data
- * @param source_b Another sorted half-warp's worth of data
- * @param target Location into which to merge
+ * @return the lane's value so that, by order of lane index, the lanes
+ * get a merged version of the input values.
+ *
+ * @note UNTESTED!
  */
 template <typename T>
 __fd__ native_word_t find_merge_position(const T& v)
@@ -1093,13 +1093,9 @@ namespace warp {
 
 /**
  * A variant of the one-position-per-thread applicator,
- * {@ref primitives::grid::at_grid_stride}: Here each warp works on one
+ * `primitives::grid::at_grid_stride()`: Here each warp works on one
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
- *
- * TODO: This is not general enough to be in this file; or rather, it's
- * not clear why each thread doesn't get its own element in the range. Either
- * it goes into some separate namespace or out of this file completely.
  *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence
@@ -1124,6 +1120,9 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_

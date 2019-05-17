@@ -15,7 +15,10 @@
 
 #include <kat/on_device/common.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -77,7 +80,10 @@ template<typename T> __fd__ T shuffle_xor(const T& t, const int& lane_mask);
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 #include "detail/shuffle.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_

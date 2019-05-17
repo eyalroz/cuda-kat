@@ -14,7 +14,10 @@
 #define CUDA_KAT_ON_DEVICE_GRID_INFO_CUH_
 
 #include <kat/on_device/common.cuh>
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 #include <cassert>
 
@@ -448,6 +451,9 @@ namespace lane = ::kat::grid_info::lane;
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_GRID_INFO_CUH_

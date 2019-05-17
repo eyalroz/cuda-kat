@@ -14,7 +14,10 @@
 #error "This code can only target devices of compute capability 3.0 or higher."
 #endif
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -228,6 +231,9 @@ template <> __fd__ double              maximum<double            >(double x, dou
 } // namespace kat
 
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_

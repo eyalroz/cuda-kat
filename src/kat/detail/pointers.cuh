@@ -4,7 +4,10 @@
 
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace detail {
@@ -99,6 +102,9 @@ __fhd__ T* align_down(T* ptr) noexcept
 } // namespace detail
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_POINTERS_CUH_
