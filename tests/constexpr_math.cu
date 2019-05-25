@@ -1,15 +1,18 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
 #include "utilities.cuh"
-#include "../src/kat/on_device/constexpr_math.cuh"
-//#include <kat/on_device/constexpr_math.cuh>
-#include "../external/doctest/doctest.h"
+//#include "../src/kat/on_device/constexpr_math.cuh"
+#include <kat/on_device/constexpr_math.cuh>
+//#include "../external/doctest/doctest.h"
+#include <limits>
 
 namespace kernels {
 } // namespace kernels
 
 template <typename I>
 struct compile_time_execution_results {
+
+// TODO: What about invalid arguments, e.g.
 
     static_assert(kat::is_power_of_2<I>(I{ 1}) == true,  "kat::is_power_of_2( 1) error");
     static_assert(kat::is_power_of_2<I>(I{ 2}) == true,  "kat::is_power_of_2( 2) error");
@@ -18,15 +21,33 @@ struct compile_time_execution_results {
     static_assert(kat::is_power_of_2<I>(I{32}) == true,  "kat::is_power_of_2(32) error");
     static_assert(kat::is_power_of_2<I>(I{33}) == false, "kat::is_power_of_2(33) error");
 
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 0}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 1}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 2}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 3}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_inc<I>(I{ 4}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_inc error");
 
-    static_assert(kat::modular_inc<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::modular_inc error");
-    static_assert(kat::modular_inc<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::modular_inc error");
-    static_assert(kat::modular_inc<I>(I{ 0}, I{ 3}) == I{ 1 }, "kat::modular_inc error");
-    static_assert(kat::modular_inc<I>(I{ 1}, I{ 3}) == I{ 2 }, "kat::modular_inc error");
-    static_assert(kat::modular_inc<I>(I{ 2}, I{ 3}) == I{ 0 }, "kat::modular_inc error");
-    static_assert(kat::modular_inc<I>(I{ 3}, I{ 3}) == I{ 1 }, "kat::modular_inc error");
-    static_assert(kat::modular_inc<I>(I{ 4}, I{ 3}) == I{ 2 }, "kat::modular_inc error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 0}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 1}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 2}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 3}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_dec<I>(I{ 4}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_dec error");
 
+    static_assert(kat::ipow<I>(I{ 0 },   1 ) == I{  0 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 0 },   2 ) == I{  0 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 0 }, 100 ) == I{  0 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 1 },   0 ) == I{  1 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 1 },   1 ) == I{  1 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 1 },   2 ) == I{  1 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 1 }, 100 ) == I{  1 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 3 },   0 ) == I{  1 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 3 },   1 ) == I{  3 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 3 },   2 ) == I{  9 }, "kat::ipow error");
+    static_assert(kat::ipow<I>(I{ 3 },   4 ) == I{ 81 }, "kat::ipow error");
 };
 
 compile_time_execution_results<int8_t  > s8;
@@ -44,6 +65,7 @@ is_power_of_2(T val)
 constexpr inline T& modular_inc(T& x, T modulus)
 constexpr inline T& modular_dec(T& x, T modulus)
 constexpr I ipow(I base, unsigned exponent)
+
 I div_rounding_up_unsafe(I dividend, const I2 divisor)
 I div_rounding_up_safe(I dividend, const I2 divisor)
 I round_down(const I x, const I2 y)
