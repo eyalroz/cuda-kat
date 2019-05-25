@@ -21,17 +21,17 @@
 
 namespace kat {
 
+template <typename T, typename Lower = T, typename Upper = T>
+constexpr inline bool between_or_equal(T x, Lower l, Upper u) { return (l <= x) && (x <= u); }
+
+template <typename T, typename Lower = T, typename Upper = T>
+constexpr inline bool strictly_between(T x, Lower l, Upper u) { return (l < x) && (x < u); }
+
+
 template <typename T>
 constexpr __fhd__ bool is_power_of_2(T val) { return (val & (val-1)) == 0; }
 	// Yes, this works: Only if val had exactly one 1 bit will subtracting 1 switch
 	// all of its 1 bits.
-
-
-template <typename T>
-constexpr inline T modular_inc(T x, T modulus) { return (x+1) % modulus; }
-
-template <typename T>
-constexpr inline T modular_dec(T x, T modulus) { return (x-1) % modulus; }
 
 namespace detail {
 
@@ -43,10 +43,11 @@ constexpr T ipow(T base, unsigned exponent, T coefficient) {
 
 } // namespace detail
 
+// #if __cplusplus >= 201402L
 template <typename I>
 constexpr I ipow(I base, unsigned exponent)
 {
-	return detail::ipow(base, exponent, 1);
+	return detail::ipow(base, exponent, I{1});
 }
 
 template <typename I, typename I2>
@@ -109,12 +110,6 @@ constexpr __fhd__ I round_up_to_full_warps_unsafe(I x) {
 	return round_up_to_power_of_2_unsafe<I, native_word_t>(x, warp_size);
 }
 
-template <typename T, typename Lower = T, typename Upper = T>
-constexpr inline bool between_or_equal(T x, Lower l, Upper u) { return (l <= x) && (x <= u); }
-
-template <typename T, typename Lower = T, typename Upper = T>
-constexpr inline bool strictly_between(T x, Lower l, Upper u) { return (l < x) && (x < u); }
-
 #if __cplusplus >= 201402L
 template <typename T>
 constexpr __fhd__ T gcd(T u, T v)
@@ -129,6 +124,25 @@ constexpr __fhd__ T gcd(T u, T v)
 #endif
 
 namespace constexpr_ {
+
+namespace detail {
+
+template <typename I>
+constexpr inline I modular_inc(I x, I modulus) { return (x == modulus - I{1}) ? I{0} : (x + I{1}); }
+
+template <typename I>
+constexpr inline I modular_dec(I x, I modulus) { return (x == I{0}) ? (modulus - I{1}) : (x - I{1}); }
+
+} // namespace detail
+
+// Note: Safe but slow
+template <typename I>
+constexpr inline I modular_inc(I x, I modulus) { return detail::modular_inc<I>(x % modulus, modulus); }
+
+// Note: Safe but slow
+template <typename I>
+constexpr inline I modular_dec(I x, I modulus) { return detail::modular_dec<I>(x % modulus, modulus); }
+
 
 template <typename I>
 constexpr __fhd__ int log2(I val)
