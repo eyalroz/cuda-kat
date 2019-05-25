@@ -47,32 +47,68 @@ namespace block {
 // TODO: Check whether writing this with a forward iterator and std::advance
 // yields the same PTX code (in which case we'll prefer that)
 template <typename RandomAccessIterator, typename Size, typename T>
-__fd__ void fill_n(RandomAccessIterator start, Size count, const T& value)
+__fd__ void fill_n(RandomAccessIterator start, Size count, T value)
 {
-	T tmp = value;
-	for(promoted_size_t<Size> index = thread::index();
-		index < count;
-		index += block::size())
-	{
-		start[index] = tmp;
-	}
+	auto f = [=](promoted_size_t<Size> pos) {
+		start[pos] = value;
+	};
+	at_block_stride(count, f);
 }
 
-template <typename ForwardIterator, typename T>
-__fd__ void fill(ForwardIterator start, ForwardIterator end, const T& value)
+template <typename RandomAccessIterator, typename T>
+__fd__ void fill(RandomAccessIterator start, RandomAccessIterator end, const T& value)
 {
-    const T tmp = value;
-	auto iter = start + thread::index();
-    for (; iter < end; iter += block::length())
-    {
-		*iter = tmp;
-    }
+    auto count = end - start;
+    return fill_n(start, count, value);
 }
 
-template <typename ForwardIterator, typename Size>
-__fd__ void memzero(ForwardIterator start, Size count)
+template <typename RandomAccessIterator, typename Size>
+__fd__ void memzero_n(RandomAccessIterator start, Size count)
 {
     return fill_n(start, count, 0);
+}
+
+template <typename RandomAccessIterator, typename Size>
+__fd__ void memzero(RandomAccessIterator start, RandomAccessIterator end)
+{
+	auto count = end - start;
+    return fill_n(start, count, 0);
+}
+
+/**
+ * @brief apply a transformation to each element of an array, placing the results
+ * in another array.
+ *
+ * @param source The (block-common) origin of the data
+ * @param target The (block-common) destination into which to write the converted elements
+ * @param length The (block-common) number of elements available (for reading?] at the
+ * source
+ */
+template <typename T, typename S, typename UnaryOperation, typename Size>
+__fd__ void transform_n(
+	const S*  __restrict__  source,
+	T*        __restrict__  target,
+	Size                    length,
+	UnaryOperation          op)
+{
+	auto f = [=](promoted_size_t<Size> pos) {
+		target[pos] = op(source[pos]);
+	};
+	at_block_stride(length, f);
+}
+
+/**
+ * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
+ */
+template <typename S, typename T, typename UnaryOperation, typename Size>
+__fd__ void transform(
+	const S*  __restrict__  source_start,
+	const S*  __restrict__  source_end,
+	T*        __restrict__  target,
+	UnaryOperation          op)
+{
+	auto length = source_end - source_start;
+	return transform_n(source_start, target, op, length);
 }
 
 /**
@@ -80,46 +116,68 @@ __fd__ void memzero(ForwardIterator start, Size count)
  * data between two memory locations (possibly not in the same memory
  * space), while also converting types.
  *
- * @param target The destination into which to write the converted elements
- * @param source The origin of the data
- * @param length The number of elements available (for reading?] at the
+ * @param target The (block-common) destination into which to write the converted elements
+ * @param source The (block-common) origin of the data
+ * @param length The (block-common) number of elements available (for reading?] at the
  * source
  */
-template <typename T, typename U, typename Size>
-__fd__ void cast_and_copy(
+template <typename S, typename T, typename Size>
+__fd__ void cast_and_copy_n(
+	const S*  __restrict__  source,
 	T*        __restrict__  target,
-	const U*  __restrict__  source,
 	Size                    length)
 {
-	using namespace linear_grid::grid_info;
-	#pragma unroll
-	for(promoted_size_t<Size> pos = thread::index_in_block(); pos < length; pos += block::size()) {
-		target[pos] = source[pos];
-	}
+	auto op = [](S x) { return T{x};} ;
+	return transform_n(source, target, length, op);
 }
 
-/**
- * Same as `cast_and_copy()`, except that no casting is done
- */
-template <typename T, typename Size>
-__fd__ void copy(
-	T*        __restrict__  target,
-	const T*  __restrict__  source,
-	Size                    length)
+template <typename S, typename T, typename Size>
+__fd__ void cast_and_copy_n(
+	const S*  __restrict__  source_start,
+	const S*  __restrict__  source_end,
+	T*        __restrict__  target)
 {
-	return cast_and_copy<T, T, Size>(target, source, length);
+	auto length = source_end - source_start;
+	return cast_and_copy_n(source_start, target, length);
 }
 
+
 /**
- * @todo differentiate between this and copy... for now, they're exactly the same
+ * @brief block-collaboratively copy data between stretches of memory
+ *
+ * @param source (block-common) location from which to copy data
+ * @param target (block-common) location into which to copy the first element
+ * @param length number of elements at @p source to copy
  */
 template <typename T, typename Size>
 __fd__ void copy_n(
-	T*        __restrict__  target,
 	const T*  __restrict__  source,
+	T*        __restrict__  target,
 	Size                    length)
 {
-	return cast_and_copy<T, T, Size>(target, source, length);
+	auto f = [=](promoted_size_t<Size> pos) {
+		target[pos] = source[pos];
+	};
+	at_block_stride(length, f);
+}
+
+/**
+ * @brief block-collaboratively copy data between stretches of memory
+ *
+ * @param source_start (block-common) location of the first data element to copy
+ * @param source_end (block-common) location past the last data element to copy
+ * @param target (block-common) location into which to copy the first element
+ *
+ * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
+ */
+template <typename T>
+__fd__ void copy(
+	const T*  __restrict__  source_start,
+	const T*  __restrict__  source_end,
+	T*        __restrict__  target)
+{
+	auto length = source_end - source_start;
+	return copy_n(source_start, target, length);
 }
 
 
@@ -135,7 +193,7 @@ __fd__ void lookup(
 	const I* __restrict__  indices,
 	Size                   num_indices)
 {
-	auto f = [&](promoted_size_t<Size> pos) {
+	auto f = [=](promoted_size_t<Size> pos) {
 		target[pos] = lookup_table[indices[pos]];
 	};
 	at_block_stride(num_indices, f);
@@ -401,6 +459,21 @@ __fd__ void elementwise_apply(
 		results[pos] = op(lhs[pos], rhs[pos]);
 	}
 }
+
+/*
+template <typename ResultDatum, typename... Args, typename Operation, typename Size>
+__fd__ void elementwise_apply(
+	ResultDatum*     __restrict__  results,
+	Size                           length,
+	Operation                      op,
+	const Args*  __restrict__      arguments...)
+{
+	auto f = [&](promoted_size<Size> pos) {
+		return op(arguments[pos]...);
+	};
+	at_block_stride(length, f);
+}*/
+
 
 } // namespace block
 } // namespace primitives
