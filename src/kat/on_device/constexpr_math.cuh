@@ -28,10 +28,10 @@ constexpr __fhd__ bool is_power_of_2(T val) { return (val & (val-1)) == 0; }
 
 
 template <typename T>
-constexpr inline T& modular_inc(T& x, T modulus) { return (x+1) % modulus; }
+constexpr inline T modular_inc(T x, T modulus) { return (x+1) % modulus; }
 
 template <typename T>
-constexpr inline T& modular_dec(T& x, T modulus) { return (x-1) % modulus; }
+constexpr inline T modular_dec(T x, T modulus) { return (x-1) % modulus; }
 
 namespace detail {
 
@@ -110,10 +110,10 @@ constexpr __fhd__ I round_up_to_full_warps_unsafe(I x) {
 }
 
 template <typename T, typename Lower = T, typename Upper = T>
-constexpr inline bool between_or_equal(const T& x, const Lower& l, const Upper& u) { return (l <= x) && (x <= u); }
+constexpr inline bool between_or_equal(T x, Lower l, Upper u) { return (l <= x) && (x <= u); }
 
 template <typename T, typename Lower = T, typename Upper = T>
-constexpr inline bool strictly_between(const T& x, const Lower& l, const Upper& u) { return (l < x) && (x < u); }
+constexpr inline bool strictly_between(T x, Lower l, Upper u) { return (l < x) && (x < u); }
 
 #if __cplusplus >= 201402L
 template <typename T>
@@ -175,7 +175,7 @@ constexpr __fhd__ T sqrt_helper(T x, T low, T high)
 } // namespace detail
 
 template <typename T>
-constexpr __fhd__ T sqrt(T& x)
+constexpr __fhd__ T sqrt(T x)
 {
   return detail::sqrt_helper(x, 0, x / 2 + 1);
 }
