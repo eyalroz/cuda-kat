@@ -80,5 +80,6 @@ set_target_properties(
 )
 
 set_property(TARGET shared_memory_obj constexpr_math_obj PROPERTY CUDA_PTX_COMPILATION ON)
+set_property(TARGET shared_memory_obj constexpr_math_obj PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin/tests)
 
 # TODO: Something about code coverage perhaps?
