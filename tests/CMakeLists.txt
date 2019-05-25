@@ -57,15 +57,28 @@ add_test(
     COMMAND shared_memory ${TEST_RUNNER_PARAMS}
 )
 
+add_library(constexpr_math_obj OBJECT constexpr_math.cu)
+target_link_libraries(constexpr_math_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
+add_executable(constexpr_math constexpr_math.cu)
+target_link_libraries(constexpr_math PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
+target_include_directories(constexpr_math PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+target_include_directories(constexpr_math_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+add_test(
+		NAME ${PROJECT_NAME}.constexpr_math
+		COMMAND constexpr_math ${TEST_RUNNER_PARAMS}
+)
+
+
 set_target_properties(
 #	failtest
 	shared_memory
+	constexpr_math
 	PROPERTIES 
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES 
     CXX_EXTENSIONS NO
 )
 
-set_property(TARGET shared_memory_obj PROPERTY CUDA_PTX_COMPILATION ON)
+set_property(TARGET shared_memory_obj constexpr_math_obj PROPERTY CUDA_PTX_COMPILATION ON)
 
 # TODO: Something about code coverage perhaps?
