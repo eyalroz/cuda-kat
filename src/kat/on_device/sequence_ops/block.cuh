@@ -14,10 +14,11 @@
  */
 
 #pragma once
-#ifndef BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
-#define BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
+#ifndef CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
+#define CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
 #include <kat/on_device/primitives/block.cuh>
+#include <kat/on_device/sequence_ops/warp.cuh>
 
 
 ///@cond
@@ -485,4 +486,4 @@ __fd__ void elementwise_apply(
 #include <kat/undefine_specifiers.hpp>
 ///@endcond
 
-#endif // BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
+#endif // CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_

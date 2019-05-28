@@ -112,6 +112,13 @@ void* long_memcpy(
 	return destination;
 }
 
+template <typename I>
+constexpr __fhd__ I num_warp_sizes_to_cover(I x)
+{
+    enum : I { log_Warp_size = 5 };
+    return (x >> log_warp_size) + ((x & (warp_size-1)) > 0);
+}
+
 } // namespace kat
 
 

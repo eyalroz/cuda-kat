@@ -51,28 +51,28 @@ constexpr I ipow(I base, unsigned exponent)
 }
 
 template <typename I, typename I2>
-constexpr __fhd__ I div_rounding_up_unsafe(I dividend, const I2 divisor)
+constexpr __fhd__ I div_rounding_up_unsafe(I x, const I2 modulus)
 {
-	return (dividend + divisor - 1) / divisor;
+	return (x + modulus - 1) / modulus;
 }
 
 template <typename I, typename I2>
-constexpr __fhd__ I div_rounding_up_safe(I dividend, const I2 divisor)
+constexpr __fhd__ I div_rounding_up_safe(I x, const I2 modulus)
 {
-	return (dividend / divisor) + !!(dividend % divisor);
+	return (x / modulus) + !!(x % modulus);
 }
 
 template <typename I, typename I2>
-constexpr __fhd__ I round_down(const I x, const I2 y)
+constexpr __fhd__ I round_down(const I x, const I2 modulus)
 {
-	return x - x%y;
+	return x - (x % modulus);
 }
 
 /**
  * @note Don't use this with negative values.
  */
 template <typename I>
-constexpr __fhd__ I round_down_to_warp_size(I x)
+constexpr __fhd__ I round_down_to_full_warps(I x)
 {
 	return x & ~(warp_size - 1);
 }
@@ -85,6 +85,12 @@ template <typename I, typename I2 = I>
 constexpr __fhd__ I round_up_unsafe(I x, I2 y)
 {
 	return round_down(x+y-1, y);
+}
+
+template <typename I, typename I2 = I>
+constexpr __fhd__ I round_up_safe(I x, I2 y)
+{
+	return (x % y == 0) ? x : x + (y - x%y);
 }
 
 template <typename I, typename I2 = I>
@@ -105,10 +111,26 @@ constexpr __fhd__ I round_up_to_power_of_2_unsafe(I x, I2 power_of_2)
 /**
  * @note careful, this may overflow!
  */
+template <typename I, typename I2 = I>
+constexpr __fhd__ I round_up_to_power_of_2_safe(I x, I2 power_of_2)
+{
+	return ((x & (power_of_2 - 1)) == 0) ? x : ((x & ~(power_of_2 - 1)) + power_of_2);
+}
+
+
+/**
+ * @note careful, this may overflow!
+ */
 template <typename I>
 constexpr __fhd__ I round_up_to_full_warps_unsafe(I x) {
 	return round_up_to_power_of_2_unsafe<I, native_word_t>(x, warp_size);
 }
+
+template <typename I>
+constexpr __fhd__ I round_up_to_full_warps_safe(I x) {
+	return round_up_to_power_of_2_safe<I, native_word_t>(x, warp_size);
+}
+
 
 #if __cplusplus >= 201402L
 template <typename T>
@@ -127,9 +149,11 @@ namespace constexpr_ {
 
 namespace detail {
 
+// Assumes 0 <= x < modulus
 template <typename I>
 constexpr inline I modular_inc(I x, I modulus) { return (x == modulus - I{1}) ? I{0} : (x + I{1}); }
 
+// Assumes 0 <= x < modulus
 template <typename I>
 constexpr inline I modular_dec(I x, I modulus) { return (x == I{0}) ? (modulus - I{1}) : (x - I{1}); }
 
@@ -148,12 +172,6 @@ template <typename I>
 constexpr __fhd__ int log2(I val)
 {
 	return val ? 1 + log2(val >> 1) : -1;
-}
-
-template <typename I, I Divisor>
-constexpr __fhd__ I div_by_fixed_power_of_2(I dividend)
-{
-	return dividend >> log2(Divisor);
 }
 
 template <typename S, typename T = S>
@@ -203,30 +221,6 @@ constexpr __fhd__ I div_by_power_of_2(I dividend, I divisor)
 	return dividend >> log2_of_power_of_2(divisor);
 }
 
-template <typename I, I Divisor>
-constexpr __fhd__ I div_by_fixed_power_of_2_rounding_up(I dividend)
-{
-/*
-	// C++14 and later:
-
-	constexpr auto log_2_of_divisor = constexpr_::log2(Divisor);
-	constexpr auto mask = Divisor - 1;
-	auto correction_for_rounding_up = ((dividend & mask) + mask) >> log_2_of_divisor;
-
-	return (dividend >> log_2_of_divisor) + correction_for_rounding_up;
-*/
-	// single-statement C++11 version
-	return (dividend >> constexpr_::log2(Divisor)) +
-		(((dividend & (Divisor - 1)) + (Divisor - 1)) >> constexpr_::log2(Divisor));
-}
-
-template <typename I>
-constexpr __fhd__ I num_warp_sizes_to_cover(I x)
-{
-	return constexpr_::div_by_fixed_power_of_2<I, warp_size>(x) + ((x & (warp_size-1)) > 0);
-}
-
-
 template <typename I>
 constexpr __fhd__ bool divides(I divisor, I dividend) {
 	return dividend % divisor == 0;
@@ -244,9 +238,9 @@ constexpr inline bool is_divisible_by_power_of_2(I dividend, I divisor) {
 
 
 template <typename I>
-constexpr __fhd__ bool is_odd(I x)  { return x & I{0x1} != I{0}; }
+constexpr __fhd__ bool is_odd(I x)  { return (x & I{0x1}) == I{1}; }
 template <typename I>
-constexpr __fhd__ bool is_even(I x) { return x & I{0x1} == I{0}; }
+constexpr __fhd__ bool is_even(I x) { return (x & I{0x1}) == I{0}; }
 
 } // namespace kat
 

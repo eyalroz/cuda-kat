@@ -23,8 +23,8 @@
  */
 
 #pragma once
-#ifndef WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
-#define WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
+#ifndef CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
+#define CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
 #include <kat/on_device/primitives/warp.cuh>
 
@@ -167,7 +167,7 @@ __fd__ T exclusive_prefix_sum(T value)
  * source
  */
 template <typename T, typename U, typename Size>
-__fd__ void cast_and_copy(
+__fd__ void cast_and_copy_n(
 	T*        __restrict__  target,
 	const U*  __restrict__  source,
 	Size                    length)
@@ -181,6 +181,15 @@ __fd__ void cast_and_copy(
 	}
 }
 
+template <typename T, typename U>
+__fd__ void cast_and_copy(
+	T*        __restrict__  target,
+	const U*  __restrict__  source_start,
+	const U*  __restrict__  source_end)
+{
+	auto length = source_end - source_start;
+	return cast_and_copy_n<T, U, decltype(length)>(target, source_start, source_end - source_start);
+}
 /*
 template <typename T>
 __fd__ void single_write(T* __restrict__  target, T&& x)
@@ -397,4 +406,4 @@ __fd__ void elementwise_accumulate(
 #include <kat/undefine_specifiers.hpp>
 ///@endcond
 
-#endif // WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
+#endif // CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
