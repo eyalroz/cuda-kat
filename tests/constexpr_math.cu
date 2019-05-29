@@ -1,4 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "macro.h"
 #include "common.cuh"
 #include "utilities.cuh"
 //#include "../src/kat/on_device/constexpr_math.cuh"
@@ -9,10 +10,32 @@
 namespace kernels {
 } // namespace kernels
 
+// TODO: What about invalid arguments?
+
 template <typename I>
 struct compile_time_execution_results {
 
-// TODO: What about invalid arguments, e.g.
+
+    static_assert(kat::strictly_between<I>( I{   0 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{   1 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{   4 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{   5 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{   6 }, I{  5 }, I{  10 } ) == true,  "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{   8 }, I{  5 }, I{  10 } ) == true,  "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{   9 }, I{  5 }, I{  10 } ) == true,  "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{  10 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{  11 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+    static_assert(kat::strictly_between<I>( I{ 123 }, I{  5 }, I{  10 } ) == false, "kat::strictly_between");
+
+    static_assert(kat::between_or_equal<I>( I{   1 }, I{  5 }, I{  10 } ) == false, "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{   4 }, I{  5 }, I{  10 } ) == false, "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{   5 }, I{  5 }, I{  10 } ) == true,  "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{   6 }, I{  5 }, I{  10 } ) == true,  "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{   8 }, I{  5 }, I{  10 } ) == true,  "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{   9 }, I{  5 }, I{  10 } ) == true,  "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{  10 }, I{  5 }, I{  10 } ) == true,  "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{  11 }, I{  5 }, I{  10 } ) == false, "kat::between_or_equal");
+    static_assert(kat::between_or_equal<I>( I{ 123 }, I{  5 }, I{  10 } ) == false, "kat::between_or_equal");
 
     static_assert(kat::is_power_of_2<I>(I{ 1}) == true,  "kat::is_power_of_2( 1) error");
     static_assert(kat::is_power_of_2<I>(I{ 2}) == true,  "kat::is_power_of_2( 2) error");
@@ -48,88 +71,313 @@ struct compile_time_execution_results {
     static_assert(kat::ipow<I>(I{ 3 },   1 ) == I{  3 }, "kat::ipow error");
     static_assert(kat::ipow<I>(I{ 3 },   2 ) == I{  9 }, "kat::ipow error");
     static_assert(kat::ipow<I>(I{ 3 },   4 ) == I{ 81 }, "kat::ipow error");
+
+    static_assert(kat::div_rounding_up_unsafe<I>( I{   0 }, I{   1 } ) == I{   0 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{   0 }, I{   2 } ) == I{   0 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{   0 }, I{ 123 } ) == I{   0 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{   1 }, I{   1 } ) == I{   1 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{   1 }, I{   2 } ) == I{   1 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{ 122 }, I{ 123 } ) == I{   1 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{ 123 }, I{ 123 } ) == I{   1 }, "kat::div_rounding_up_unsafe error");
+    static_assert(kat::div_rounding_up_unsafe<I>( I{ 124 }, I{ 123 } ) == I{   2 }, "kat::div_rounding_up_unsafe error");
+
+    static_assert(kat::div_rounding_up_safe<I>( I{   0 }, I{   1 } ) == I{   0 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{   0 }, I{   2 } ) == I{   0 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{   0 }, I{ 123 } ) == I{   0 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{   1 }, I{   1 } ) == I{   1 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{   1 }, I{   2 } ) == I{   1 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{ 122 }, I{ 123 } ) == I{   1 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{ 123 }, I{ 123 } ) == I{   1 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{ 124 }, I{ 123 } ) == I{   2 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( I{ 124 }, I{ 123 } ) == I{   2 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( std::numeric_limits<I>::max()    , std::numeric_limits<I>::max() - 1 ) == I{   2 }, "kat::div_rounding_up_safe error");
+    static_assert(kat::div_rounding_up_safe<I>( std::numeric_limits<I>::max() - 1, std::numeric_limits<I>::max()     ) == I{   1 }, "kat::div_rounding_up_safe error");
+
+    static_assert(kat::round_down<I>( I{   0 }, I{   2 } ) == I{   0 }, "kat::round_down error");
+    static_assert(kat::round_down<I>( I{   0 }, I{ 123 } ) == I{   0 }, "kat::round_down error");
+    static_assert(kat::round_down<I>( I{   1 }, I{   2 } ) == I{   0 }, "kat::round_down error");
+    static_assert(kat::round_down<I>( I{ 122 }, I{ 123 } ) == I{   0 }, "kat::round_down error");
+    static_assert(kat::round_down<I>( I{ 123 }, I{ 123 } ) == I{ 123 }, "kat::round_down error");
+    static_assert(kat::round_down<I>( I{ 124 }, I{ 123 } ) == I{ 123 }, "kat::round_down error");
+
+    static_assert(kat::round_down_to_full_warps<I>( I{   0 } ) == I{  0 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{   1 } ) == I{  0 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{   8 } ) == I{  0 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{  16 } ) == I{  0 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{  31 } ) == I{  0 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{  32 } ) == I{ 32 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{  33 } ) == I{ 32 }, "kat::round_down_to_full_warps error");
+    static_assert(kat::round_down_to_full_warps<I>( I{ 125 } ) == I{ 96 }, "kat::round_down_to_full_warps error");
+
+    // TODO: Consider testing rounding-up with negative dividends
+
+    static_assert(kat::round_up_unsafe<I>( I{   0 }, I{   1 } ) == I{   0 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{   0 }, I{   2 } ) == I{   0 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{   0 }, I{ 123 } ) == I{   0 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{   1 }, I{   1 } ) == I{   1 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{   1 }, I{   2 } ) == I{   2 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{  63 }, I{  64 } ) == I{  64 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{  64 }, I{  64 } ) == I{  64 }, "kat::round_up_unsafe error");
+    static_assert(kat::round_up_unsafe<I>( I{  65 }, I{  32 } ) == I{  96 }, "kat::round_up_unsafe error");
+
+    static_assert(kat::round_up_safe<I>( I{   0 }, I{   1 } ) == I{   0 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{   0 }, I{   2 } ) == I{   0 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{   0 }, I{ 123 } ) == I{   0 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{   1 }, I{   1 } ) == I{   1 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{   1 }, I{   2 } ) == I{   2 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{  63 }, I{  64 } ) == I{  64 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{  64 }, I{  64 } ) == I{  64 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( I{  65 }, I{  32 } ) == I{  96 }, "kat::round_up_safe error");
+    static_assert(kat::round_up_safe<I>( std::numeric_limits<I>::max() - 1, std::numeric_limits<I>::max() ) == I{ std::numeric_limits<I>::max() }, "kat::round_up_safe error");
+
+    static_assert(kat::round_down_to_power_of_2<I>( I{   1 }, I{   1 } ) == I{   1 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   2 }, I{   1 } ) == I{   2 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   3 }, I{   1 } ) == I{   3 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   4 }, I{   1 } ) == I{   4 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{ 123 }, I{   1 } ) == I{ 123 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   1 }, I{   2 } ) == I{   0 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   2 }, I{   2 } ) == I{   2 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   3 }, I{   2 } ) == I{   2 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{   4 }, I{   2 } ) == I{   4 }, "kat::round_down_to_power_of_2 error");
+    static_assert(kat::round_down_to_power_of_2<I>( I{ 123 }, I{   2 } ) == I{ 122 }, "kat::round_down_to_power_of_2 error");
+
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   1 }, I{   1 } ) == I{   1 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   2 }, I{   1 } ) == I{   2 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   3 }, I{   1 } ) == I{   3 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   4 }, I{   1 } ) == I{   4 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{ 123 }, I{   1 } ) == I{ 123 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   1 }, I{   2 } ) == I{   2 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   2 }, I{   2 } ) == I{   2 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   3 }, I{   2 } ) == I{   4 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{   4 }, I{   2 } ) == I{   4 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{ 123 }, I{   2 } ) == I{ 124 }, "kat::round_up_to_power_of_2_unsafe error");
+
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  1 }, I{  1 } ) == I{   1 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  2 }, I{  1 } ) == I{   2 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  3 }, I{  1 } ) == I{   3 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  4 }, I{  1 } ) == I{   4 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{ 23 }, I{  1 } ) == I{  23 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  1 }, I{  2 } ) == I{   2 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  2 }, I{  2 } ) == I{   2 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  3 }, I{  2 } ) == I{   4 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{  4 }, I{  2 } ) == I{   4 }, "kat::round_up_to_power_of_2_unsafe error");
+    static_assert(kat::round_up_to_power_of_2_unsafe<I>( I{ 63 }, I{  2 } ) == I{  64 }, "kat::round_up_to_power_of_2_unsafe error");
+
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{   0 } ) == I{  0 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{   1 } ) == I{ 32 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{   8 } ) == I{ 32 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{  16 } ) == I{ 32 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{  31 } ) == I{ 32 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{  32 } ) == I{ 32 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{  33 } ) == I{ 64 }, "kat::round_up_to_full_warps_safe error");
+    static_assert(kat::round_up_to_full_warps_safe<I>( I{  63 } ) == I{ 64 }, "kat::round_up_to_full_warps_safe error");
+
+#if __cplusplus >= 201402L
+    static_assert(kat::gcd<I>( I{   1 }, I{   1 } ) == I{  1 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{   2 }, I{   1 } ) == I{  1 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{   1 }, I{   2 } ) == I{  1 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{   2 }, I{   2 } ) == I{  2 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{   8 }, I{   4 } ) == I{  4 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{   4 }, I{   8 } ) == I{  4 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{  10 }, I{   6 } ) == I{  2 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{ 120 }, I{  70 } ) == I{ 10 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{  70 }, I{ 120 } ) == I{ 10 }, "kat::gcd error");
+    static_assert(kat::gcd<I>( I{  97 }, I{ 120 } ) == I{  1 }, "kat::gcd error");
+#endif
+
+    static_assert(kat::constexpr_::gcd<I>( I{   1 }, I{   1 } ) == I{  1 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{   2 }, I{   1 } ) == I{  1 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{   1 }, I{   2 } ) == I{  1 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{   2 }, I{   2 } ) == I{  2 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{   5 }, I{   3 } ) == I{  1 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{   8 }, I{   4 } ) == I{  4 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{   4 }, I{   8 } ) == I{  4 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{  10 }, I{   6 } ) == I{  2 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{ 120 }, I{  70 } ) == I{ 10 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{  70 }, I{ 120 } ) == I{ 10 }, "kat::constexpr_::gcd error");
+    static_assert(kat::constexpr_::gcd<I>( I{  97 }, I{ 120 } ) == I{  1 }, "kat::constexpr_::gcd error");
+
+    static_assert(kat::constexpr_::lcm<I>( I{   1 }, I{   1 } ) == I{  1 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{   2 }, I{   1 } ) == I{  2 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{   1 }, I{   2 } ) == I{  2 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{   2 }, I{   2 } ) == I{  2 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{   5 }, I{   3 } ) == I{ 15 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{   8 }, I{   4 } ) == I{  8 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{   4 }, I{   8 } ) == I{  8 }, "kat::constexpr_::lcm error");
+    static_assert(kat::constexpr_::lcm<I>( I{  10 }, I{   6 } ) == I{ 30 }, "kat::constexpr_::lcm error");
+
+    static_assert(kat::is_even<I>( I{   0 } ) == true,  "kat::is_even error");
+    static_assert(kat::is_even<I>( I{   1 } ) == false, "kat::is_even error");
+    static_assert(kat::is_even<I>( I{   2 } ) == true,  "kat::is_even error");
+    static_assert(kat::is_even<I>( I{   3 } ) == false, "kat::is_even error");
+    static_assert(kat::is_even<I>( I{ 123 } ) == false, "kat::is_even error");
+    static_assert(kat::is_even<I>( I{ 124 } ) == true,  "kat::is_even error");
+
+    static_assert(kat::is_odd<I>( I{   0 } ) == false, "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{   1 } ) == true,  "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{   2 } ) == false, "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{   3 } ) == true,  "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{ 123 } ) == true,  "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{ 124 } ) == false, "kat::is_odd error");
+
+    static_assert(kat::constexpr_::log2<I>( I{   1 } ) == 0, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{   2 } ) == 1, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{   3 } ) == 1, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{   4 } ) == 2, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{   6 } ) == 2, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{   7 } ) == 2, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{   8 } ) == 3, "kat::constexpr_::log2 error");
+    static_assert(kat::constexpr_::log2<I>( I{ 127 } ) == 6, "kat::constexpr_::log2 error");
+
+    static_assert(kat::constexpr_::sqrt<I>( I{   0 } ) ==  0, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{   1 } ) ==  1, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{   2 } ) ==  1, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{   3 } ) ==  1, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{   4 } ) ==  2, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{   5 } ) ==  2, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{   9 } ) ==  3, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{  10 } ) ==  3, "kat::constexpr_::sqrt error");
+    static_assert(kat::constexpr_::sqrt<I>( I{ 127 } ) == 11, "kat::constexpr_::sqrt error");
+
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   0 }, I {  1 }) == I{   0 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   1 }, I {  1 }) == I{   1 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{ 111 }, I {  1 }) == I{ 111 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   0 }, I {  2 }) == I{   0 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   1 }, I {  2 }) == I{   0 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   2 }, I {  2 }) == I{   1 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   3 }, I {  2 }) == I{   1 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   4 }, I {  2 }) == I{   2 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{ 111 }, I {  2 }) == I{  55 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   0 }, I { 16 }) == I{   0 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{   1 }, I { 16 }) == I{   0 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{  15 }, I { 16 }) == I{   0 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{  16 }, I { 16 }) == I{   1 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{  17 }, I { 16 }) == I{   1 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{  32 }, I { 16 }) == I{   2 }, "kat::constexpr_::div_by_power_of_2 error");
+    static_assert(kat::constexpr_::div_by_power_of_2<I>( I{ 111 }, I { 16 }) == I{   6 }, "kat::constexpr_::div_by_power_of_2 error");
+
+    static_assert(kat::divides<I>( I{   1 }, I{   0 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{   2 }, I{   0 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{   3 }, I{   0 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{   1 }, I{   1 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{   2 }, I{   1 } ) == false, "kat::divides error");
+    static_assert(kat::divides<I>( I{   3 }, I{   1 } ) == false, "kat::divides error");
+    static_assert(kat::divides<I>( I{   1 }, I{   2 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{   2 }, I{   2 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{   3 }, I{   2 } ) == false, "kat::divides error");
+    static_assert(kat::divides<I>( I{   4 }, I{   2 } ) == false, "kat::divides error");
+    static_assert(kat::divides<I>( I{   6 }, I{   9 } ) == false, "kat::divides error");
+    static_assert(kat::divides<I>( I{   9 }, I{   6 } ) == false, "kat::divides error");
+    static_assert(kat::divides<I>( I{   4 }, I{  24 } ) == true,  "kat::divides error");
+    static_assert(kat::divides<I>( I{  24 }, I{   4 } ) == false, "kat::divides error");
+
+    static_assert(kat::is_divisible_by<I>( I{   0 }, I{   1 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   0 }, I{   2 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   0 }, I{   3 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   1 }, I{   1 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   1 }, I{   2 } ) == false, "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   1 }, I{   3 } ) == false, "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   2 }, I{   1 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   2 }, I{   2 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   2 }, I{   3 } ) == false, "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   2 }, I{   4 } ) == false, "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   9 }, I{   6 } ) == false, "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   6 }, I{   9 } ) == false, "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{  24 }, I{   4 } ) == true,  "kat::is_divisible_by error");
+    static_assert(kat::is_divisible_by<I>( I{   4 }, I{  24 } ) == false, "kat::is_divisible_by error");
+
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   0 }, I{   1 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   0 }, I{   2 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   1 }, I{   1 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   1 }, I{   2 } ) == false, "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   2 }, I{   1 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   2 }, I{   2 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{   2 }, I{   4 } ) == false, "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{  24 }, I{   4 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{  72 }, I{  16 } ) == false, "kat::is_divisible_by_power_of_2 error");
+    static_assert(kat::is_divisible_by_power_of_2<I>( I{  64 }, I{  16 } ) == true,  "kat::is_divisible_by_power_of_2 error");
+
+    static_assert(kat::power_of_2_divides<I>( I{   1 }, I{   0 } ) == true,  "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   2 }, I{   0 } ) == true,  "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   1 }, I{   1 } ) == true,  "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   2 }, I{   1 } ) == false, "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   1 }, I{   2 } ) == true,  "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   2 }, I{   2 } ) == true,  "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   4 }, I{   2 } ) == false, "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{   4 }, I{  24 } ) == true,  "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{  16 }, I{  72 } ) == false, "kat::power_of_2_divides error");
+    static_assert(kat::power_of_2_divides<I>( I{  16 }, I{  64 } ) == true,  "kat::power_of_2_divides error");
+
+    static_assert(kat::is_even<I>( I{  0 } ) == true,  "kat::is_even error");
+    static_assert(kat::is_even<I>( I{  1 } ) == false, "kat::is_even error");
+    static_assert(kat::is_even<I>( I{  2 } ) == true,  "kat::is_even error");
+    static_assert(kat::is_even<I>( I{  3 } ) == false, "kat::is_even error");
+    static_assert(kat::is_even<I>( I{ 14 } ) == true,  "kat::is_even error");
+    static_assert(kat::is_even<I>( I{ 15 } ) == false, "kat::is_even error");
+
+    static_assert(kat::is_odd<I>( I{  0 } ) == false, "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{  1 } ) == true,  "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{  2 } ) == false, "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{  3 } ) == true,  "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{ 14 } ) == false, "kat::is_odd error");
+    static_assert(kat::is_odd<I>( I{ 15 } ) == true,  "kat::is_odd error");
+
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{  1 } ) == I { 0 }, "kat::constexpr_::log2_of_power_of_2");
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{  2 } ) == I { 1 }, "kat::constexpr_::log2_of_power_of_2");
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{  4 } ) == I { 2 }, "kat::constexpr_::log2_of_power_of_2");
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{  8 } ) == I { 3 }, "kat::constexpr_::log2_of_power_of_2");
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{ 16 } ) == I { 4 }, "kat::constexpr_::log2_of_power_of_2");
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{ 32 } ) == I { 5 }, "kat::constexpr_::log2_of_power_of_2");
+    static_assert(kat::constexpr_::log2_of_power_of_2<I>( I{ 64 } ) == I { 6 }, "kat::constexpr_::log2_of_power_of_2");
+
+
+    static_assert(kat::modulo_power_of_2<I>( I{   0 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   1 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   2 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   3 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   4 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   5 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{  63 }, I{   1 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   0 }, I{   2 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   1 }, I{   2 } ) == I{ 1 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   2 }, I{   2 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   3 }, I{   2 } ) == I{ 1 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   4 }, I{   2 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   5 }, I{   2 } ) == I{ 1 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{  63 }, I{   2 } ) == I{ 1 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   0 }, I{   4 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   1 }, I{   4 } ) == I{ 1 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   2 }, I{   4 } ) == I{ 2 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   3 }, I{   4 } ) == I{ 3 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   4 }, I{   4 } ) == I{ 0 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{   5 }, I{   4 } ) == I{ 1 },  "kat::modulo_power_of_2 error");
+    static_assert(kat::modulo_power_of_2<I>( I{  63 }, I{   4 } ) == I{ 3 },  "kat::modulo_power_of_2 error");
+
 };
 
-compile_time_execution_results<int8_t  > s8;
-compile_time_execution_results<int16_t > s16;
-compile_time_execution_results<int32_t > s32;
-compile_time_execution_results<int64_t > s64;
-compile_time_execution_results<uint8_t > u8;
-compile_time_execution_results<uint16_t> u16;
-compile_time_execution_results<uint32_t> u32;
-compile_time_execution_results<uint64_t> u64;
+// TODO:
+// * Test between_or_equal and strictly_between with differing types for all 3 arguments
+// * Some floating-point tests
+// * gcd tests with values of different types
+// * Some tests with negative values
+
+#define INSTANTIATE_CONSTEXPR_MATH_TEST(_tp) \
+	compile_time_execution_results<_tp> UNIQUE_IDENTIFIER(test_struct_); \
+
+MAP(INSTANTIATE_CONSTEXPR_MATH_TEST,
+	int8_t, int16_t, int32_t, int64_t,
+	uint8_t, uint16_t, uint32_t, uint64_t,
+	char, short, int, long, long long,
+	signed char, signed short, signed int, signed long, signed long long,
+	unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long);
+
+
 
 TEST_SUITE("constexpr_math") {
-/*
-is_power_of_2(T val)
-constexpr inline T& modular_inc(T& x, T modulus)
-constexpr inline T& modular_dec(T& x, T modulus)
-constexpr I ipow(I base, unsigned exponent)
-
-I div_rounding_up_unsafe(I dividend, const I2 divisor)
-I div_rounding_up_safe(I dividend, const I2 divisor)
-I round_down(const I x, const I2 y)
-I round_down_to_warp_size(I x)
-I round_up_unsafe(I x, I2 y)
-I round_down_to_power_of_2(I x, I2 power_of_2)
-I round_up_to_power_of_2_unsafe(I x, I2 power_of_2)
-I round_up_to_full_warps_unsafe(I x)
-constexpr inline bool between_or_equal(const T& x, const Lower& l, const Upper& u)
-constexpr inline bool strictly_between(const T& x, const Lower& l, const Upper& u)
-#if __cplusplus >= 201402L
-T gcd(T u, T v)
-#endif
-int constexpr_::log2(I val)
-I constexpr_::div_by_fixed_power_of_2(I dividend)
-typename std::common_type<S,T>::type constexpr_::gcd(S u, T v)
-typename std::common_type<S,T>::type constexpr_::lcm(S u, T v)
-T constexpr_::sqrt(T& x)
-I div_by_power_of_2(I dividend, I divisor)
-I div_by_fixed_power_of_2_rounding_up(I dividend)
-I num_warp_sizes_to_cover(I x)
-bool divides(I divisor, I dividend)
-constexpr inline int is_divisible_by(I dividend, I divisor)
-constexpr inline bool is_divisible_by_power_of_2(I dividend, I divisor)
-bool is_odd(I x)  { return x & I{0x1} != I{0}; }
-bool is_even(I x) { return x & I{0x1} == I{0}; }
-*/
-
 
 TEST_CASE_TEMPLATE("run-time on-host", T, int32_t, int64_t, float, double)
 {
     (void) 0; // Don't need to do anything
-
 }
-/*
-
-TEST_CASE_TEMPLATE("run-time on-device", T, int32_t, int64_t, float, double)
-{
-*/
-/*
-    cuda::device_t<> device { cuda::device::current::get() };
-    auto num_warps { 10 };
-    auto num_blocks { 10 };
-    auto block_size = num_warps * warp_size;
-    auto launch_config { cuda::make_launch_config(num_blocks, block_size, 0 };
-//    auto device_side_results { cuda::memory::device::make_unique<shmem_size_t[]>(device, num_warps) };
-//    auto host_side_results { std::unique_ptr<shmem_size_t[]>(new shmem_size_t[num_warps]) };
-    cuda::launch(kernels::test_math_function_at_run_time<T>, launch_config);
-//    cuda::memory::copy(host_side_results.get(), device_side_results.get(), sizeof(shmem_size_t) * num_warps);
-    CHECK_NOTHROW(device.synchronize());
-// To do: Should we get the results back? probably not
-*//*
-
-}
-
-TEST_CASE_TEMPLATE("compile-time on host", I, int32_t, int64_t)
-{
-
-}
-
-TEST_CASE_TEMPLATE("compile-time on device", I, int32_t, int64_t)
-{
-
-}
-*/
 
 } // TEST_SUITE("constexpr_math")
