@@ -59,6 +59,14 @@ __fd__ unsigned log2_of_power_of_2(I p)
 	return  builtins::population_count(p - 1);
 }
 
+template <typename I, typename P>
+constexpr __fd__ I div_by_power_of_2(I dividend, P power_of_2)
+{
+	return dividend >> log2_of_power_of_2(power_of_2);
+}
+
+
+
 #if __cplusplus < 201402L
 /**
  * @brief compute the greatest common divisor (gcd) of two values.
