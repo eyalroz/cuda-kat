@@ -12,6 +12,7 @@
 
 #include "common.cuh" // for warp_size
 
+#include <cassert>
 #include <type_traits>
 
 
@@ -51,13 +52,7 @@ constexpr I ipow(I base, unsigned exponent) noexcept
 }
 
 template <typename I, typename I2>
-constexpr __fhd__ I div_rounding_up_unsafe(I x, const I2 modulus) noexcept
-{
-	return (x + modulus - 1) / modulus;
-}
-
-template <typename I, typename I2>
-constexpr __fhd__ I div_rounding_up_safe(I x, const I2 modulus) noexcept
+constexpr __fhd__ I div_rounding_up(I x, const I2 modulus) noexcept
 {
 	return (x / modulus) + !!(x % modulus);
 }
@@ -66,6 +61,12 @@ template <typename I, typename I2>
 constexpr __fhd__ I round_down(const I x, const I2 modulus) noexcept
 {
 	return x - (x % modulus);
+}
+
+template <typename I, typename I2 = I>
+constexpr __fhd__ I round_down_to_power_of_2(I x, I2 power_of_2) noexcept
+{
+	return (x & ~(I{power_of_2} - 1));
 }
 
 /**
@@ -77,58 +78,26 @@ constexpr __fhd__ I round_down_to_full_warps(I x) noexcept
 	return x & ~(warp_size - 1);
 }
 
-/**
- * @note implemented in an unsafe way - will overflow for values close
- * to the maximum
- */
 template <typename I, typename I2 = I>
-constexpr __fhd__ I round_up_unsafe(I x, I2 y) noexcept
-{
-	return round_down(x+y-1, y);
-}
-
-template <typename I, typename I2 = I>
-constexpr __fhd__ I round_up_safe(I x, I2 y) noexcept
+constexpr __fhd__ I round_up(I x, I2 y) noexcept
 {
 	return (x % y == 0) ? x : x + (y - x%y);
 }
 
-template <typename I, typename I2 = I>
-constexpr __fhd__ I round_down_to_power_of_2(I x, I2 power_of_2) noexcept
-{
-	return (x & ~(I{power_of_2} - 1));
-}
 
 /**
  * @note careful, this may overflow!
  */
 template <typename I, typename I2 = I>
-constexpr __fhd__ I round_up_to_power_of_2_unsafe(I x, I2 power_of_2) noexcept
-{
-	return round_down_to_power_of_2 (x + I{power_of_2} - 1, power_of_2);
-}
-
-/**
- * @note careful, this may overflow!
- */
-template <typename I, typename I2 = I>
-constexpr __fhd__ I round_up_to_power_of_2_safe(I x, I2 power_of_2) noexcept
+constexpr __fhd__ I round_up_to_power_of_2(I x, I2 power_of_2) noexcept
 {
 	return ((x & (power_of_2 - 1)) == 0) ? x : ((x & ~(power_of_2 - 1)) + power_of_2);
 }
 
 
-/**
- * @note careful, this may overflow!
- */
 template <typename I>
-constexpr __fhd__ I round_up_to_full_warps_unsafe(I x) noexcept {
-	return round_up_to_power_of_2_unsafe<I, native_word_t>(x, warp_size);
-}
-
-template <typename I>
-constexpr __fhd__ I round_up_to_full_warps_safe(I x) noexcept {
-	return round_up_to_power_of_2_safe<I, native_word_t>(x, warp_size);
+constexpr __fhd__ I round_up_to_full_warps(I x) noexcept {
+	return round_up_to_power_of_2<I, native_word_t>(x, warp_size);
 }
 
 
@@ -145,7 +114,55 @@ constexpr __fhd__ T gcd(T u, T v) noexcept
 }
 #endif
 
-namespace constexpr_ {
+
+template <typename I>
+constexpr __fhd__ bool divides(I non_zero_divisor, I dividend)  noexcept
+{
+#if __cplusplus >= 201402L
+    assert(non_zero_divisor != 0);
+#endif
+	return (dividend % non_zero_divisor) == 0;
+}
+
+template <typename I>
+constexpr __fhd__ bool is_divisible_by(I dividend, I non_zero_divisor) noexcept
+{
+#if __cplusplus >= 201402L
+    assert(non_zero_divisor != 0);
+#endif
+	return divides(non_zero_divisor, dividend);
+}
+
+template <typename I>
+constexpr __fhd__ I modulo_power_of_2(I x, I power_of_2_modulus) noexcept
+{
+#if __cplusplus >= 201402L
+    assert(is_power_of_2(power_of_2_modulus));
+#endif
+	return x & (power_of_2_modulus - I{1});
+}
+
+template <typename I>
+constexpr __fhd__ bool power_of_2_divides(I power_of_2_divisor, I dividend) noexcept
+{
+#if __cplusplus >= 201402L
+    assert(is_power_of_2(power_of_2_divisor));
+#endif
+	return modulo_power_of_2(dividend, power_of_2_divisor) == 0;
+}
+
+template <typename I>
+constexpr __fhd__ bool is_divisible_by_power_of_2(I dividend, I power_of_2_divisor) noexcept
+{
+#if __cplusplus >= 201402L
+    assert(is_power_of_2(power_of_2_divisor));
+#endif
+	return power_of_2_divides(power_of_2_divisor, dividend);
+}
+
+
+template <typename I> constexpr __fhd__ bool is_even(I x) noexcept { return power_of_2_divides(I{2}, x);     }
+template <typename I> constexpr __fhd__ bool is_odd (I x) noexcept { return not power_of_2_divides(I{2}, x); }
 
 namespace detail {
 
@@ -167,6 +184,94 @@ constexpr inline I modular_inc(I x, I modulus) { return detail::modular_inc<I>(x
 template <typename I>
 constexpr inline I modular_dec(I x, I modulus) { return detail::modular_dec<I>(x % modulus, modulus); }
 
+/**
+ * Faster implementations of mathematical functions which can be incorrect for extremal or near-extremal values.
+ */
+namespace unsafe {
+
+/**
+ * @note careful, this may overflow!
+ */
+template <typename I, typename I2 = I>
+constexpr __fhd__ I round_up_to_power_of_2(I x, I2 power_of_2) noexcept
+{
+	return round_down_to_power_of_2 (x + I{power_of_2} - 1, power_of_2);
+}
+
+/**
+ * @note careful, this may overflow!
+ */
+template <typename I>
+constexpr __fhd__ I round_up_to_full_warps(I x) noexcept {
+	return unsafe::round_up_to_power_of_2<I, native_word_t>(x, warp_size);
+}
+
+/**
+ * @note Will overflow when @p x is within @p modulus - 1 of the maximum
+ * value of I1
+ */
+template <typename I1, typename I2>
+constexpr __fhd__ I1 div_rounding_up(I1 x, const I2 modulus) noexcept
+{
+	return ( x + I1{modulus} - I1{1} ) / I1{modulus};
+}
+
+/**
+ * @note Will overflow when @p x is within @p y - 1 of the maximum
+ * value of I1
+ */
+template <typename I1, typename I2 = I1>
+constexpr __fhd__ I1 round_up(I1 x, I2 y) noexcept
+{
+	return round_down(x + I1{y} - I1{1}, y);
+}
+
+template <typename I> constexpr inline I modular_inc(I x, I modulus) { return (x + I{1}) % modulus; }
+template <typename I> constexpr inline I modular_dec(I x, I modulus) { return (x + modulus - I{1}) % modulus; }
+
+
+} // namespace unsafe
+
+
+/**
+ * @brief This namespace has functions whose constexpr (compile-time) implementation should _not_ be used at run-time
+ */
+namespace constexpr_ {
+
+using kat::between_or_equal;
+using kat::strictly_between;
+using kat::is_power_of_2;
+using kat::ipow;
+using kat::div_rounding_up;
+using kat::round_down;
+using kat::round_down_to_power_of_2;
+using kat::round_down_to_full_warps;
+using kat::round_up;
+using kat::round_up_to_power_of_2;
+using kat::round_up_to_full_warps;
+#if __cplusplus >= 201402L
+using kat::gcd;
+#endif
+using kat::divides;
+using kat::is_divisible_by;
+using kat::modulo_power_of_2;
+using kat::power_of_2_divides;
+using kat::is_divisible_by_power_of_2;
+using kat::is_even;
+using kat::is_odd;
+using kat::modular_inc;
+using kat::modular_dec;
+
+namespace unsafe {
+
+using kat::unsafe::round_up_to_power_of_2;
+using kat::unsafe::round_up_to_full_warps;
+using kat::unsafe::div_rounding_up;
+using kat::unsafe::round_up;
+using kat::unsafe::modular_inc;
+using kat::unsafe::modular_dec;
+
+}  // namespace unsafe
 
 template <typename I>
 constexpr __fhd__ int log2(I val) noexcept
@@ -184,7 +289,7 @@ template <typename S, typename T = S>
 constexpr __fhd__ typename std::common_type<S,T>::type lcm(S u, T v) noexcept
 {
 	using result_type = typename std::common_type<S,T>::type;
-	return ((result_type) u / gcd(u,v)) * v;
+	return ((result_type) u / constexpr_::gcd(u,v)) * v;
 }
 
 
@@ -213,13 +318,16 @@ constexpr __fhd__ T sqrt(T x) noexcept
 	return detail::sqrt_helper<typename std::common_type<T, decltype(initial_high)>::type>(x, 0, initial_high);
 }
 
-// TODO: Need to implement the following for non-GNU-C-compatible compilers - without using the ctz builtins
 #ifdef __GNUC__
 
 template <typename I> constexpr inline I log2_of_power_of_2(I non_negative_power_of_2) noexcept
 {
 	static_assert(std::is_integral<I>::value, "Only integral types are supported");
 	static_assert(sizeof(I) <= sizeof(unsigned long long), "Unexpectedly large type");
+#if __cplusplus >= 201402L
+    assert(is_power_of_2(non_negative_power_of_2) and non_negative_power_of_2 >= 1);
+#endif
+
 	using cast_target_type = typename
 		std::conditional<sizeof(I) <= sizeof(unsigned), unsigned,
 			typename std::conditional<sizeof(I) <= sizeof(unsigned long),unsigned long, unsigned long long >::type
@@ -230,6 +338,7 @@ template <> constexpr inline unsigned           log2_of_power_of_2<unsigned     
 template <> constexpr inline unsigned long      log2_of_power_of_2<unsigned long     >(unsigned long      non_negative_power_of_2) noexcept { return __builtin_ctzl (non_negative_power_of_2); }
 template <> constexpr inline unsigned long long log2_of_power_of_2<unsigned long long>(unsigned long long non_negative_power_of_2) noexcept { return __builtin_ctzll(non_negative_power_of_2); }
 
+
 template <typename I, typename P>
 constexpr inline I div_by_power_of_2(I dividend, P power_of_2) noexcept
 {
@@ -238,87 +347,9 @@ constexpr inline I div_by_power_of_2(I dividend, P power_of_2) noexcept
 
 #endif
 
-
-/*
-
-Perhaps use this instead?
-
-constexpr unsigned __fh__
-log2_of_power_of_2(unsigned non_negative_power_of_2) noexcept
-{ return __builtin_ctz  (non_negative_power_of_2); }
-
-static constexpr unsigned long __fh__
-log2_of_power_of_2(unsigned long non_negative_power_of_2)  noexcept
-{ return __builtin_ctzl (non_negative_power_of_2); }
-
-static constexpr unsigned long long __fh__
-log2_of_power_of_2(unsigned long long non_negative_power_of_2) noexcept
-{ return __builtin_ctzll(non_negative_power_of_2); }
-
-static constexpr int __fh__
-log2_of_power_of_2(int non_negative_power_of_2) noexcept
-{ return __builtin_ctz  (non_negative_power_of_2); }
-
-static constexpr long __fh__
-log2_of_power_of_2(long non_negative_power_of_2)  noexcept
-{ return __builtin_ctzl (non_negative_power_of_2); }
-
-static constexpr long long __fh__
-log2_of_power_of_2(long long non_negative_power_of_2) noexcept
-{ return __builtin_ctzll(non_negative_power_of_2); }
-
-#include <cassert>
-
-template <typename I, typename P>
-constexpr I div_by_power_of_2(I dividend, P power_of_2_divisor) noexcept
-{
-#if __cplusplus >= 201402L
-    assert((power_of_2_divisor & power_of_2_divisor - 1) == 0);
-#endif
-    return dividend >> log2_of_power_of_2(power_of_2_divisor);
-}
-*/
-
-
 } // namespace constexpr_
 
-
-template <typename I>
-constexpr __fhd__ bool divides(I non_zero_divisor, I dividend)  noexcept
-{
-	return (dividend % non_zero_divisor) == 0;
-}
-
-template <typename I>
-constexpr inline bool is_divisible_by(I dividend, I non_zero_divisor) noexcept
-{
-	return divides(non_zero_divisor, dividend);
-}
-
-template <typename I>
-constexpr __fhd__ I modulo_power_of_2(I x, I power_of_2_modulus) noexcept
-{
-	return x & (power_of_2_modulus - I{1});
-}
-
-template <typename I>
-constexpr __fhd__ bool power_of_2_divides(I power_of_2_divisor, I dividend) noexcept
-{
-	return modulo_power_of_2(dividend, power_of_2_divisor) == 0;
-}
-
-template <typename I>
-constexpr __fhd__ bool is_divisible_by_power_of_2(I dividend, I power_of_2_divisor) noexcept
-{
-	return power_of_2_divides(power_of_2_divisor, dividend);
-}
-
-
-template <typename I> constexpr __fhd__ bool is_even(I x) noexcept { return power_of_2_divides(I{2}, x);     }
-template <typename I> constexpr __fhd__ bool is_odd (I x) noexcept { return not power_of_2_divides(I{2}, x); }
-
 } // namespace kat
-
 
 
 ///@cond

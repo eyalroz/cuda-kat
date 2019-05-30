@@ -24,23 +24,6 @@
 namespace kat {
 
 /**
- * A variant of `div_rounding_up` (which you can find in `constexpr_math.cuh`),
- * which has (non-constexpr, unfortunately) optimizations based on the knowledge
- * the divisor is a power of 2
- *
- * @return The smallest multiple of divisor above dividend / divisor
- */
-template <typename T, typename S>
-__fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
-{
-	auto mask = divisor - 1; // Remember: 0 is _not_ a power of 2
-	auto log_2_of_divisor = builtins::population_count(mask);
-	auto correction_for_rounding_up = ((dividend & mask) + mask) >> log_2_of_divisor;
-
-	return (dividend >> log_2_of_divisor) + correction_for_rounding_up;
-}
-
-/**
  * @brief compute the base-two logarithm of a number known to be a power of 2.
  *
  * @note Yes, this is trivial to do, but:
@@ -58,6 +41,24 @@ __fd__ unsigned log2_of_power_of_2(I p)
 	// Remember 0 is _not_ a power of 2.
 	return  builtins::population_count(p - 1);
 }
+
+/**
+ * A variant of `div_rounding_up` (which you can find in `constexpr_math.cuh`),
+ * which has (non-constexpr, unfortunately) optimizations based on the knowledge
+ * the divisor is a power of 2
+ *
+ * @return The smallest multiple of divisor above dividend / divisor
+ */
+template <typename T, typename S>
+__fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
+{
+	auto mask = divisor - 1; // Remember: 0 is _not_ a power of 2
+	auto log_2_of_divisor = log2_of_power_of_2(divisor);
+	auto correction_for_rounding_up = ((dividend & mask) + mask) >> log_2_of_divisor;
+
+	return (dividend >> log_2_of_divisor) + correction_for_rounding_up;
+}
+
 
 template <typename I, typename P>
 constexpr __fd__ I div_by_power_of_2(I dividend, P power_of_2)
@@ -86,6 +87,7 @@ constexpr __fd__ T gcd(T u, T v)
 	}
 	return u;
 }
+// ... and for C++14, this is a constexpr_ implementation, and we don't need to redo it here
 #endif
 
 /**
@@ -115,13 +117,13 @@ __fd__ I lcm(I u, I v)
  * @param x a non-negative value
  * @return floor(log2(x)), i.e. the least exponent l such than 2^l >= x
  */
-template <typename T>
-__fd__ unsigned log2(std::enable_if<std::is_unsigned<T>::value, T> x) {
-  return (CHAR_BIT * sizeof(T) - 1) - builtins::count_leading_zeros(x);
+template <typename I>
+__fd__ unsigned log2(I x) {
+	assert(x > 0);
+	return (CHAR_BIT * sizeof(I) - 1) - builtins::count_leading_zeros(x);
 }
 
 } // namespace kat
-
 
 ///@cond
 #include <kat/undefine_specifiers.hpp>
