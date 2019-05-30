@@ -21,6 +21,8 @@
 #include "kat/on_device/primitives/warp.cuh"
 #include "kat/on_device/primitives/block.cuh"
 #include "kat/on_device/primitives/grid.cuh"
+#include "kat/on_device/sequence_ops/warp.cuh"
+#include "kat/on_device/sequence_ops/block.cuh"
 
 #endif /* CUDA_KAT_CUH_ */
 

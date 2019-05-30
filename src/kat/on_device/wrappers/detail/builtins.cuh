@@ -14,7 +14,10 @@
 #error "This code can only target devices of compute capability 3.0 or higher."
 #endif
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -35,8 +38,8 @@ template <> __fd__  double divide<double>(double dividend, double divisor) { ret
 template <> __fd__ int population_count<unsigned          >(unsigned int x)       { return __popc(x); }
 template <> __fd__ int population_count<unsigned long long>(unsigned long long x) { return __popcll(x); }
 
-template <> __fd__ int      sum_with_absolute_difference<int     >(int x, int y, int      z)           { return __sad (x, y, z); }
-template <> __fd__ unsigned sum_with_absolute_difference<unsigned>(unsigned x, unsigned y, unsigned z) { return __usad(x, y, z); }
+template <> __fd__ int      sum_with_absolute_difference<int     >(int x,      int y,      int addend)      { return __sad (x, y, addend); }
+template <> __fd__ unsigned sum_with_absolute_difference<unsigned>(unsigned x, unsigned y, unsigned addend) { return __usad(x, y, addend); }
 
 template <> __fd__ int         absolute_value<int                >(int x)         { return abs(x);   }
 template <> __fd__ long        absolute_value<long               >(long x)        { return labs(x);  }
@@ -228,6 +231,9 @@ template <> __fd__ double              maximum<double            >(double x, dou
 } // namespace kat
 
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_

@@ -1,5 +1,5 @@
 /**
- * @file on_device/wrappers/non-builtins.cuh
+ * @file on_device/non-builtins.cuh
  *
  * @brief Namespace with uniform-naming scheme, templated-when-relevant,
  * wrappers of what could be (or should be) single PTX instruction - but
@@ -10,7 +10,10 @@
 
 #include <kat/on_device/wrappers/builtins.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace non_builtins {
@@ -40,6 +43,9 @@ template <typename T> __fd__ int count_trailing_zeros(T x) { return find_first_s
 } // namespace non_builtins
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_

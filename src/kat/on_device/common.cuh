@@ -12,22 +12,6 @@
 
 namespace kat {
 
-//#if defined(HAVE_CUDA_API_WRAPPERS) || (defined(CUDA_API_WRAPPERS_TYPES_HPP_) && defined(CUDA_API_WRAPPERS_CONSTANTS_HPP_))
-#if 0
-
-#include <cuda/api/constants.hpp>
-#include <cuda/api/types.hpp>
-
-// Device-side code doesn't use the cuda:: prefix
-using cuda::log_warp_size;
-using cuda::warp_size;
-using cuda::grid_dimension_t;
-using cuda::dimensions_t;
-using cuda::native_word_t;
-
-#else
-
-
 /**
  * CUDA kernels are launched in grids of blocks of threads, in 3 dimensions.
  * In each of these, the numbers of blocks per grid is specified in this type.
@@ -52,7 +36,31 @@ using native_word_t = unsigned; // TODO: Make this uint32_t perhaps?
 enum : native_word_t { warp_size = 32 };
 enum : native_word_t { log_warp_size = 5 };
 
-#endif
+/**
+ * @brief a size type no smaller than a native word.
+ *
+ * Sometimes, in device code, we only need our size type to cover a small
+ * range of values; but - it is still more effective to use a full native word,
+ * rather than to risk extra instructions to enforce the limits of
+ * sub-native-word values. And while it's true this might not help much,
+ * or be optimized away - let's be on the safe side anyway.
+ */
+template <typename Size>
+using promoted_size_t = typename std::common_type<Size, native_word_t>::type;
+
+ /**
+  * A mask with one bit for each lane in a warp. Used to indicate which threads
+  * meet a certain criterion or need to have some action applied to them.
+  *
+  * @todo: Consider using a 32-bit bit field
+  */
+using lane_mask_t = unsigned;
+
+enum : lane_mask_t {
+	full_warp_mask  = 0xFFFFFFFF, //!< Bits turned on for all lanes in thw warp
+	empty_warp_mask = 0x0,        //!< Bits turned on for all lanes in thw warp
+};
+
 
 /**
  * The number bits in the representation of a value of type T.
@@ -74,14 +82,20 @@ constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
 
 } // namespace kat
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 //constexpr __fhd__ bool operator==(const dim3& lhs, const dim3& rhs)
 //{
 //	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
 //}
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 
 #endif // CUDA_KAT_ON_DEVICE_COMMON_CUH_

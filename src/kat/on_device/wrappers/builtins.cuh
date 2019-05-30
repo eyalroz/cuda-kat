@@ -1,8 +1,7 @@
 /**
  * @file on_device/wrappers/builtins.cuh
  *
- * @brief Namespace with uniform-naming scheme, templated-when-relevant,
- * wrappers of single PTX instruction .
+ * @brief C++ wrappers for single PTX instructions (in the `builtins` namespace).
  *
  * @note
  * 1. This obviously doesn't include those built-ins which are inherent
@@ -26,14 +25,19 @@
 
 #include <kat/on_device/common.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
-using lane_mask_t = unsigned;
-
-enum : lane_mask_t { full_warp_mask = 0xFFFFFFFF };
-
+/**
+ * @brief Uniform-naming scheme, templated-when-relevant wrappers of single PTX instruction
+ *
+ * @note should contain wrappers for all instructions which are not trivially
+ * producible with simple C++ code (e.g. no add or subtract)
+ */
 namespace builtins {
 
 // Arithmetic
@@ -54,7 +58,14 @@ template <typename T> __fd__ T divide(T dividend, T divisor);
 template <typename T> __fd__ T absolute_value(T x);
 template <typename T> __fd__ T minimum(T x, T y);
 template <typename T> __fd__ T maximum(T x, T y);
-template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S z);
+
+/**
+ * @brief Computes @p addend + |@p x- @p y| .
+ *
+ * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
+ * of the PTX ISA reference.
+ */
+template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S addend);
 
 
 // --------------------------------------------
@@ -75,7 +86,7 @@ template <typename T> __fd__ int count_leading_zeros(T x);
 namespace bit_field {
 
 /**
- * Extracts the bits with 0-based indices @p start_pos ... @p start_pos+ @num_bits - 1, counting
+ * Extracts the bits with 0-based indices @p start_pos ... @p start_pos+ @p num_bits - 1, counting
  * from least to most significant, from a bit field field. Has sign extension semantics
  * for signed inputs which are bit tricky, see in the PTX ISA guide:
  *
@@ -112,10 +123,12 @@ enum class funnel_shift_amount_resolution_mode_t {
  * @param low_word
  * @param high_word
  * @param shift_amount The number of bits to right-shift
- * @param amount_resolution_mode shift_amount can have values which are
+ *
+ * @tparam AmountResolutionMode shift_amount can have values which are
  * higher than the maximum possible number of bits to right-shift; this
  * indicates how to interpret such values. Hopefully this should be
  * gone when inlining
+ *
  * @return the lower bits of the result
  */
 template <
@@ -203,7 +216,10 @@ template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int wi
 } // namespace builtins
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 #include "detail/builtins.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_BUILTINS_CUH_

@@ -1,3 +1,14 @@
+#
+# Note:
+#
+# cuda-kat is a _header-only_ library. You can't build it, and you don't need
+# to run CMake in order to use it or install it. Just add the `src/` directory
+# to your include path (or copy its contents to some `include/` directory.
+# cuda-kat only depends on having a C++11 compiler and the CUDA toolkit 
+# installed.
+#
+# This file is provided mostly in order to build the library unit tests. 
+
 cmake_minimum_required(VERSION 3.8.2)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 

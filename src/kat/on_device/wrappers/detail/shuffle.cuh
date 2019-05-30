@@ -6,10 +6,12 @@
 #include <sm_30_intrinsics.h>
 #include <vector_types.h>
 #include <kat/containers/array.hpp>
-#include <cuda/api/types.hpp>
 #include <kat/on_device/wrappers/builtins.cuh>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace detail {
@@ -196,6 +198,9 @@ __fd__ T shuffle_xor(const T& t, const int& lane_mask) {
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_DETAIL_CUH_

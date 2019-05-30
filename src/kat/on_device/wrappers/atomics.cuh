@@ -5,38 +5,52 @@
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 #define CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
+#include <limits>
 
 namespace kat {
 namespace atomic {
 
-/*
- * TODO:
- * - Consider using non-const references instead of pointers (but make sure we get the same PTX)
- * - Consider creating an atomic<T> wrapper class which has these as operators.
+template <typename T>  __fd__ T add        (T* address, T val);
+template <typename T>  __fd__ T subtract   (T* address, T val);
+template <typename T>  __fd__ T exchange   (T* address, const T& val);
+template <typename T>  __fd__ T min        (T* address, T val);
+template <typename T>  __fd__ T max        (T* address, T val);
+template <typename T>  __fd__ T logical_and(T* address, T val);
+template <typename T>  __fd__ T logical_or (T* address, T val);
+template <typename T>  __fd__ T logical_xor(T* address, T val);
+template <typename T>  __fd__ T bitwise_or (T* address, T val);
+template <typename T>  __fd__ T bitwise_and(T* address, T val);
+template <typename T>  __fd__ T bitwise_xor(T* address, T val);
+template <typename T>  __fd__ T bitwise_not(T* address);
+template <typename T>  __fd__ T set_bit    (T* address, native_word_t bit_index);
+template <typename T>  __fd__ T unset_bit  (T* address, native_word_t bit_index);
+/**
+ * @brief Increment the value at @p address by 1 - but if it reaches or surpasses @p wraparound_value, set it to 0.
+ *
+ * @note repeated invocations of this function will cycle through the range of values 0... @p wraparound_values - 1; thus
+ * as long as the existing value is within that range, this is a simple incrementation modulo @p wraparound_value.
  */
-template <typename T>  __fd__ T add        (T* __restrict__ address, T val);
-template <typename T>  __fd__ T subtract   (T* __restrict__ address, T val);
-template <typename T>  __fd__ T increment  (T* __restrict__ address, T wraparound_value = T{1});
-template <typename T>  __fd__ T decrement  (T* __restrict__ address, T wraparound_value = T{1});
-template <typename T>  __fd__ T exchange   (T* __restrict__ address, T val);
-template <typename T>  __fd__ T min        (T* __restrict__ address, T val);
-template <typename T>  __fd__ T max        (T* __restrict__ address, T val);
-template <typename T>  __fd__ T logical_and(T* __restrict__ address, T val);
-template <typename T>  __fd__ T logical_or (T* __restrict__ address, T val);
-template <typename T>  __fd__ T logical_xor(T* __restrict__ address, T val);
-template <typename T>  __fd__ T bitwise_or (T* __restrict__ address, T val);
-template <typename T>  __fd__ T bitwise_and(T* __restrict__ address, T val);
-template <typename T>  __fd__ T bitwise_xor(T* __restrict__ address, T val);
-template <typename T>  __fd__ T bitwise_not(T* __restrict__ address);
-template <typename T>  __fd__ T set_bit    (T* __restrict__ address, const unsigned bit_index);
-template <typename T>  __fd__ T unset_bit  (T* __restrict__ address, const unsigned bit_index);
+template <typename T>  __fd__ T increment  (T* address, T modulus = std::numeric_limits<T>::max());
+/**
+ * @brief Decrement the value at @p address by 1 - but if it reaches 0, or surpasses @p wraparound_value, it is set
+ * to @p wrarparound_value - 1.
+ *
+ * @note repeated invocations of this function will cycle backwards through the range of values 0...
+ * @p wraparound_values - 1; thus as long as the existing value is within that range, this is a simple decrementation
+ * modulo @p wraparound_value.
+ */
+template <typename T>  __fd__ T decrement  (T* address, T modulus = std::numeric_limits<T>::max());
+
 
 // Note: We let this one take a const reference
 template <typename T>  __fd__ T compare_and_swap(
-    T* __restrict__  address,
-    const T&         compare,
-    const T&         val);
+    T*       address,
+    const T  compare,
+    const T  val);
 
 
 /**
@@ -46,8 +60,8 @@ template <typename T>  __fd__ T compare_and_swap(
  *
  * @return The new value which was stored in memory
  */
-template <typename T, typename UnaryFunction>
-__fd__ T apply_atomically(UnaryFunction f, T* __restrict__ address);
+template <typename UnaryFunction, typename T>
+__fd__ T apply_atomically(UnaryFunction f, T* address);
 
 /**
  * Use atomic compare-and-swap to apply a binary function to two values,
@@ -56,19 +70,25 @@ __fd__ T apply_atomically(UnaryFunction f, T* __restrict__ address);
  *
  * @todo Take a template parameter pack and multiple arguments to f
  *
+ * @note using `__restrict__` here just to be on the safe side, in case
+ * UnaryFunction ends up being some sort of pointer
+ *
  * @return The new value which was stored in memory
  */
-template <typename T, typename BinaryFunction>
+template <typename BinaryFunction, typename T>
 __fd__ T apply_atomically(
-	BinaryFunction   f,
-	T* __restrict__  address,
-	const T&         rhs);
+	BinaryFunction         f,
+	T*       __restrict__  address,
+	const T  __restrict__  rhs);
 
 
 } // namespace atomic
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 #include "detail/atomics.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_ATOMICS_CUH_

@@ -33,7 +33,10 @@
 #include <kat/on_device/common.cuh>
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace ptx {
@@ -72,6 +75,9 @@ DEFINE_SHIFT_AND_OP(r,max) // vshr_max
 
 
 #include "detail/undefine_macros.cuh"
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_PTX_VIDEO_INSTRUCTIONS_CUH_

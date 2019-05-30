@@ -25,7 +25,10 @@
 
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 namespace primitives {
@@ -34,11 +37,11 @@ namespace warp {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = grid_info::linear::grid;
-namespace block  = grid_info::linear::block;
-namespace warp   = grid_info::linear::warp;
-namespace thread = grid_info::linear::thread;
-namespace lane   = grid_info::linear::lane;
+//namespace grid   = grid_info::grid;
+//namespace block  = grid_info::block;
+//namespace warp   = grid_info::warp;
+//namespace thread = grid_info::thread;
+namespace lane   = grid_info::lane;
 
 // lane conditions
 // ----------------------------
@@ -101,7 +104,7 @@ __fd__  bool some_lanes_satisfy(int condition)
  * Count the lanes in a warp for which some condition holds
  *
  * @param condition the condition value for each lane (true if non-zero)
- * @return the number of threads in the warp whose {@ref condition} is true (non-zero)
+ * @return the number of threads in the warp whose @p condition is true (non-zero)
  */
 __fd__ native_word_t num_lanes_satisfying(int condition)
 {
@@ -112,7 +115,7 @@ __fd__ native_word_t num_lanes_satisfying(int condition)
  * Count the lanes in a warp which have the same condition value as the calling lane
  *
  * @param condition the condition value for each lane (true if non-zero)
- * @return the number of threads in the warp whose {@ref condition} is the same value
+ * @return the number of threads in the warp whose @p condition is the same value
  * as the calling lane
  */
 __fd__  native_word_t num_lanes_agreeing_on(int condition)
@@ -151,124 +154,6 @@ template <typename T> __fd__ bool in_unique_lane_with(T value, lane_mask_t lane_
 	return builtins::warp::matching_lanes(value, lane_mask) !=
 		builtins::warp::mask_of_lanes::self();
 }
-
-namespace detail {
-
-template<typename LHS, typename RHS = LHS, typename Result = LHS>
-struct plus {
-	using first_argument_type = LHS;
-	using second_argument_type = RHS;
-	using result_type = Result;
-
-	__fhd__ Result operator() (const LHS& x, const RHS& y) const noexcept { return x + y; }
-	struct accumulator {
-		__fhd__ Result operator()(
-			typename std::enable_if<std::is_same<LHS, RHS>::value, Result>::type& x,
-			const RHS& y) const noexcept { return x += y; }
-		struct atomic {
-#ifdef __CUDA_ARCH__
-			__fd__ Result operator()(
-				typename std::enable_if<std::is_same<LHS,RHS>::value, Result>::type& x,
-				const RHS& y) const noexcept { return kat::atomic::add(&x,y); }
-#endif // __CUDA_ARCH__
-		};
-		__fhd__ static Result neutral_value() noexcept { return 0; };
-	};
-	__fhd__ static Result neutral_value() noexcept { return 0; };
-};
-
-} // namespace detail
-
-/**
- * Performs a reduction (e.g. a summation of multiplication) of all elements passed into
- * the function by the threads of a block.
- *
- * @note This ignores overflow! Make sure you use a roomy type. Alternatively, you
- * could implement a two-type version which takes input in one type and works on a
- * bigger one.
- */
-template <typename ReductionOp>
-__fd__ typename ReductionOp::result_type reduce(typename ReductionOp::first_argument_type value)
-{
-	static_assert(std::is_same<
-		typename ReductionOp::first_argument_type,
-		typename ReductionOp::second_argument_type>::value, "A reduction operation "
-			"must have the same types for its LHS and RHS");
-	static_assert(std::is_same<
-		typename ReductionOp::first_argument_type,
-		typename ReductionOp::result_type>::value, "The warp shuffle primitive "
-			"can only be applied with a reduction op having the same result and "
-			"argument types");
-	typename ReductionOp::accumulator op_acc;
-	// Let's cross our fingers and hope this next variable gets optimized
-	// away with return-value optimization (and that the same register is used
-	// for everything in the case of
-	//
-	//   x = reduce<ReductionOp>(x);
-	//
-	for (int shuffle_mask = warp_size/2; shuffle_mask > 0; shuffle_mask >>= 1)
-		op_acc(value, shuffle_xor(value, shuffle_mask));
-	return value;
-}
-
-template <typename Datum>
-__fd__ Datum sum(Datum value)
-{
-	return reduce<detail::plus<Datum>>(value);
-}
-
-/**
- * Performs a reduction (e.g. a summation of multiplication) of all elements passed into
- * the function by the threads of a block - but with each thread ending up with the reduction
- * result for all threads upto itself.
- *
- * @note What about inclusivity?
- *
- * @todo offer both an inclusive and an exclusive versionn
- */
-template <
-	typename ReductionOp,
-	typename InputDatum,
-	inclusivity_t Inclusivity = inclusivity_t::Inclusive>
-__fd__ typename ReductionOp::result_type scan(InputDatum value)
-{
-	using result_type = typename ReductionOp::result_type;
-	ReductionOp op;
-	typename ReductionOp::accumulator acc_op;
-
-	result_type x;
-
-	if (Inclusivity == inclusivity_t::Exclusive) {
-		InputDatum preshuffled = shuffle_up(value, 1);
-		// ... and now we can pretend to be doing an inclusive shuffle
-		x = lane::is_first() ? op.neutral_value() : preshuffled;
-	}
-	else { x = value; }
-
-	// x of lane i holds the reduction of values of
-	// the lanes i - 2*(offset) ... i - offset , and initially offset = 0
-	#pragma unroll
-	for (int offset = 1; offset < warp_size; offset <<= 1) {
-		result_type shuffled = shuffle_up(x, offset);
-		if(lane::index() >= offset) { acc_op(x, shuffled); }
-	}
-	return x;
-}
-
-// TODO: Need to implement a scan-and-reduce warp primitive
-
-template <typename T, inclusivity_t Inclusivity = inclusivity_t::Inclusive, typename Result = T>
-__fd__ T prefix_sum(T value)
-{
-	return scan<detail::plus<Result>, T, Inclusivity>(value);
-}
-
-template <typename T, typename Result = T>
-__fd__ T exclusive_prefix_sum(T value)
-{
-	return prefix_sum<T, inclusivity_t::Exclusive, Result>(value);
-}
-
 
 /*
  *
@@ -338,254 +223,10 @@ __fd__ native_word_t first_lane_satisfying(int condition)
 }
 
 /**
- * Have all warp threads collaborate in copying
- * data between two memory locations (possibly not in the same memory
- * space), while also converting types.
- *
- * @param target The destination into which to write the converted elements
- * @param source The origin of the data
- * @param length The number of elements available (for reading?] at the
- * source
- */
-template <typename T, typename U, typename Size>
-__fd__ void cast_and_copy(
-	T*        __restrict__  target,
-	const U*  __restrict__  source,
-	Size                    length)
-{
-	using namespace grid_info::linear;
-	// sometimes this next loop can be unrolled (when length is known
-	// at compile time; since the function is inlined)
-	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::index(); pos < length; pos += warp_size) {
-		target[pos] = source[pos];
-	}
-}
-
-/*
-template <typename T>
-__fd__ void single_write(T* __restrict__  target, T&& x)
-{
-	target[lane::index()] = std::forward(x);
-}
-*/
-
-namespace detail {
-
-/**
- * A version of @ref ::copy which ignores pointer alignment,
- * and the memory transaction size, simply making coalesced writes
- * of warp_size elements at a time (except for the last range)
- * @param target
- * @param source
- * @param length
- */
-template <typename T, typename Size>
-__fd__ void naive_copy(
-	T*        __restrict__  target,
-	const T*  __restrict__  source,
-	Size                    length)
-{
-	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::index(); pos < length; pos += warp_size)
-	{
-		target[pos] = source[pos];
-	}
-}
-
-template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
-{
-	return x & ~((1 << k) - 1);
-}
-
-
-} // namespace detail
-
-
-/**
- * Same as {@ref cast_copy}, except that no casting is done
- *
- * @note This version assumes both the source and target are well-aligned,
- * and that length * sizeof(T) % 4 == 0
- *
- */
-
-/**
- * Has the warp copy data from one place to another
- *
- *  * @note if the input is not 32-byte (sometimes 128-byte )-aligned,
- * and more importantly, the output is not 128-byte-aligned,
- * performance will likely degrade due to the need to execute a pair
- * of memory transactions for every single 32 x 4 byte write.
- *
- * @tparam     T       type of the elements being copied
- * @tparam     Size    type of the length parameter
- * @tparam     MayHaveSlack
- *                     we "like" data whose size is a multiple of 4 bytes,
- *                     and can copy it faster. When this is true, we assume
- *                     the overall size of data to copy is a multiple of 4,
- *                     without taking the time to check. In the future the
- *                     semantics of this parameter will change to involve
- *                     alignment of the start and end addresses.
- * @param[out] target  starting address of the region of memory to copy into
- * @param[in]  source  starting address of the region of memory to copy from
- * @param[in]  length  number of elements (of type T) to copy
- */
-template <typename T, typename Size, bool MayHaveSlack = true>
-__fd__ void copy_n(
-	T*        __restrict__  target,
-	const T*  __restrict__  source,
-	Size                    length)
-{
-	using namespace grid_info::linear;
-	enum {
-		elements_per_lane_in_full_warp_write =
-			primitives::detail::elements_per_lane_in_full_warp_write<T>::value
-	};
-
-	if ((elements_per_lane_in_full_warp_write == 1) or
-	    not (sizeof(T) == 1 or sizeof(T) == 2 or sizeof(T) == 4 or sizeof(T) == 8) or
-	    not std::is_trivially_copy_constructible<T>::value)
-	{
-		detail::naive_copy(target, source, length);
-	}
-	else {
-		// elements_per_lane_in_full_warp_write is either 1, 2...
-		kat::array<T, elements_per_lane_in_full_warp_write> buffer;
-			// ... so this has either 1 or 2 elements and its overall size is 4
-
-		promoted_size_t<Size> truncated_length = MayHaveSlack ?
-			detail::clear_lower_bits(length, constexpr_::log2(elements_per_lane_in_full_warp_write)) :
-			length;
-
-		// TODO: Should I pragma-unroll this by a fixed amount? Should
-		// I not specify an unroll at all?
-		#pragma unroll
-		for(promoted_size_t<Size> pos = lane::index() * elements_per_lane_in_full_warp_write;
-			pos < truncated_length;
-			pos += warp_size * elements_per_lane_in_full_warp_write)
-		{
-			* (reinterpret_cast<decltype(buffer) *>(target + pos)) =
-				*( reinterpret_cast<const decltype(buffer) *>(source + pos) );
-		}
-
-		if (MayHaveSlack) {
-			if (elements_per_lane_in_full_warp_write == 2) {
-				// the slack must be exactly 1
-				// Multiple writes to the same place are safe according to
-				// the CUDA C Programming Guide v8 section G.3.2 Global Memory
-				target[truncated_length] = source[truncated_length];
-			}
-			else {
-				auto num_slack_elements = length - truncated_length;
-				if (lane::index() < num_slack_elements) {
-					auto pos = truncated_length + lane::index();
-					target[pos] = source[pos];
-				}
-			}
-		}
-	}
-}
-
-template <typename T, bool MayHaveSlack = true>
-__fd__ void copy(
-	const T*  __restrict__  source_start,
-	const T*  __restrict__  source_end,
-	T*        __restrict__  target_start)
-{
-	auto length = source_end - source_start;
-	return copy_n<T, sizeof(length), MayHaveSlack>(target_start, source_start, length);
-}
-
-// TODO: Check whether writing this with a forward iterator and std::advance
-// yields the same PTX code (in which case we'll prefer that)
-template <typename RandomAccessIterator, typename Size, typename T>
-inline __device__ void fill_n(RandomAccessIterator start, Size count, const T& value)
-{
-	T tmp = value;
-	for(promoted_size_t<Size> index = lane::index();
-		index < count;
-		index += warp_size)
-	{
-		start[index] = tmp;
-	}
-}
-
-template <typename ForwardIterator, typename T>
-inline __device__ void fill(ForwardIterator start, ForwardIterator end, const T& value)
-{
-    const T tmp = value;
-	auto iter = start + lane::index();
-    for (; iter < end; iter += warp_size)
-    {
-    	*iter = tmp;
-    }
-}
-
-/**
- * Use a lookup table to convert numeric indices to a sequence
- * of values of any type
- */
-template <typename T, typename I, typename Size, typename U = T>
-__fd__ void lookup(
-	T*       __restrict__  target,
-	const U* __restrict__  lookup_table,
-	const I* __restrict__  indices,
-	Size                   num_indices)
-{
-	using namespace grid_info::linear;
-	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::index(); pos < num_indices; pos += warp_size) {
-		target[pos] = lookup_table[indices[pos]];
-	}
-}
-
-/**
- * @note If you call this for multiple warps and the same destination,
- * you'd better use an atomic accumulator op...
- */
-
-template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
-	D*       __restrict__  destination,
-	const S* __restrict__  source,
-	Size                   length)
-{
-	AccumulatingOperation op;
-	for(promoted_size_t<Size> pos = lane::index(); pos < length; pos += warp_size) {
-		op(destination[pos], source[pos]);
-	}
-}
-
-/**
- * A variant of elementwise_accumulate for when the length <= warp_size,
- * in which case each thread will get just one source element (possibly
- * a junk or default-constructed element) to work with
- *
- * @note If you call this for multiple warps and the same destination,
- * you'd better use an atomic accumulator op...
- */
-template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
-	D*       __restrict__  destination,
-	const S&               source_element,
-	Size                   length)
-{
-	AccumulatingOperation op;
-	if (lane::index() < length) {
-		op(destination[lane::index()], source_element);
-	}
-}
-
-/**
  * A variant of the one-position-per-thread applicator,
- * {@ref primitives::grid::at_grid_stride}: Here each warp works on one
+ * `primitives::grid::at_grid_stride()`: Here each warp works on one
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
- *
- * TODO: This is not general enough to be in this file; or rather, it's
- * not clear why each thread doesn't get its own element in the range. Either
- * it goes into some separate namespace or out of this file completely.
  *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence
@@ -593,9 +234,9 @@ __fd__ void elementwise_accumulate(
 template <typename Function, typename Size = unsigned>
 __fd__ void at_grid_stride(Size length, const Function& f)
 {
-	auto num_warps_in_grid = grid::num_warps();
+	auto num_warps_in_grid = grid_info::grid::num_warps();
 	for(// _not_ the global thread index! - one element per warp
-		promoted_size_t<Size> pos = warp::global_index();
+		promoted_size_t<Size> pos = grid_info::warp::global_index();
 		pos < length;
 		pos += num_warps_in_grid)
 	{
@@ -608,7 +249,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 // Note: make sure the first warp thread has not diverged/exited,
 // or use the leader selection below
 // TODO: Mark this unsafe
-#define once_per_warp if (::grid_info::linear::thread::is_first_in_warp())
+#define once_per_warp if (grid_info::thread::is_first_in_warp())
 
 __fd__ unsigned active_lanes_mask()
 {
@@ -864,7 +505,7 @@ enum predicate_computation_length_slack_t {
  * @param length bits overall - are slack bits; it is assumed
  * we're allowed to write anything to them.
  *
- * @param computer_predicate the result of the computation of the
+ * @param computed_predicate the result of the computation of the
  * predicate for each of the indices in the range
  * @param length The number of elements for which to compute the
  * predicate, which is also the number of bits (not the size in
@@ -900,7 +541,7 @@ template <
 	promoted_size_t<Size> full_warp_reads_output_length = length >> log_warp_size;
 	auto full_warp_writes_output_length = (PossibilityOfSlack == detail::has_no_slack) ?
 		full_warp_reads_output_length :
-		round_down_to_warp_size(full_warp_reads_output_length);
+		round_down_to_full_warps(full_warp_reads_output_length);
 
 	promoted_size_t<Size> input_pos = lane::index();
 	promoted_size_t<Size> output_pos = lane::index();
@@ -968,14 +609,15 @@ template <
 namespace detail {
 
 /**
- * Merge a full warp's worth of data, where each half-warp holds a sorted array,
- * so that the
+ * Merge a full warp's worth of data, where each half-warp holds a sorted array.
  *
- * @note Untested as of yet
+ * @param v A lane-specific value; over the entire warp, these constitute
+ * all values to merge
  *
- * @param source_a One sorted half-warp's worth of data
- * @param source_b Another sorted half-warp's worth of data
- * @param target Location into which to merge
+ * @return the lane's value so that, by order of lane index, the lanes
+ * get a merged version of the input values.
+ *
+ * @note UNTESTED!
  */
 template <typename T>
 __fd__ native_word_t find_merge_position(const T& v)
@@ -1089,8 +731,43 @@ __fd__ T merge_sorted_half_warps(T lane_element)
 
 } // namespace warp
 } // namespace primitives
+
+namespace linear_grid {
+namespace primitives {
+namespace warp {
+
+/**
+ * A variant of the one-position-per-thread applicator,
+ * `primitives::grid::at_grid_stride()`: Here each warp works on one
+ * input position, advancing by 'grid stride' in the sense of total
+ * warps in the grid.
+ *
+ * @param length The length of the range of positions on which to act
+ * @param f The callable for warps to use each position in the sequence
+ */
+template <typename Function, typename Size = unsigned>
+__fd__ void at_grid_stride(Size length, const Function& f)
+{
+	auto num_warps_in_grid = grid_info::grid::num_warps();
+	for(// _not_ the global thread index! - one element per warp
+		promoted_size_t<Size> pos = grid_info::warp::global_index();
+		pos < length;
+		pos += num_warps_in_grid)
+	{
+		f(pos);
+	}
+}
+
+
+} // namespace warp
+} // namespace primitives
+} // namespace linear_grid
+
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_

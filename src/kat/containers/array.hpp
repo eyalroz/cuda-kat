@@ -1,3 +1,9 @@
+/**
+ * @file kat/containers/array.hpp
+ *
+ * @brief Contains @ref kat::array, A adaptation of @ref std::array,
+ * usable both on the host and on the GPU-device side.
+ */
 // Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 // Copyright (C) 2017, 2019 Eyal Rozenberg <eyalroz@technion.ac.il>
 //
@@ -48,7 +54,10 @@
 #endif
 
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -74,7 +83,7 @@ struct array_traits<T, 0>
 
   /**
    *  @brief A standard container for storing a fixed size sequence of elements,
-   * based on @ref std::array
+   * based on @ref std::array - but fully GPU device-side enabled.
    *
    *  @tparam T              Type of individual elements
    *  @tparam NumElemements  Number of elements in array.
@@ -256,6 +265,8 @@ namespace kat {
 
 // Tuple interface to class template array.
 
+///@cond
+
 /// tuple_size
 template<typename T> class tuple_size;
 
@@ -274,8 +285,13 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 	typedef T type;
 };
 
+///@endcond
+
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_STL_ARRAY_CUH_

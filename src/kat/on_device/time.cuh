@@ -7,7 +7,10 @@
 #ifndef CUDA_KAT_ON_DEVICE_TIME_CUH_
 #define CUDA_KAT_ON_DEVICE_TIME_CUH_
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -72,6 +75,9 @@ __fd__ void sleep<sleep_resolution::clock_cycles>(
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_TIME_CUH_

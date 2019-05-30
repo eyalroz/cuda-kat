@@ -18,7 +18,10 @@
 
 #warning "This header has not been in use for a long time - use at your own peril (or rather - run some tests)"
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
 
@@ -267,7 +270,10 @@ __fd__ T read_unaligned(const T* __restrict__ ptr)
 
 } // namespace kat
 
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 
 #endif // CUDA_KAT_ON_DEVICE_UNALIGNED_CUH_

@@ -12,19 +12,20 @@
 #include <cstdint>
 #include <type_traits>
 
+
+///@cond
 #include <kat/define_specifiers.hpp>
+///@endcond
 
 namespace kat {
-
-template <typename Size>
-using promoted_size_t = typename std::common_type<Size, native_word_t>::type;
 
 namespace ptx {
 
 /**
  * @brief Load data through the read-only data cache
  *
- * @note See @link http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#ldg-function
+ * @note See the <a href="http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#ldg-function">relevant section</a>
+ * of the CUDA C Programming guide for details on using this instruction for loading.
  *
  * @param ptr The global memory location from which to load
  * @return the value at location @p ptr , loaded through the read-only data cache rather than
@@ -41,7 +42,8 @@ __fd__ T ldg(const T* ptr)
 }
 
 /**
- * See @link http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-isspacep
+ * See <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-isspacep">relevant section</a>
+ * of the CUDA PTX reference for details on these instructions.
  */
 #define DEFINE_IS_IN_MEMORY_SPACE(_which_space) \
 __fd__ int32_t is_in_ ## _which_space ## _memory (const void *ptr) \
@@ -63,16 +65,18 @@ DEFINE_IS_IN_MEMORY_SPACE(shared) // is_in_shared_memory
 
 #undef DEFINE_IS_IN_MEMORY_SPACE
 
-/**
+/*
  * @brief Find the last non-sign bit in a signed or an unsigned integer value
  *
- * @note See @link http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-bfind
+ * @note See <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-bfind">relevant section</a>
+ * of the CUDA PTX reference for details on this instruction.
  *
  * @param val the value in which to find non-sign bits
  * @return the bit index (counting from least significant bit being 0) of the first
  * bit which is 0 if @p val is positive, or of the first bit which is 1 if @p val is negative. If @p val has only
  * sign bits (i.e. if it's 0 or if its type is signed and its bits are all 1) - the value 0xFFFFFFFF (-1) is returned
  */
+
 #define DEFINE_BFIND(ptx_value_type) \
 __fd__ uint32_t \
 bfind(CPP_TYPE_BY_PTX_TYPE(ptx_value_type) val) \
@@ -90,31 +94,6 @@ DEFINE_BFIND(u32) // bfind
 DEFINE_BFIND(u64) // bfind
 
 #undef DEFINE_BFIND
-
-/**
- * See:
- * @url http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-prmt
- *  for an explanation of what this does exactly
- *
- * @param first           a first value from which to potentially use bytes
- * @param second          a second value from which to potentially use bytes
- * @param byte_selectors  a packing of 4 selector structures; each selector structure
- *                        is 3 bits specifying which of the input bytes are to be used (as there are 8
- *                        bytes overall in @p first and @second), and another bit specifying if it's an
- *                        actual copy of a byte, or instead whether the sign of the byte (intrepeted as
- *                        an int8_t) should be replicated to fill the target byte.
- * @return the four bytes of first and/or second, or replicated signs thereof, indicated by the byte selectors
- *
- * @note Only the lower 16 bits of byte_selectors are used.
- * @note "prmt" stands for "permute"
- */
-__fd__ uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
-{
-	uint32_t result;
-	asm("prmt.b32 %0, %1, %2, %3;"
-		: "=r"(result) : "r"(first), "r"(second), "r"(byte_selectors));
-	return result;
-}
 
 #define DEFINE_PRMT_WITH_MODE(selection_mode_name, selection_mode) \
 __fd__  uint32_t prmt_ ## selection_mode_name (uint32_t first, uint32_t second, uint32_t control_bits) \
@@ -137,6 +116,9 @@ DEFINE_PRMT_WITH_MODE( replicate_16,       rc16 ) // prmt_replicate_16
 DEFINE_PRMT_WITH_MODE( edge_clam_left,     ecl  ) // prmt_edge_clam_left
 DEFINE_PRMT_WITH_MODE( edge_clam_right,    ecl  ) // prmt_edge_clam_right
 
+/**
+ * @brief Aborts execution (of the entire kernel grid) and generates an interrupt to the host CPU.
+ */
 __fd__  void trap()
 {
 	asm("trap");
@@ -148,6 +130,31 @@ __fd__  void trap()
 __fd__ void exit()
 {
 	asm("exit");
+}
+
+
+/**
+ * @brief See: <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-prmt">relevant section</a>
+ * of the CUDA PTX reference for an explanation of what this does exactly
+ *
+ * @param first           a first value from which to potentially use bytes
+ * @param second          a second value from which to potentially use bytes
+ * @param byte_selectors  a packing of 4 selector structures; each selector structure
+ *                        is 3 bits specifying which of the input bytes are to be used (as there are 8
+ *                        bytes overall in @p first and @p second ), and another bit specifying if it's an
+ *                        actual copy of a byte, or instead whether the sign of the byte (intrepeted as
+ *                        an int8_t) should be replicated to fill the target byte.
+ * @return the four bytes of first and/or second, or replicated signs thereof, indicated by the byte selectors
+ *
+ * @note Only the lower 16 bits of byte_selectors are used.
+ * @note "prmt" stands for "permute"
+ */
+__fd__ uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
+{
+	uint32_t result;
+	asm("prmt.b32 %0, %1, %2, %3;"
+		: "=r"(result) : "r"(first), "r"(second), "r"(byte_selectors));
+	return result;
 }
 
 
@@ -229,7 +236,10 @@ bfi(
 
 
 #include "detail/undefine_macros.cuh"
+
+///@cond
 #include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
 
