@@ -14,6 +14,9 @@ syntax: glob
 bin/*
 lib/*
 build/*
+cmake-build-release/
+cmake-build-debug/
+cmake-build-default/
 docs
 docs/
 
@@ -32,6 +35,7 @@ CTestTestfile.cmake
 .project
 .cproject
 .settings
+.idea/
 
 # Patching
 *.diff
