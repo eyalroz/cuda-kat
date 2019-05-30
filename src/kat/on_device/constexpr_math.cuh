@@ -168,21 +168,21 @@ namespace detail {
 
 // Assumes 0 <= x < modulus
 template <typename I>
-constexpr inline I modular_inc(I x, I modulus) noexcept { return (x == modulus - I{1}) ? I{0} : (x + I{1}); }
+constexpr inline I modular_increment(I x, I modulus) noexcept { return (x == modulus - I{1}) ? I{0} : (x + I{1}); }
 
 // Assumes 0 <= x < modulus
 template <typename I>
-constexpr inline I modular_dec(I x, I modulus) noexcept { return (x == I{0}) ? (modulus - I{1}) : (x - I{1}); }
+constexpr inline I modular_decrement(I x, I modulus) noexcept { return (x == I{0}) ? (modulus - I{1}) : (x - I{1}); }
 
 } // namespace detail
 
 // Note: Safe but slow
 template <typename I>
-constexpr inline I modular_inc(I x, I modulus) { return detail::modular_inc<I>(x % modulus, modulus); }
+constexpr inline I modular_increment(I x, I modulus) { return detail::modular_increment<I>(x % modulus, modulus); }
 
 // Note: Safe but slow
 template <typename I>
-constexpr inline I modular_dec(I x, I modulus) { return detail::modular_dec<I>(x % modulus, modulus); }
+constexpr inline I modular_decrement(I x, I modulus) { return detail::modular_decrement<I>(x % modulus, modulus); }
 
 /**
  * Faster implementations of mathematical functions which can be incorrect for extremal or near-extremal values.
@@ -226,8 +226,8 @@ constexpr __fhd__ I1 round_up(I1 x, I2 y) noexcept
 	return round_down(x + I1{y} - I1{1}, y);
 }
 
-template <typename I> constexpr inline I modular_inc(I x, I modulus) { return (x + I{1}) % modulus; }
-template <typename I> constexpr inline I modular_dec(I x, I modulus) { return (x + modulus - I{1}) % modulus; }
+template <typename I> constexpr inline I modular_increment(I x, I modulus) { return (x + I{1}) % modulus; }
+template <typename I> constexpr inline I modular_decrement(I x, I modulus) { return (x + modulus - I{1}) % modulus; }
 
 
 } // namespace unsafe
@@ -259,8 +259,8 @@ using kat::power_of_2_divides;
 using kat::is_divisible_by_power_of_2;
 using kat::is_even;
 using kat::is_odd;
-using kat::modular_inc;
-using kat::modular_dec;
+using kat::modular_increment;
+using kat::modular_decrement;
 
 namespace unsafe {
 
@@ -268,8 +268,8 @@ using kat::unsafe::round_up_to_power_of_2;
 using kat::unsafe::round_up_to_full_warps;
 using kat::unsafe::div_rounding_up;
 using kat::unsafe::round_up;
-using kat::unsafe::modular_inc;
-using kat::unsafe::modular_dec;
+using kat::unsafe::modular_increment;
+using kat::unsafe::modular_decrement;
 
 }  // namespace unsafe
 

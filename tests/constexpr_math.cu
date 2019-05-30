@@ -44,21 +44,21 @@ struct compile_time_execution_results {
     static_assert(kat::constexpr_::is_power_of_2<I>(I{32}) == true,  "kat::constexpr_::is_power_of_2(32) error");
     static_assert(kat::constexpr_::is_power_of_2<I>(I{33}) == false, "kat::constexpr_::is_power_of_2(33) error");
 
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_inc error");
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_inc error");
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 0}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_inc error");
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 1}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_inc error");
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 2}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_inc error");
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 3}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_inc error");
-    static_assert(kat::constexpr_::modular_inc<I>(I{ 4}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_inc error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_increment error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_increment error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 0}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_increment error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 1}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_increment error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 2}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_increment error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 3}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_increment error");
+    static_assert(kat::constexpr_::modular_increment<I>(I{ 4}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_increment error");
 
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_dec error");
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_dec error");
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 0}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_dec error");
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 1}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_dec error");
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 2}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_dec error");
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 3}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_dec error");
-    static_assert(kat::constexpr_::modular_dec<I>(I{ 4}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_dec error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 0}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_decrement error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 1}, I{ 1}) == I{ 0 }, "kat::constexpr_::modular_decrement error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 0}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_decrement error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 1}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_decrement error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 2}, I{ 3}) == I{ 1 }, "kat::constexpr_::modular_decrement error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 3}, I{ 3}) == I{ 2 }, "kat::constexpr_::modular_decrement error");
+    static_assert(kat::constexpr_::modular_decrement<I>(I{ 4}, I{ 3}) == I{ 0 }, "kat::constexpr_::modular_decrement error");
 
     static_assert(kat::constexpr_::ipow<I>(I{ 0 },   1 ) == I{  0 }, "kat::constexpr_::ipow error");
     static_assert(kat::constexpr_::ipow<I>(I{ 0 },   2 ) == I{  0 }, "kat::constexpr_::ipow error");
