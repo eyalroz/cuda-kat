@@ -143,6 +143,15 @@ __fd__ native_word_t funnel_shift(
 
 // --------------------------------------------
 
+/**
+ * @brief compute the average of two values without needing special
+ * accounting for overflow
+ */
+template <bool Signed, bool Rounded = false> __fd__
+typename std::conditional<Signed, int, unsigned>::type average(
+	typename std::conditional<Signed, int, unsigned>::type x,
+	typename std::conditional<Signed, int, unsigned>::type y);
+
 
 
 /**

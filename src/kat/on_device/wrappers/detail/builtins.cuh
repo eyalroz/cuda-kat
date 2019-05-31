@@ -108,6 +108,16 @@ __fd__ native_word_t funnel_shift(
 
 #endif // __CUDA_ARCH__ >= 320
 
+template <bool Signed, bool Rounded> __fd__
+typename std::conditional<Signed, int, unsigned>::type average(
+	typename std::conditional<Signed, int, unsigned>::type x,
+	typename std::conditional<Signed, int, unsigned>::type y);
+
+template <> __fd__ unsigned average<false, false>(unsigned x, unsigned y) { return __uhadd(x,y);  }
+template <> __fd__ int      average<true,  false>(int      x, int y     ) { return __hadd(x,y);   }
+template <> __fd__ unsigned average<false, true >(unsigned x, unsigned y) { return __urhadd(x,y); }
+template <> __fd__ int      average<true,  true >(int      x, int y     ) { return __rhadd(x,y);  }
+
 
 namespace warp {
 
