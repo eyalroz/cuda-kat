@@ -56,8 +56,8 @@ template <typename T> __fd__  T multiplication_high_bits(T x, T y);
  */
 template <typename T> __fd__ T divide(T dividend, T divisor);
 template <typename T> __fd__ T absolute_value(T x);
-template <typename T> __fd__ T minimum(T x, T y);
-template <typename T> __fd__ T maximum(T x, T y);
+template <typename T> __fd__ T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
+template <typename T> __fd__ T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 
 /**
  * @brief Computes @p addend + |@p x- @p y| .
@@ -75,12 +75,12 @@ template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y
 // Bit and byte manipulation
 // --------------------------------------------
 
-template <typename T> __fd__ int population_count(T x);
-template <typename T> __fd__ T bit_reverse(T x);
+template <typename I> __fd__ int population_count(I x);
+template <typename T> __fd__ T bit_reverse(T x) = delete;
 
-template <typename T> __fd__ unsigned find_last_non_sign_bit(T x);
+template <typename I> __fd__ unsigned find_last_non_sign_bit(I x) = delete;
 template <typename T> __fd__ T load_global_with_non_coherent_cache(const T* ptr);
-template <typename T> __fd__ int count_leading_zeros(T x);
+template <typename I> __fd__ int count_leading_zeros(I x) = delete;
 
 
 namespace bit_field {

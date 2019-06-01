@@ -196,18 +196,18 @@ namespace linear_grid {
  */
 #define thread_printf(format_str, ... )  \
 	printf("T %0*u = (%0*u,%02u,%02u): " format_str "\n", \
-		::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_threads() - 1llu)), \
-		linear_grid::grid_info::thread::global_index(), \
-		::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
+		::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_threads() - 1llu)), \
+		kat::linear_grid::grid_info::thread::global_index(), \
+		::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1llu)), \
 		blockIdx.x, \
-		linear_grid::grid_info::warp::index(), grid_info::lane::index(), __VA_ARGS__);
+		kat::linear_grid::grid_info::warp::index(), kat::grid_info::lane::index(), __VA_ARGS__);
 #define thread_print(str)  \
 	printf("T %0*u = (%0*u,%02u,%02u): %s\n", \
-		::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_threads() - 1llu)), \
-		linear_grid::grid_info::thread::global_index(), \
-		::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1llu)), \
+		::max(2,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_threads() - 1llu)), \
+		kat::linear_grid::grid_info::thread::global_index(), \
+		::max(2,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1llu)), \
 		blockIdx.x, \
-		linear_grid::grid_info::warp::index(), grid_info::lane::index(), str);
+		kat::linear_grid::grid_info::warp::index(), kat::grid_info::lane::index(), str);
 #define tprintf thread_printf
 #define tprint thread_print
 
@@ -215,36 +215,36 @@ namespace linear_grid {
 	do{ \
 		if (grid_info::lane::is_first()) \
 			printf("W %0*u = (%0*u,%02u): " format_str "\n", \
-				::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_warps() - 1)), \
-				linear_grid::grid_info::warp::global_index(), \
-				::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
+				::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_warps() - 1)), \
+				kat::linear_grid::grid_info::warp::global_index(), \
+				::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1)), \
 				blockIdx.x, \
-				linear_grid::grid_info::warp::index(), __VA_ARGS__); \
+				kat::linear_grid::grid_info::warp::index(), __VA_ARGS__); \
 	} while(0)
 #define warp_print(str)  \
 	do{ \
 		if (grid_info::lane::is_first()) \
 		printf("W %0*u = (%0*u,%02u): %s\n", \
-			::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_warps() - 1)), \
-			linear_grid::grid_info::warp::global_index(), \
-			::max(2,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
+			::max(2,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_warps() - 1)), \
+			kat::linear_grid::grid_info::warp::global_index(), \
+			::max(2,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1)), \
 			blockIdx.x, \
-			linear_grid::grid_info::warp::index(), str); \
+			kat::linear_grid::grid_info::warp::index(), str); \
 	} while(0)
 
 #define block_printf(format_str, ... )  \
 	do{ \
-		if (linear_grid::grid_info::thread::is_first_in_block()) \
+		if (kat::linear_grid::grid_info::thread::is_first_in_block()) \
 			printf("B %0*u: " format_str "\n", \
-				::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
-				linear_grid::grid_info::block::index(), __VA_ARGS__); \
+				::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1)), \
+				kat::linear_grid::grid_info::block::index(), __VA_ARGS__); \
 	} while(0)
 #define block_print(str)  \
 	do{ \
-		if (linear_grid::grid_info::thread::is_first_in_block()) \
+		if (kat::linear_grid::grid_info::thread::is_first_in_block()) \
 		printf("B %0*u: %s\n", \
-			::max(2u,detail::num_digits_required_for(linear_grid::grid_info::grid::num_blocks() - 1)), \
-				linear_grid::grid_info::block::index(), str); \
+			::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1)), \
+				kat::linear_grid::grid_info::block::index(), str); \
 	} while(0)
 #define bprintf block_printf
 #define bprint block_print
@@ -257,7 +257,7 @@ namespace linear_grid {
 	} while (false)
 #define grid_print(str)  \
 	do { \
-		if (linear_grid::grid_info::thread::global_index() == 0) { \
+		if (kat::linear_grid::grid_info::thread::global_index() == 0) { \
 		    printf("G %s\n", str); \
 		} \
 	} while (false)
@@ -266,7 +266,7 @@ namespace linear_grid {
 inline __device__ void print_self_identification()
 {
 	printf("Thread %10d - %05d within block %05d - lane %02d of in-block warp %02d)\n",
-		linear_grid::grid_info::thread::global_index(),
+		kat::linear_grid::grid_info::thread::global_index(),
 		threadIdx.x, blockIdx.x, threadIdx.x % warpSize, threadIdx.x / warpSize);
 
 }
