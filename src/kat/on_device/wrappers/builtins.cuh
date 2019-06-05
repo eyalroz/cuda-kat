@@ -48,13 +48,13 @@ namespace builtins {
  * without upcasting, the value of x * y is the lower n bits of the result;
  * this lets you get the upper bits, without performing a 2n-by-2n multiplication
  */
-template <typename T> __fd__  T multiplication_high_bits(T x, T y);
+template <typename I> __fd__  I multiplication_high_bits(I x, I y);
 
 /**
  * Division which becomes faster and less precise than regular "/",
  * when --use-fast-math is specified; otherwise it's the same as regular "/".
  */
-template <typename T> __fd__ T divide(T dividend, T divisor);
+template <typename F> __fd__ F divide(F dividend, F divisor);
 template <typename T> __fd__ T absolute_value(T x);
 template <typename T> __fd__ T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 template <typename T> __fd__ T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
@@ -65,7 +65,7 @@ template <typename T> __fd__ T maximum(T x, T y) = delete; // don't worry, it's 
  * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
  * of the PTX ISA reference.
  */
-template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S addend);
+template <typename I1, typename I2> __fd__ I2 sum_with_absolute_difference(I1 x, I1 y, I2 addend);
 
 
 // --------------------------------------------
@@ -76,7 +76,7 @@ template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y
 // --------------------------------------------
 
 template <typename I> __fd__ int population_count(I x);
-template <typename T> __fd__ T bit_reverse(T x) = delete;
+template <typename I> __fd__ I bit_reverse(I x) = delete;
 
 template <typename I> __fd__ unsigned find_last_non_sign_bit(I x) = delete;
 template <typename T> __fd__ T load_global_with_non_coherent_cache(const T* ptr);
