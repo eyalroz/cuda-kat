@@ -47,10 +47,14 @@ struct dimensions_t // this almost-inherits dim3
     __fhd__ operator dim3(void) const noexcept { return { x, y, z }; }
 
     constexpr __fhd__ size_t volume() const noexcept { return (size_t) x * y * z; }
-    constexpr __fhd__ bool empty() const noexcept {  return volume() == 0; }
-    constexpr __fhd__ unsigned char dimensionality() const noexcept
+    constexpr __fhd__ bool empty() const noexcept { return  (x == 0) or (y == 0) or (z == 0); }
+
+	/**
+	 * @brief The number of actual dimensions (i.e. dimensions/axes with more than a single value)
+     */
+    constexpr __fhd__ unsigned dimensionality() const noexcept
     {
-        return ((z > 1) + (y > 1) + (x > 1)) * (!empty());
+        return empty() ? 0 : ((z > 1) + (y > 1) + (x > 1));
     }
 };
 
@@ -92,6 +96,21 @@ __fd__ Size row_major_linearization(uint3 position, dimensions_t dims)
 } // namespace detail
 
 /**
+ * @return true if no non-trivial dimensions follow trivial dimensions
+ *
+ * @note Assumes non-empty dimensions!
+ */
+__fd__ bool dimensionality_is_canonical(dimensions_t dims)
+{
+#if __cplusplus >= 201402L
+	assert(not dims.empty());
+#endif
+	return
+		(dims.x > 1 or (dims.y == 1 and dims.z == 1)) and
+		(dims.y > 1 or dims.z == 1);
+}
+
+/**
  *
  ************************************************************************
  * Convenience one-liners relating to grid dimensions, indices within
@@ -106,11 +125,31 @@ namespace grid_info {
 
 namespace grid {
 
-__fd__ dimensions_t dimensions()            { return gridDim; }
-__fd__ unsigned     dimensionality()        { return dimensions().dimensionality(); }
-__fd__ size_t       num_blocks()            { return dimensions().volume(); }
+/**
+ * @note These are the dimensions of the grid over blocks; the blocks may have additional "dimensions" relative to threads.
+ */
+__fd__ dimensions_t dimensions_in_blocks()  { return gridDim; }
+__fd__ size_t       num_blocks()            { return dimensions_in_blocks().volume(); }
 __fd__ dimensions_t first_block_position()  { return dimensions_t{0, 0, 0}; }
 __fd__ dimensions_t last_block_position()   { return dimensions_t{gridDim.x - 1, gridDim.y - 1, gridDim.z - 1}; }
+
+/**
+ * Determines whether the grid's non-trivial dimensions - in blocks and in threads - are on the x axis only.
+ *
+ * @note One could consider y-only or z-only dimensions as linear; this definition was chosen for convenience
+ * (and performance) and is used throughout this library
+ */
+__fd__ bool         is_linear()
+{
+	return gridDim.y == 1 and gridDim.z == 1 and blockDim.y == 1 and blockDim.z == 1;
+}
+
+/**
+ * @note These are the dimensions of the grid in terms of threads. This means that a grid can have less blocks (or
+ * even one block) in each dimension, but each block many have multiple threads, contributing to the overall dimension.
+ */
+__fd__ dimensions_t dimensions_in_threads()     { return dimensions_t{ gridDim.x * blockDim.x, gridDim.y * blockDim.y, gridDim.z * blockDim.z }; }
+
 
 } // namespace grid
 
@@ -121,7 +160,7 @@ __fd__ dimensions_t position_in_grid()      { return blockIdx; }
 __fd__ bool         is_first_in_grid()      { return blockIdx == grid::first_block_position(); };
 __fd__ bool         is_last_in_grid()       { return blockIdx == grid::last_block_position(); };
 template <unsigned NumDimensions = 3>
-__fd__ dimensions_t index()                 { return detail::row_major_linearization<NumDimensions>(position_in_grid(), grid::dimensions()); }
+__fd__ dimensions_t index()                 { return detail::row_major_linearization<NumDimensions>(position_in_grid(), grid::dimensions_in_blocks()); }
 __fd__ grid_block_dimension_t
                     size()                  { return dimensions().volume(); }
 __fd__ grid_block_dimension_t
@@ -141,6 +180,7 @@ __fd__ grid_block_dimension_t
                     index_of_first_warp()   { return 0; }
 __fd__ grid_block_dimension_t
                     index_of_last_warp()    { return num_warps() - 1; }
+__fd__ bool         is_linear()             { return dimensions().y == 1 and dimensions().z == 1; }
 
 
 } // namespace block
@@ -200,7 +240,7 @@ __fd__ unsigned  index_in_grid(uint3 block_position_in_grid, uint3 thread_index)
 {
 
 	return
-		detail::row_major_linearization<NumDimensions, unsigned>(block_position_in_grid, grid::dimensions()) +
+		detail::row_major_linearization<NumDimensions, unsigned>(block_position_in_grid, grid::dimensions_in_blocks()) +
 		detail::row_major_linearization<NumDimensions, unsigned>(thread_index, block::dimensions());
 }
 
@@ -297,7 +337,6 @@ namespace linear_grid {
 
 namespace grid_info {
 
-
 namespace grid {
 
 // TODO: Should we use the same return types as for the non-linear case?
@@ -305,9 +344,7 @@ namespace grid {
 // return types here to the general-case ones. But some of the types
 // are admittedly a bit fudged.
 
-using kat::grid_info::grid::dimensions;
-
-__fd__ unsigned          dimensionality()          { return gridDim.x > 0 ? 1 : 0; }
+__fd__ decltype(gridDim.x) dimensions_in_blocks()    { return gridDim.x; }
 __fd__ grid_dimension_t  num_blocks()              { return gridDim.x; }
 __fd__ grid_dimension_t  index_of_first_block()    { return 0; }
 __fd__ grid_dimension_t  index_of_last_block()     { return num_blocks() - 1; }
@@ -319,6 +356,7 @@ __fd__ grid_dimension_t  first_last_position()     { return index_of_last_block(
 
 namespace block {
 
+using kat::grid_info::block::dimensions;
 __fd__ grid_block_dimension_t  index()                   { return blockIdx.x; }
 __fd__ unsigned                index_in_grid()           { return index(); }
 __fd__ grid_block_dimension_t  position_in_grid()        { return index_in_grid(); }
@@ -342,6 +380,13 @@ __fd__ unsigned num_warps()
 __fd__ grid_block_dimension_t  index_of_first_warp()     { return 0; }
 __fd__ grid_block_dimension_t  index_of_last_warp()      { return num_warps() - 1; }
 __fd__ grid_block_dimension_t  index_of_last_full_warp() { return num_full_warps() - 1; }
+__fd__ bool                    is_linear()               { return true; }
+
+/**
+ * @note These are the dimensions of the grid in terms of threads. This means that a grid can have less blocks (or
+ * even one block) in each dimension, but each block many have multiple threads, contributing to the overall dimension.
+ */
+__fd__ dimensions_t dimensions_in_threads()     { return dimensions_t{ gridDim.x * blockDim.x }; }
 
 } // namespace block
 
