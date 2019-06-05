@@ -8,13 +8,20 @@
 
 namespace kernels {
 
+
+
 template <typename I>
 __global__ void try_out_integral_math_functions(I* results, I* __restrict expected)
 {
 	size_t i { 0 };
 	bool print_first_indices_for_each_function { false };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "strictly_between", i); }
+	auto maybe_print = [&](const char* section_title) {
+		if (print_first_indices_for_each_function) {
+			printf("%-30s tests start at index  %3d\n", section_title, i);
+		}
+	};
+
 	results[i] = kat::strictly_between<I>( I{   0 }, I{  5 }, I{  10 } ); expected[i++] = false;
 	results[i] = kat::strictly_between<I>( I{   1 }, I{  5 }, I{  10 } ); expected[i++] = false;
 	results[i] = kat::strictly_between<I>( I{   4 }, I{  5 }, I{  10 } ); expected[i++] = false;
@@ -26,7 +33,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::strictly_between<I>( I{  11 }, I{  5 }, I{  10 } ); expected[i++] = false;
 	results[i] = kat::strictly_between<I>( I{ 123 }, I{  5 }, I{  10 } ); expected[i++] = false;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "between_or_equal", i); }
+	maybe_print("between_or_equal");
 	results[i] = kat::between_or_equal<I>( I{   1 }, I{  5 }, I{  10 } ); expected[i++] = false;
 	results[i] = kat::between_or_equal<I>( I{   4 }, I{  5 }, I{  10 } ); expected[i++] = false;
 	results[i] = kat::between_or_equal<I>( I{   5 }, I{  5 }, I{  10 } ); expected[i++] = true;
@@ -37,7 +44,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::between_or_equal<I>( I{  11 }, I{  5 }, I{  10 } ); expected[i++] = false;
 	results[i] = kat::between_or_equal<I>( I{ 123 }, I{  5 }, I{  10 } ); expected[i++] = false;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "is_power_of_2", i); }
+	maybe_print("is_power_of_2");
 	results[i] = kat::is_power_of_2<I>(I{ 1}); expected[i++] = true;
 	results[i] = kat::is_power_of_2<I>(I{ 2}); expected[i++] = true;
 	results[i] = kat::is_power_of_2<I>(I{ 4}); expected[i++] = true;
@@ -45,7 +52,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::is_power_of_2<I>(I{32}); expected[i++] = true;
 	results[i] = kat::is_power_of_2<I>(I{33}); expected[i++] = false;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "modular_increment", i); }
+	maybe_print("modular_increment");
 	results[i] = kat::modular_increment<I>(I{ 0}, I{ 1}); expected[i++] = I{ 0 };
 	results[i] = kat::modular_increment<I>(I{ 1}, I{ 1}); expected[i++] = I{ 0 };
 	results[i] = kat::modular_increment<I>(I{ 0}, I{ 3}); expected[i++] = I{ 1 };
@@ -54,7 +61,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::modular_increment<I>(I{ 3}, I{ 3}); expected[i++] = I{ 1 };
 	results[i] = kat::modular_increment<I>(I{ 4}, I{ 3}); expected[i++] = I{ 2 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "modular_decrement", i); }
+	maybe_print("modular_decrement");
 	results[i] = kat::modular_decrement<I>(I{ 0}, I{ 1}); expected[i++] = I{ 0 };
 	results[i] = kat::modular_decrement<I>(I{ 1}, I{ 1}); expected[i++] = I{ 0 };
 	results[i] = kat::modular_decrement<I>(I{ 0}, I{ 3}); expected[i++] = I{ 2 };
@@ -63,7 +70,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::modular_decrement<I>(I{ 3}, I{ 3}); expected[i++] = I{ 2 };
 	results[i] = kat::modular_decrement<I>(I{ 4}, I{ 3}); expected[i++] = I{ 0 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "ipow", i); }
+	maybe_print("ipow");
 	results[i] = kat::ipow<I>(I{ 0 },   1 ); expected[i++] = I{  0 };
 	results[i] = kat::ipow<I>(I{ 0 },   2 ); expected[i++] = I{  0 };
 	results[i] = kat::ipow<I>(I{ 0 }, 100 ); expected[i++] = I{  0 };
@@ -76,7 +83,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::ipow<I>(I{ 3 },   2 ); expected[i++] = I{  9 };
 	results[i] = kat::ipow<I>(I{ 3 },   4 ); expected[i++] = I{ 81 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "unsafe div_rounding_up", i); }
+	maybe_print("unsafe div_rounding_up");
 	results[i] = kat::unsafe::div_rounding_up<I>( I{   0 }, I{   1 } ); expected[i++] = I{   0 };
 	results[i] = kat::unsafe::div_rounding_up<I>( I{   0 }, I{   2 } ); expected[i++] = I{   0 };
 	results[i] = kat::unsafe::div_rounding_up<I>( I{   0 }, I{ 123 } ); expected[i++] = I{   0 };
@@ -86,7 +93,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::unsafe::div_rounding_up<I>( I{ 123 }, I{ 123 } ); expected[i++] = I{   1 };
 	results[i] = kat::unsafe::div_rounding_up<I>( I{ 124 }, I{ 123 } ); expected[i++] = I{   2 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "div_rounding_up", i); }
+	maybe_print("div_rounding_up");
 	results[i] = kat::div_rounding_up<I>( I{   0 }, I{   1 } ); expected[i++] = I{   0 };
 	results[i] = kat::div_rounding_up<I>( I{   0 }, I{   2 } ); expected[i++] = I{   0 };
 	results[i] = kat::div_rounding_up<I>( I{   0 }, I{ 123 } ); expected[i++] = I{   0 };
@@ -99,7 +106,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::div_rounding_up<I>( std::numeric_limits<I>::max()    , std::numeric_limits<I>::max() - 1 ); expected[i++] = I{   2 };
 	results[i] = kat::div_rounding_up<I>( std::numeric_limits<I>::max() - 1, std::numeric_limits<I>::max()     ); expected[i++] = I{   1 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "round_down", i); }
+	maybe_print("round_down");
 	results[i] = kat::round_down<I>( I{   0 }, I{   2 } ); expected[i++] = I{   0 };
 	results[i] = kat::round_down<I>( I{   0 }, I{ 123 } ); expected[i++] = I{   0 };
 	results[i] = kat::round_down<I>( I{   1 }, I{   2 } ); expected[i++] = I{   0 };
@@ -107,7 +114,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::round_down<I>( I{ 123 }, I{ 123 } ); expected[i++] = I{ 123 };
 	results[i] = kat::round_down<I>( I{ 124 }, I{ 123 } ); expected[i++] = I{ 123 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "round_down_to_full_warps", i); }
+	maybe_print("round_down_to_full_warps");
 	results[i] = kat::round_down_to_full_warps<I>( I{   0 } ); expected[i++] = I{  0 };
 	results[i] = kat::round_down_to_full_warps<I>( I{   1 } ); expected[i++] = I{  0 };
 	results[i] = kat::round_down_to_full_warps<I>( I{   8 } ); expected[i++] = I{  0 };
@@ -119,7 +126,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 
 	// TODO: Consider testing rounding-up with negative dividends
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "unsafe round_up", i); }
+	maybe_print("unsafe round_up");
 	results[i] = kat::unsafe::round_up<I>( I{   0 }, I{   1 } ); expected[i++] = I{   0 };
 	results[i] = kat::unsafe::round_up<I>( I{   0 }, I{   2 } ); expected[i++] = I{   0 };
 	results[i] = kat::unsafe::round_up<I>( I{   0 }, I{ 123 } ); expected[i++] = I{   0 };
@@ -129,7 +136,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::unsafe::round_up<I>( I{  64 }, I{  64 } ); expected[i++] = I{  64 };
 	results[i] = kat::unsafe::round_up<I>( I{  65 }, I{  32 } ); expected[i++] = I{  96 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "round_up", i); }
+	maybe_print("round_up");
 	results[i] = kat::round_up<I>( I{   0 }, I{   1 } ); expected[i++] = I{   0 };
 	results[i] = kat::round_up<I>( I{   0 }, I{   2 } ); expected[i++] = I{   0 };
 	results[i] = kat::round_up<I>( I{   0 }, I{ 123 } ); expected[i++] = I{   0 };
@@ -140,7 +147,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::round_up<I>( I{  65 }, I{  32 } ); expected[i++] = I{  96 };
 	results[i] = kat::round_up<I>( std::numeric_limits<I>::max() - 1, std::numeric_limits<I>::max() ); expected[i++] = I{ std::numeric_limits<I>::max() };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "round_down_to_power_of_2", i); }
+	maybe_print("round_down_to_power_of_2");
 	results[i] = kat::round_down_to_power_of_2<I>( I{   1 }, I{   1 } ); expected[i++] = I{   1 };
 	results[i] = kat::round_down_to_power_of_2<I>( I{   2 }, I{   1 } ); expected[i++] = I{   2 };
 	results[i] = kat::round_down_to_power_of_2<I>( I{   3 }, I{   1 } ); expected[i++] = I{   3 };
@@ -152,7 +159,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::round_down_to_power_of_2<I>( I{   4 }, I{   2 } ); expected[i++] = I{   4 };
 	results[i] = kat::round_down_to_power_of_2<I>( I{ 123 }, I{   2 } ); expected[i++] = I{ 122 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "round_up_to_power_of_2", i); }
+	maybe_print("round_up_to_power_of_2");
 	results[i] = kat::round_up_to_power_of_2<I>( I{  1 }, I{  1 } ); expected[i++] = I{   1 };
 	results[i] = kat::round_up_to_power_of_2<I>( I{  2 }, I{  1 } ); expected[i++] = I{   2 };
 	results[i] = kat::round_up_to_power_of_2<I>( I{  3 }, I{  1 } ); expected[i++] = I{   3 };
@@ -164,7 +171,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::round_up_to_power_of_2<I>( I{  4 }, I{  2 } ); expected[i++] = I{   4 };
 	results[i] = kat::round_up_to_power_of_2<I>( I{ 63 }, I{  2 } ); expected[i++] = I{  64 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "unsafe round_up_to_power_of_2", i); }
+	maybe_print("unsafe round_up_to_power_of_2");
 	results[i] = kat::unsafe::round_up_to_power_of_2<I>( I{  1 }, I{  1 } ); expected[i++] = I{   1 };
 	results[i] = kat::unsafe::round_up_to_power_of_2<I>( I{  2 }, I{  1 } ); expected[i++] = I{   2 };
 	results[i] = kat::unsafe::round_up_to_power_of_2<I>( I{  3 }, I{  1 } ); expected[i++] = I{   3 };
@@ -176,7 +183,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::unsafe::round_up_to_power_of_2<I>( I{  4 }, I{  2 } ); expected[i++] = I{   4 };
 	results[i] = kat::unsafe::round_up_to_power_of_2<I>( I{ 63 }, I{  2 } ); expected[i++] = I{  64 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "round_up_to_full_warps", i); }
+	maybe_print("round_up_to_full_warps");
 	results[i] = kat::round_up_to_full_warps<I>( I{   0 } ); expected[i++] = I{  0 };
 	results[i] = kat::round_up_to_full_warps<I>( I{   1 } ); expected[i++] = I{ 32 };
 	results[i] = kat::round_up_to_full_warps<I>( I{   8 } ); expected[i++] = I{ 32 };
@@ -186,7 +193,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::round_up_to_full_warps<I>( I{  33 } ); expected[i++] = I{ 64 };
 	results[i] = kat::round_up_to_full_warps<I>( I{  63 } ); expected[i++] = I{ 64 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "gcd", i); }
+	maybe_print("gcd");
 	results[i] = kat::gcd<I>( I{   1 }, I{   1 } ); expected[i++] = I{  1 };
 	results[i] = kat::gcd<I>( I{   2 }, I{   1 } ); expected[i++] = I{  1 };
 	results[i] = kat::gcd<I>( I{   1 }, I{   2 } ); expected[i++] = I{  1 };
@@ -198,7 +205,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::gcd<I>( I{  70 }, I{ 120 } ); expected[i++] = I{ 10 };
 	results[i] = kat::gcd<I>( I{  97 }, I{ 120 } ); expected[i++] = I{  1 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "lcm", i); }
+	maybe_print("lcm");
 	results[i] = kat::lcm<I>( I{   1 }, I{   1 } ); expected[i++] = I{  1 };
 	results[i] = kat::lcm<I>( I{   2 }, I{   1 } ); expected[i++] = I{  2 };
 	results[i] = kat::lcm<I>( I{   1 }, I{   2 } ); expected[i++] = I{  2 };
@@ -208,7 +215,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::lcm<I>( I{   4 }, I{   8 } ); expected[i++] = I{  8 };
 	results[i] = kat::lcm<I>( I{  10 }, I{   6 } ); expected[i++] = I{ 30 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "is_even", i); }
+	maybe_print("is_even");
 	results[i] = kat::is_even<I>( I{   0 } ); expected[i++] = true;
 	results[i] = kat::is_even<I>( I{   1 } ); expected[i++] = false;
 	results[i] = kat::is_even<I>( I{   2 } ); expected[i++] = true;
@@ -216,7 +223,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::is_even<I>( I{ 123 } ); expected[i++] = false;
 	results[i] = kat::is_even<I>( I{ 124 } ); expected[i++] = true;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "is_odd", i); }
+	maybe_print("is_odd");
 	results[i] = kat::is_odd<I>( I{   0 } ); expected[i++] = false;
 	results[i] = kat::is_odd<I>( I{   1 } ); expected[i++] = true;
 	results[i] = kat::is_odd<I>( I{   2 } ); expected[i++] = false;
@@ -224,7 +231,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::is_odd<I>( I{ 123 } ); expected[i++] = true;
 	results[i] = kat::is_odd<I>( I{ 124 } ); expected[i++] = false;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "log2", i); }
+	maybe_print("log2");
 	results[i] = kat::log2<I>( I{   1 } ); expected[i++] = 0;
 	results[i] = kat::log2<I>( I{   2 } ); expected[i++] = 1;
 	results[i] = kat::log2<I>( I{   3 } ); expected[i++] = 1;
@@ -247,7 +254,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 //	results[i] = kat::sqrt<I>( I{  10 } ); expected[i++] =  3;
 //	results[i] = kat::sqrt<I>( I{ 127 } ); expected[i++] = 11;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "div_by_power_of_2", i); }
+	maybe_print("div_by_power_of_2");
 	results[i] = kat::div_by_power_of_2<I>( I{   0 }, I {  1 }); expected[i++] = I{   0 };
 	results[i] = kat::div_by_power_of_2<I>( I{   1 }, I {  1 }); expected[i++] = I{   1 };
 	results[i] = kat::div_by_power_of_2<I>( I{ 111 }, I {  1 }); expected[i++] = I{ 111 };
@@ -265,7 +272,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::div_by_power_of_2<I>( I{  32 }, I { 16 }); expected[i++] = I{   2 };
 	results[i] = kat::div_by_power_of_2<I>( I{ 111 }, I { 16 }); expected[i++] = I{   6 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "divides", i); }
+	maybe_print("divides");
 	results[i] = kat::divides<I>( I{   1 }, I{   0 } ); expected[i++] = true;
 	results[i] = kat::divides<I>( I{   2 }, I{   0 } ); expected[i++] = true;
 	results[i] = kat::divides<I>( I{   3 }, I{   0 } ); expected[i++] = true;
@@ -281,7 +288,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::divides<I>( I{   4 }, I{  24 } ); expected[i++] = true;
 	results[i] = kat::divides<I>( I{  24 }, I{   4 } ); expected[i++] = false;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "is_divisible_by", i); }
+	maybe_print("is_divisible_by");
 	results[i] = kat::is_divisible_by<I>( I{   0 }, I{   1 } ); expected[i++] = true;
 	results[i] = kat::is_divisible_by<I>( I{   0 }, I{   2 } ); expected[i++] = true;
 	results[i] = kat::is_divisible_by<I>( I{   0 }, I{   3 } ); expected[i++] = true;
@@ -297,7 +304,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::is_divisible_by<I>( I{  24 }, I{   4 } ); expected[i++] = true;
 	results[i] = kat::is_divisible_by<I>( I{   4 }, I{  24 } ); expected[i++] = false;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "is_divisible_by_power_of_2", i); }
+	maybe_print("is_divisible_by_power_of_2");
 	results[i] = kat::is_divisible_by_power_of_2<I>( I{   0 }, I{   1 } ); expected[i++] = true;
 	results[i] = kat::is_divisible_by_power_of_2<I>( I{   0 }, I{   2 } ); expected[i++] = true;
 	results[i] = kat::is_divisible_by_power_of_2<I>( I{   1 }, I{   1 } ); expected[i++] = true;
@@ -309,7 +316,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::is_divisible_by_power_of_2<I>( I{  72 }, I{  16 } ); expected[i++] = false;
 	results[i] = kat::is_divisible_by_power_of_2<I>( I{  64 }, I{  16 } ); expected[i++] = true;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "power_of_2_divides", i); }
+	maybe_print("power_of_2_divides");
 	results[i] = kat::power_of_2_divides<I>( I{   1 }, I{   0 } ); expected[i++] = true;
 	results[i] = kat::power_of_2_divides<I>( I{   2 }, I{   0 } ); expected[i++] = true;
 	results[i] = kat::power_of_2_divides<I>( I{   1 }, I{   1 } ); expected[i++] = true;
@@ -321,7 +328,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::power_of_2_divides<I>( I{  16 }, I{  72 } ); expected[i++] = false;
 	results[i] = kat::power_of_2_divides<I>( I{  16 }, I{  64 } ); expected[i++] = true;
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "log2_of_power_of_2", i); }
+	maybe_print("log2_of_power_of_2");
 	results[i] = kat::log2_of_power_of_2<I>( I{  1 } ); expected[i++] = I{ 0 };
 	results[i] = kat::log2_of_power_of_2<I>( I{  2 } ); expected[i++] = I{ 1 };
 	results[i] = kat::log2_of_power_of_2<I>( I{  4 } ); expected[i++] = I{ 2 };
@@ -330,7 +337,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::log2_of_power_of_2<I>( I{ 32 } ); expected[i++] = I{ 5 };
 	results[i] = kat::log2_of_power_of_2<I>( I{ 64 } ); expected[i++] = I{ 6 };
 
-	if (print_first_indices_for_each_function) { printf("%-30s tests start at index  %3d\n", "modulo_power_of_2", i); }
+	maybe_print("modulo_power_of_2");
 	results[i] = kat::modulo_power_of_2<I>( I{   0 }, I{   1 } ); expected[i++] = I{ 0 };
 	results[i] = kat::modulo_power_of_2<I>( I{   1 }, I{   1 } ); expected[i++] = I{ 0 };
 	results[i] = kat::modulo_power_of_2<I>( I{   2 }, I{   1 } ); expected[i++] = I{ 0 };
@@ -377,7 +384,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 
 
 
-TEST_SUITE("constexpr_math") {
+TEST_SUITE("math") {
 
 TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
 {
