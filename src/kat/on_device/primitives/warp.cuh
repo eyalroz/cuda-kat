@@ -742,6 +742,10 @@ namespace warp {
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
  *
+ * @note This version of `at_grid_stride` is specific to linear grids,
+ * even though the text of its code looks the same as that of
+ * @ref kat::grid_info::primitives::warp::at_grid_stride .
+ *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence
  */
