@@ -18,9 +18,9 @@
 #include "kat/on_device/wrappers/atomics.cuh"
 #include "kat/on_device/wrappers/builtins.cuh"
 #include "kat/on_device/wrappers/shuffle.cuh"
-#include "kat/on_device/primitives/warp.cuh"
-#include "kat/on_device/primitives/block.cuh"
-#include "kat/on_device/primitives/grid.cuh"
+#include "kat/on_device/collaboration/warp.cuh"
+#include "kat/on_device/collaboration/block.cuh"
+#include "kat/on_device/collaboration/grid.cuh"
 #include "kat/on_device/sequence_ops/warp.cuh"
 #include "kat/on_device/sequence_ops/block.cuh"
 

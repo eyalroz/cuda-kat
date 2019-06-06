@@ -6,7 +6,7 @@
  * @note
  * 1. This obviously doesn't include those built-ins which are inherent
  * operators in C++ as a language, i.e. % + / * - << >> and so on.
- * 2. PTX primitives/single instructions don't always translate to single
+ * 2. PTX collaboration/single instructions don't always translate to single
  * SASS (GPU assembly) instructions - as PTX is an intermediate
  * representation (IR) common to multiple GPU microarchitectures.
  * 3. No function here performs any computation other beyond a single PTX

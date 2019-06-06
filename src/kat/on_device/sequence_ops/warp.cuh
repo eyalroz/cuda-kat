@@ -27,7 +27,7 @@
 #define CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
 #include "common.cuh"
-#include <kat/on_device/primitives/warp.cuh>
+#include <kat/on_device/collaboration/warp.cuh>
 
 #include <type_traits>
 
@@ -37,7 +37,7 @@
 ///@endcond
 
 namespace kat {
-namespace primitives {
+namespace collaboration {
 namespace warp {
 
 namespace detail {
@@ -261,7 +261,7 @@ __fd__ void copy_n(
 	using namespace linear_grid::grid_info;
 	enum {
 		elements_per_lane_in_full_warp_write =
-			primitives::detail::elements_per_lane_in_full_warp_write<T>::value
+			collaboration::detail::elements_per_lane_in_full_warp_write<T>::value
 	};
 
 	if ((elements_per_lane_in_full_warp_write == 1) or
@@ -399,7 +399,7 @@ __fd__ void elementwise_accumulate(
 }
 
 } // namespace warp
-} // namespace primitives
+} // namespace collaboration
 } // namespace kat
 
 

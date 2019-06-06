@@ -1,5 +1,5 @@
 /**
- * @file on_device/primitives/warp.cuh
+ * @file on_device/collaboration/warp.cuh
  *
  * @brief CUDA device computation warp-level primitives, i.e. those involving
  * interaction of most/all of each warp's lanes, but _no_ inter-warp interaction.
@@ -32,7 +32,7 @@
 ///@endcond
 
 namespace kat {
-namespace primitives {
+namespace collaboration {
 namespace warp {
 
 // If we want to refer to other primitives, we'll make those references explicit;
@@ -225,7 +225,7 @@ __fd__ native_word_t first_lane_satisfying(int condition)
 
 /**
  * A variant of the one-position-per-thread applicator,
- * `primitives::grid::at_grid_stride()`: Here each warp works on one
+ * `collaboration::grid::at_grid_stride()`: Here each warp works on one
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
  *
@@ -731,21 +731,21 @@ __fd__ T merge_sorted_half_warps(T lane_element)
 }
 
 } // namespace warp
-} // namespace primitives
+} // namespace collaboration
 
 namespace linear_grid {
-namespace primitives {
+namespace collaboration {
 namespace warp {
 
 /**
  * A variant of the one-position-per-thread applicator,
- * `primitives::grid::at_grid_stride()`: Here each warp works on one
+ * `collaboration::grid::at_grid_stride()`: Here each warp works on one
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
  *
  * @note This version of `at_grid_stride` is specific to linear grids,
  * even though the text of its code looks the same as that of
- * @ref kat::grid_info::primitives::warp::at_grid_stride .
+ * @ref kat::grid_info::collaboration::warp::at_grid_stride .
  *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence
@@ -765,7 +765,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 
 
 } // namespace warp
-} // namespace primitives
+} // namespace collaboration
 } // namespace linear_grid
 
 } // namespace kat

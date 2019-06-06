@@ -1,5 +1,5 @@
 /**
- * @file on_device/primitives/grid.cuh
+ * @file on_device/collaboration/grid.cuh
  *
  * @brief CUDA device computation grid-level primitives, i.e. those involving
  * interaction of threads from different blocks in the grid
@@ -24,7 +24,7 @@
 ///@endcond
 
 namespace kat {
-namespace primitives {
+namespace collaboration {
 namespace grid {
 namespace linear {
 
@@ -193,7 +193,7 @@ __fd__ void accumulation_to_scalar(
 
 
 } // namespace block_to_grid
-} // namespace primitives
+} // namespace collaboration
 } // namespace kat
 
 
