@@ -10,6 +10,7 @@
 #ifndef CUDA_KAT_GRID_COLLABORATIVE_SEQUENCE_OPS_CUH_
 #define CUDA_KAT_GRID_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
+#include "common.cuh"
 #include <kat/on_device/primitives/grid.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
 

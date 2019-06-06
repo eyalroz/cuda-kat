@@ -13,11 +13,13 @@
 #ifndef BLOCK_LEVEL_PRIMITIVES_CUH_
 #define BLOCK_LEVEL_PRIMITIVES_CUH_
 
-#include <kat/on_device/primitives/common.cuh>
 #include <kat/on_device/primitives/warp.cuh>
 #include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/shared_memory/basic.cuh>
+#include <kat/on_device/common.cuh>
+#include <kat/on_device/math.cuh>
 
+#include <type_traits>
 
 ///@cond
 #include <kat/define_specifiers.hpp>

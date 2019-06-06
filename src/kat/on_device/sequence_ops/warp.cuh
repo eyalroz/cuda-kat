@@ -26,6 +26,7 @@
 #ifndef CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
 #define CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
+#include "common.cuh"
 #include <kat/on_device/primitives/warp.cuh>
 
 #include <type_traits>

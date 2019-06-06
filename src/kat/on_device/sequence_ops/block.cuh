@@ -17,6 +17,7 @@
 #ifndef CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
 #define CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
+#include "common.cuh"
 #include <kat/on_device/primitives/block.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
 

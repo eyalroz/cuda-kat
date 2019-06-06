@@ -10,9 +10,13 @@
 #ifndef CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_GRID_CUH_
 #define CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_GRID_CUH_
 
-#include "common.cuh"
-
 #include "warp.cuh"
+
+#include <kat/on_device/common.cuh>
+#include <kat/on_device/miscellany.cuh>
+#include <kat/on_device/math.cuh>
+
+#include <type_traits>
 
 
 ///@cond

@@ -13,7 +13,6 @@
 #ifndef CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 #define CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 
-#include <kat/on_device/primitives/common.cuh>
 #include "../grid_info.cuh"
 
 #include <kat/on_device/wrappers/shuffle.cuh>
@@ -22,6 +21,8 @@
 #include <kat/on_device/non-builtins.cuh>
 #include <kat/on_device/ptx.cuh>
 #include <kat/on_device/math.cuh>
+#include <kat/on_device/common.cuh>
+#include <kat/on_device/miscellany.cuh>
 
 #include <type_traits>
 
