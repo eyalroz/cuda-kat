@@ -16,7 +16,7 @@
 #include "../grid_info.cuh"
 
 #include <kat/on_device/wrappers/shuffle.cuh>
-#include <kat/on_device/wrappers/builtins.cuh>
+#include <kat/on_device/builtins.cuh>
 #include <kat/on_device/wrappers/atomics.cuh>
 #include <kat/on_device/non-builtins.cuh>
 #include <kat/on_device/ptx.cuh>

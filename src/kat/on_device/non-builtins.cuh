@@ -8,7 +8,7 @@
 #ifndef CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_
 #define CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_
 
-#include <kat/on_device/wrappers/builtins.cuh>
+#include <kat/on_device/builtins.cuh>
 
 
 ///@cond

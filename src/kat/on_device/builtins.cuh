@@ -1,5 +1,5 @@
 /**
- * @file on_device/wrappers/builtins.cuh
+ * @file on_device/builtins.cuh
  *
  * @brief C++ wrappers for single PTX instructions (in the `builtins` namespace).
  *

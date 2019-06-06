@@ -16,7 +16,7 @@
 #include "kat/on_device/shared_memory.cuh"
 #include "kat/on_device/unaligned.cuh"
 #include "kat/on_device/wrappers/atomics.cuh"
-#include "kat/on_device/wrappers/builtins.cuh"
+#include "kat/on_device/builtins.cuh"
 #include "kat/on_device/wrappers/shuffle.cuh"
 #include "kat/on_device/collaboration/warp.cuh"
 #include "kat/on_device/collaboration/block.cuh"
