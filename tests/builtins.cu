@@ -1,16 +1,107 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "macro.h"
 #include "common.cuh"
-#include <kat/on_device/math.cuh>
+#include "utilities.cuh"
+#include <kat/on_device/builtins.cuh>
+#include <kat/on_device/non_builtins.cuh>
 #include <kat/on_device/printing.cuh>
+#include <limits>
+
+/*
+
+To test:
+
+T multiplication_high_bits(T x, T y);
+F divide(F dividend, F divisor);
+T absolute_value(T x);
+T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
+T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
+template <typename T, typename S> S sum_with_absolute_difference(T x, T y, S addend);
+int population_count(I x);
+T bit_reverse(T x) = delete;
+
+unsigned find_last_non_sign_bit(I x) = delete;
+T load_global_with_non_coherent_cache(const T* ptr);
+int count_leading_zeros(I x) = delete;
+T extract(T bit_field, unsigned int start_pos, unsigned int num_bits);
+T insert(T original_bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
+
+T select_bytes(T x, T y, unsigned byte_selector);
+
+native_word_t funnel_shift(native_word_t  low_word, native_word_t  high_word, native_word_t  shift_amount);
+
+typename std::conditional<Signed, int, unsigned>::type average(
+	typename std::conditional<Signed, int, unsigned>::type x,
+	typename std::conditional<Signed, int, unsigned>::type y);
+
+unsigned           special_registers::lane_index();
+unsigned           special_registers::symmetric_multiprocessor_index();
+unsigned long long special_registers::grid_index();
+unsigned int       special_registers::dynamic_shared_memory_size();
+unsigned int       special_registers::total_shared_memory_size();
+
+} // namespace special_registers
+
+#if (__CUDACC_VER_MAJOR__ >= 9)
+lane_mask_t ballot            (int condition, lane_mask_t lane_mask = full_warp_mask);
+int         all_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
+int         some_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask);
+int         all_lanes_agree   (int condition, lane_mask_t lane_mask = full_warp_mask);
+#else
+lane_mask_t ballot            (int condition);
+int         all_lanes_satisfy (int condition);
+int         some_lanes_satisfy(int condition);
+#endif
+
+#if (__CUDACC_VER_MAJOR__ >= 9)
+bool is_uniform_across_lanes(T value, lane_mask_t lane_mask = full_warp_mask);
+bool is_uniform_across_warp(T value);
+lane_mask_t matching_lanes(T value, lane_mask_t lanes = full_warp_mask);
+#endif
+
+unsigned int mask_of_lanes::preceding();
+unsigned int mask_of_lanes::preceding_and_self();
+unsigned int mask_of_lanes::self();
+unsigned int mask_of_lanes::succeeding_and_self();
+unsigned int mask_of_lanes::succeeding();
+
+lane_mask_t mask_of_lanes::matching_value(lane_mask_t lane_mask, T value);
+lane_mask_t mask_of_lanes::matching_value(T value);
+int find_first_set(I x);
+int count_trailing_zeros(I x) { return find_first_set<I>(x) - 1; }
+int count_leading_zeros(I x);
+
+
+ */
+
+
+template <typename F>
+void invoke_if(F, std::integral_constant<false>) { }
+void invoke_if(F f, std::integral_constant<true>) { f(); }
 
 namespace kernels {
 
+template <typename I>
+__global__ void multiplication_high_bits(
+	      __restrict__ I* results,
+	const __restrict__ I* lhs,
+	const __restrict__ I* rhs,
+	size_t                num_tests)
+{
+	// Note: This kernel will only be run with one block
+	auto pos = threadIdx.x;
+	results[pos] = kat::builtins::multiplication_high_bits<I>(lhs[pos], rhs[pos]);
+}
 
+} // namespace kernels
+
+
+
+namespace kernels {
 
 template <typename I>
-__global__ void try_out_integral_math_functions(I* results, I* __restrict expected)
+__global__ void try_out_integral_builtins(I* results, I* __restrict expected)
 {
-	size_t i { 0 };
 	bool print_first_indices_for_each_function { false };
 
 	auto maybe_print = [&](const char* section_title) {
@@ -357,7 +448,8 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::modulo_power_of_2<I>( I{   5 }, I{   4 } ); expected[i++] = I{ 1 };
 	results[i] = kat::modulo_power_of_2<I>( I{  63 }, I{   4 } ); expected[i++] = I{ 3 };
 
-#define NUM_TEST_LINES 268
+
+// #define NUM_TEST_LINES 268
 
 }
 
@@ -381,10 +473,11 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 
 
 
-TEST_SUITE("math") {
+TEST_SUITE("builtins (and non-builtins)") {
 
-TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
+TEST_CASE_TEMPLATE("multiplication high bits", I, int, unsigned, unsigned long, unsigned long long)
 {
+	// Data arrays here
 	cuda::device_t<> device { cuda::device::current::get() };
 	auto block_size { 1 };
 	auto num_grid_blocks { 1 };

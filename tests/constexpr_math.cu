@@ -1,11 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "macro.h"
 #include "common.cuh"
-#include "utilities.cuh"
 //#include "../src/kat/on_device/constexpr_math.cuh"
 #include <kat/on_device/constexpr_math.cuh>
 //#include "../external/doctest/doctest.h"
-#include <limits>
 
 namespace kernels {
 } // namespace kernels

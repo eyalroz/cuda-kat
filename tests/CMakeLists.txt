@@ -63,6 +63,15 @@ add_test(
     COMMAND math ${TEST_RUNNER_PARAMS}
 )
 
+add_executable(shuffle shuffle.cu util/random.cu)
+target_link_libraries(shuffle PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
+target_compile_options(shuffle PRIVATE "--expt-relaxed-constexpr")
+target_include_directories(shuffle PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+add_test(
+    NAME ${PROJECT_NAME}.shuffle
+    COMMAND shuffle ${TEST_RUNNER_PARAMS}
+)
+
 add_executable(constexpr_math constexpr_math.cu)
 target_link_libraries(constexpr_math PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
 target_include_directories(constexpr_math PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
@@ -71,12 +80,12 @@ add_test(
 	COMMAND constexpr_math ${TEST_RUNNER_PARAMS}
 )
 
-
 set_target_properties(
 #	failtest
 	shared_memory
 	math
 	constexpr_math
+	shuffle
 	PROPERTIES 
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES 
@@ -84,7 +93,7 @@ set_target_properties(
 )
 
 if (KEEP_PTX)
-	add_library(test_obj OBJECT shared_memory.cu math.cu)
+	add_library(test_obj OBJECT shared_memory.cu math.cu shuffle.cu)
 	target_link_libraries(test_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
 	target_include_directories(test_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
 	target_compile_options(test_obj PRIVATE "--expt-relaxed-constexpr")

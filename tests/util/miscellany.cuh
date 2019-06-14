@@ -1,5 +1,5 @@
-#ifndef TEST_UTILITIES_CUH_
-#define TEST_UTILITIES_CUH_
+#ifndef CUDA_KAT_TEST_MISC_UTILITIES_CUH_
+#define CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 
 #include <algorithm>
 #include <climits>
@@ -31,4 +31,4 @@ bool all_of(const Container& c)
 	return std::all_of(std::cbegin(c), std::cend(c), [](bool b) { return b; });
 }
 
-#endif /* TEST_UTILITIES_CUH_ */
+#endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
