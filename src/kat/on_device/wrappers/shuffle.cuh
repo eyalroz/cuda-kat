@@ -36,7 +36,7 @@ namespace kat {
  * @param source_lane The lane whose value the current lane wants to get
  * @return the @p t value of @p source_lane
  */
-template<typename T> __fd__ T shuffle_arbitrary(const T& t, const int& source_lane);
+template<typename T> __fd__ T shuffle_arbitrary(const T& t, int source_lane);
 
 /**
  * @param t Each lane shares own value, which a lane with a higher index
@@ -47,7 +47,7 @@ template<typename T> __fd__ T shuffle_arbitrary(const T& t, const int& source_la
  * lane's; a lane with a high index, above warp_size - @p delta, has its own @p t
  * returned unchanged.
  */
-template<typename T> __fd__ T shuffle_down(const T& t, const unsigned int& delta);
+template<typename T> __fd__ T shuffle_down(const T& t, unsigned int delta);
 
 /**
  * @tparam T the type of datum to be shared with other lane(s); may be of
@@ -62,7 +62,7 @@ template<typename T> __fd__ T shuffle_down(const T& t, const unsigned int& delta
  * lane's; a lane with a low index, under @p delta, has its own @p t returned
  * unchanged.
  */
-template<typename T> __fd__ T shuffle_up(const T& t, const unsigned int& delta);
+template<typename T> __fd__ T shuffle_up(const T& t, unsigned int delta);
 
 /**
  * @brief Have pairs of lanes exchange a value, with the pairing performed
@@ -72,11 +72,11 @@ template<typename T> __fd__ T shuffle_up(const T& t, const unsigned int& delta);
  * arbitrary size, but (at least for now) must be plain-old-data.
  *
  * @param t The value to exchange with a counterpart lane
- * @param lane_mask Determines how lanes will be paired: The lane with index i
+ * @param mask Determines how lanes will be paired: The lane with index i
  * is paired with the lane with index i ^ mask.
  * @return The @p t value of the paired lane
  */
-template<typename T> __fd__ T shuffle_xor(const T& t, const int& lane_mask);
+template<typename T> __fd__ T shuffle_xor(const T& t, int mask);
 
 } // namespace kat
 

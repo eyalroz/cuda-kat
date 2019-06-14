@@ -205,12 +205,12 @@ namespace shuffle {
 template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size);
 template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size);
 template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size);
-template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width = warp_size);
+template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = warp_size);
 #else
 template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size, lane_mask_t participants = full_warp_mask);
 template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
 template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
-template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
 #endif
 // Notes:
 // 1. we have to use `xor_` here since `xor` is a reserved word

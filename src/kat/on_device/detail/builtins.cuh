@@ -190,10 +190,10 @@ __fd__ lane_mask_t lanes_matching_values(T value, lane_mask_t lane_mask)
 namespace shuffle {
 
 #if (__CUDACC_VER_MAJOR__ < 9)
-template <typename T> __fd__ T arbitrary(T x, int source_lane, int width)                 { return __shfl(x, source_lane, width);   }
-template <typename T> __fd__ T down(T x, unsigned delta, int width)                       { return __shfl_down(x, delta, width);    }
-template <typename T> __fd__ T up(T x, unsigned delta, int width)                         { return __shfl_up(x, delta, width);      }
-template <typename T> __fd__ T xor_(T x, lane_mask_t  xoring_mask_for_lane_id, int width) { return __shfl_xor(x, xoring lane_mask, width); }
+template <typename T> __fd__ T arbitrary(T x, int source_lane, int width)        { return __shfl(x, source_lane, width);   }
+template <typename T> __fd__ T down(T x, unsigned delta, int width)              { return __shfl_down(x, delta, width);    }
+template <typename T> __fd__ T up(T x, unsigned delta, int width)                { return __shfl_up(x, delta, width);      }
+template <typename T> __fd__ T xor_(T x, int xoring_mask_for_lane_id, int width) { return __shfl_xor(x, xoring_mask_for_lane_id, width); }
 	// we have to use xor_ here since xor is a reserved word
 #else
 template <typename T> __fd__ T arbitrary( T x, int source_lane, int width, lane_mask_t participating_lanes)
@@ -208,7 +208,7 @@ template <typename T> __fd__ T up(T x, unsigned delta, int width, lane_mask_t pa
 {
 	return __shfl_up_sync(participating_lanes, x, delta, width);
 }
-template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width, lane_mask_t participating_lanes)
+template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width, lane_mask_t participating_lanes)
 {
 	return __shfl_xor_sync(participating_lanes, x, lane_id_xoring_mask, width);
 }
