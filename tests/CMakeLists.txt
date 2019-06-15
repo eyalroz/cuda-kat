@@ -46,40 +46,62 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRA
 # TODO 2: We're using an extra object target for each test to ensure compilation of .ptx files (the _obj
 # targets). We should try to avoid those.
 
-add_library(shared_memory_obj OBJECT shared_memory.cu)
-target_link_libraries(shared_memory_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
 add_executable(shared_memory shared_memory.cu)
 target_link_libraries(shared_memory PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
 target_include_directories(shared_memory PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-target_include_directories(shared_memory_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
 add_test(
     NAME ${PROJECT_NAME}.shared_memory
     COMMAND shared_memory ${TEST_RUNNER_PARAMS}
 )
 
-add_library(constexpr_math_obj OBJECT constexpr_math.cu)
-target_link_libraries(constexpr_math_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
+add_executable(math math.cu)
+target_link_libraries(math PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
+target_compile_options(math PRIVATE "--expt-relaxed-constexpr")
+target_include_directories(math PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+add_test(
+    NAME ${PROJECT_NAME}.math
+    COMMAND math ${TEST_RUNNER_PARAMS}
+)
+
+add_executable(shuffle shuffle.cu util/random.cu)
+target_link_libraries(shuffle PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
+target_compile_options(shuffle PRIVATE "--expt-relaxed-constexpr")
+target_include_directories(shuffle PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+add_test(
+    NAME ${PROJECT_NAME}.shuffle
+    COMMAND shuffle ${TEST_RUNNER_PARAMS}
+)
+
 add_executable(constexpr_math constexpr_math.cu)
 target_link_libraries(constexpr_math PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
 target_include_directories(constexpr_math PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-target_include_directories(constexpr_math_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
 add_test(
-		NAME ${PROJECT_NAME}.constexpr_math
-		COMMAND constexpr_math ${TEST_RUNNER_PARAMS}
+	NAME ${PROJECT_NAME}.constexpr_math
+	COMMAND constexpr_math ${TEST_RUNNER_PARAMS}
 )
-
 
 set_target_properties(
 #	failtest
 	shared_memory
+	math
 	constexpr_math
+	shuffle
 	PROPERTIES 
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES 
     CXX_EXTENSIONS NO
 )
 
-set_property(TARGET shared_memory_obj constexpr_math_obj PROPERTY CUDA_PTX_COMPILATION ON)
-set_property(TARGET shared_memory_obj constexpr_math_obj PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin/tests)
+if (KEEP_PTX)
+	add_library(test_obj OBJECT shared_memory.cu math.cu shuffle.cu)
+	target_link_libraries(test_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
+	target_include_directories(test_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+	target_compile_options(test_obj PRIVATE "--expt-relaxed-constexpr")
+
+	# Note: The constexpr_math test doesn't have any kernel code
+
+	set_property(TARGET test_obj PROPERTY CUDA_PTX_COMPILATION ON)
+	set_property(TARGET test_obj PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin/tests)
+endif()
 
 # TODO: Something about code coverage perhaps?

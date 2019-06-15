@@ -1,5 +1,5 @@
 /**
- * @file on_device/primitives/grid.cuh
+ * @file on_device/collaboration/grid.cuh
  *
  * @brief CUDA device computation grid-level primitives, i.e. those involving
  * interaction of threads from different blocks in the grid
@@ -10,7 +10,8 @@
 #ifndef CUDA_KAT_GRID_COLLABORATIVE_SEQUENCE_OPS_CUH_
 #define CUDA_KAT_GRID_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
-#include <kat/on_device/primitives/grid.cuh>
+#include "common.cuh"
+#include <kat/on_device/collaboration/grid.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
 
 ///@cond
@@ -18,7 +19,7 @@
 ///@endcond
 
 namespace kat {
-namespace primitives {
+namespace collaboration {
 namespace warp_to_grid {
 
 /**
@@ -57,7 +58,7 @@ __fd__ void collaborative_append_to_global_memory(
 	using namespace grid_info;
 	Size previous_output_size = thread::is_first_in_warp() ?
 		atomic::add(global_output_length, fragment_length) : 0;
-	Size offset_to_start_writing_at = primitives::warp::get_from_first_lane(
+	Size offset_to_start_writing_at = collaboration::warp::get_from_first_lane(
 		previous_output_size);
 
 	// Now the (0-based) positions
@@ -80,7 +81,7 @@ __fd__ void collaborative_append_to_global_memory(
 }
 
 } // namespace warp_to_grid
-} // namespace primitives
+} // namespace collaboration
 } // namespace kat
 
 

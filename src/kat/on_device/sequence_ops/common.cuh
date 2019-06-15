@@ -1,21 +1,17 @@
 /**
- * @file on_device/primitives/common.cuh
+ * @file on_device/sequence_ops/common.cuh
  *
- * @brief Some common definitions for all on-device computational primitives (grid,
- * block, warp, thread and lane).
+ * @brief Some common definitions for all on-device collaborative sequence operations
  */
 
-#ifndef CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_
-#define CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_
+#ifndef CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_COMMON_CUH_
+#define CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_COMMON_CUH_
 
 #include <kat/on_device/common.cuh>
-#include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/math.cuh>
 
-#include <type_traits>
-
 namespace kat {
-namespace primitives {
+namespace collaboration {
 
 enum inclusivity_t : bool {
 	Exclusive = false,
@@ -39,7 +35,7 @@ struct elements_per_lane_in_full_warp_write {
 };
 } // namespace detail
 
-} // namespace primitives
+} // namespace collaboration
 } // namespace kat
 
-#endif // CUDA_KAT_ON_DEVICE_PRIMITIVES_COMMON_CUH_
+#endif // CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_COMMON_CUH_

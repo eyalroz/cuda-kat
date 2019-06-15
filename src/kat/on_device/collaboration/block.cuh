@@ -1,5 +1,5 @@
 /**
- * @file on_device/primitives/block.cuh
+ * @file on_device/collaboration/block.cuh
  *
  * @brief CUDA device computation warp-level primitives, i.e. those involving
  * interaction of many/all of each blocks's lanes, but _no_ inter-block
@@ -13,11 +13,13 @@
 #ifndef BLOCK_LEVEL_PRIMITIVES_CUH_
 #define BLOCK_LEVEL_PRIMITIVES_CUH_
 
-#include <kat/on_device/primitives/common.cuh>
-#include <kat/on_device/primitives/warp.cuh>
+#include <kat/on_device/collaboration/warp.cuh>
 #include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/shared_memory/basic.cuh>
+#include <kat/on_device/common.cuh>
+#include <kat/on_device/math.cuh>
 
+#include <type_traits>
 
 ///@cond
 #include <kat/define_specifiers.hpp>
@@ -25,7 +27,7 @@
 
 namespace kat {
 namespace linear_grid {
-namespace primitives {
+namespace collaboration {
 namespace block {
 
 ///@cond
@@ -141,10 +143,10 @@ __fd__ T get_from_first_thread(const T& value)
 }
 
 } // namespace block
-} // namespace primitives
+} // namespace collaboration
 } // namespace linear_grid
 
-namespace primitives {
+namespace collaboration {
 
 namespace block {
 
@@ -230,7 +232,7 @@ __fd__ T get_from_first_thread(const T& value)
 }
 
 } // namespace block
-} // namespace primitives
+} // namespace collaboration
 } // namespace kat
 
 

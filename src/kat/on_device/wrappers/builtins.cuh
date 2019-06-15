@@ -6,7 +6,7 @@
  * @note
  * 1. This obviously doesn't include those built-ins which are inherent
  * operators in C++ as a language, i.e. % + / * - << >> and so on.
- * 2. PTX primitives/single instructions don't always translate to single
+ * 2. PTX collaboration/single instructions don't always translate to single
  * SASS (GPU assembly) instructions - as PTX is an intermediate
  * representation (IR) common to multiple GPU microarchitectures.
  * 3. No function here performs any computation other beyond a single PTX
@@ -48,16 +48,16 @@ namespace builtins {
  * without upcasting, the value of x * y is the lower n bits of the result;
  * this lets you get the upper bits, without performing a 2n-by-2n multiplication
  */
-template <typename T> __fd__  T multiplication_high_bits(T x, T y);
+template <typename I> __fd__  I multiplication_high_bits(I x, I y);
 
 /**
  * Division which becomes faster and less precise than regular "/",
  * when --use-fast-math is specified; otherwise it's the same as regular "/".
  */
-template <typename T> __fd__ T divide(T dividend, T divisor);
+template <typename F> __fd__ F divide(F dividend, F divisor);
 template <typename T> __fd__ T absolute_value(T x);
-template <typename T> __fd__ T minimum(T x, T y);
-template <typename T> __fd__ T maximum(T x, T y);
+template <typename T> __fd__ T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
+template <typename T> __fd__ T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 
 /**
  * @brief Computes @p addend + |@p x- @p y| .
@@ -65,7 +65,7 @@ template <typename T> __fd__ T maximum(T x, T y);
  * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
  * of the PTX ISA reference.
  */
-template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y, S addend);
+template <typename I1, typename I2> __fd__ I2 sum_with_absolute_difference(I1 x, I1 y, I2 addend);
 
 
 // --------------------------------------------
@@ -75,12 +75,12 @@ template <typename T, typename S> __fd__ S sum_with_absolute_difference(T x, T y
 // Bit and byte manipulation
 // --------------------------------------------
 
-template <typename T> __fd__ int population_count(T x);
-template <typename T> __fd__ T bit_reverse(T x);
+template <typename I> __fd__ int population_count(I x);
+template <typename I> __fd__ I bit_reverse(I x) = delete;
 
-template <typename T> __fd__ unsigned find_last_non_sign_bit(T x);
+template <typename I> __fd__ unsigned find_last_non_sign_bit(I x) = delete;
 template <typename T> __fd__ T load_global_with_non_coherent_cache(const T* ptr);
-template <typename T> __fd__ int count_leading_zeros(T x);
+template <typename I> __fd__ int count_leading_zeros(I x) = delete;
 
 
 namespace bit_field {
@@ -143,6 +143,15 @@ __fd__ native_word_t funnel_shift(
 
 // --------------------------------------------
 
+/**
+ * @brief compute the average of two values without needing special
+ * accounting for overflow
+ */
+template <bool Signed, bool Rounded = false> __fd__
+typename std::conditional<Signed, int, unsigned>::type average(
+	typename std::conditional<Signed, int, unsigned>::type x,
+	typename std::conditional<Signed, int, unsigned>::type y);
+
 
 
 /**
@@ -196,12 +205,12 @@ namespace shuffle {
 template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size);
 template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size);
 template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size);
-template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width = warp_size);
+template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = warp_size);
 #else
 template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size, lane_mask_t participants = full_warp_mask);
 template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
 template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
-template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
 #endif
 // Notes:
 // 1. we have to use `xor_` here since `xor` is a reserved word

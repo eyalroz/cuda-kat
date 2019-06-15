@@ -1,7 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
 #include "common.cuh"
-#include "utilities.cuh"
 
 #include <kat/on_device/shared_memory.cuh>
 #include <kat/on_device/wrappers/atomics.cuh>

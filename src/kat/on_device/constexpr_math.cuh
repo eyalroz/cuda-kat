@@ -23,10 +23,10 @@
 namespace kat {
 
 template <typename T, typename Lower = T, typename Upper = T>
-constexpr inline bool between_or_equal(T x, Lower l, Upper u) noexcept { return (l <= x) && (x <= u); }
+constexpr __fhd__ bool between_or_equal(T x, Lower l, Upper u) noexcept { return (l <= x) && (x <= u); }
 
 template <typename T, typename Lower = T, typename Upper = T>
-constexpr inline bool strictly_between(T x, Lower l, Upper u) noexcept { return (l < x) && (x < u); }
+constexpr __fhd__ bool strictly_between(T x, Lower l, Upper u) noexcept { return (l < x) && (x < u); }
 
 
 template <typename T>
@@ -37,7 +37,7 @@ constexpr __fhd__ bool is_power_of_2(T val) noexcept { return (val & (val-1)) ==
 namespace detail {
 
 template <typename T>
-constexpr T ipow(T base, unsigned exponent, T coefficient) noexcept {
+constexpr __fhd__ T ipow(T base, unsigned exponent, T coefficient) noexcept {
 	return exponent == 0 ? coefficient :
 		ipow(base * base, exponent >> 1, (exponent & 0x1) ? coefficient * base : coefficient);
 }
@@ -46,7 +46,7 @@ constexpr T ipow(T base, unsigned exponent, T coefficient) noexcept {
 
 // #if __cplusplus >= 201402L
 template <typename I>
-constexpr I ipow(I base, unsigned exponent) noexcept
+constexpr __fhd__ I ipow(I base, unsigned exponent) noexcept
 {
 	return detail::ipow(base, exponent, I{1});
 }
@@ -84,7 +84,6 @@ constexpr __fhd__ I round_up(I x, I2 y) noexcept
 	return (x % y == 0) ? x : x + (y - x%y);
 }
 
-
 /**
  * @note careful, this may overflow!
  */
@@ -102,17 +101,31 @@ constexpr __fhd__ I round_up_to_full_warps(I x) noexcept {
 
 
 #if __cplusplus >= 201402L
-template <typename T>
-constexpr __fhd__ T gcd(T u, T v) noexcept
+template <typename S, typename T = S>
+constexpr __fhd__ typename std::common_type<S,T>::type gcd(S u, T v) noexcept
 {
-    while (v != 0) {
-        T r = u % v;
-        u = v;
-        v = r;
-    }
-    return u;
+	// TODO: Shouldn't we first cast everything into the common type?
+	while (v != 0) {
+		auto remainder = u % v;
+		u = v;
+		v = remainder;
+	}
+	return u;
+}
+#else
+template <typename S, typename T = S>
+constexpr __fhd__ typename std::common_type<S,T>::type gcd(S u, T v) noexcept
+{
+	return (v == 0) ? u : gcd<std::common_type<S,T>::type>(v, u % v);
 }
 #endif
+
+template <typename S, typename T = S>
+constexpr __fhd__ typename std::common_type<S,T>::type lcm(S u, T v) noexcept
+{
+	using result_type = typename std::common_type<S,T>::type;
+	return (result_type{u} / gcd(u,v)) * v;
+}
 
 
 template <typename I>
@@ -168,21 +181,29 @@ namespace detail {
 
 // Assumes 0 <= x < modulus
 template <typename I>
-constexpr inline I modular_inc(I x, I modulus) noexcept { return (x == modulus - I{1}) ? I{0} : (x + I{1}); }
+constexpr __fhd__ I increment_modular_remainder(I modular_remainder, I modulus) noexcept
+{
+	return (modular_remainder == modulus - I{1}) ? I{0} : (modular_remainder + I{1});
+}
 
 // Assumes 0 <= x < modulus
 template <typename I>
-constexpr inline I modular_dec(I x, I modulus) noexcept { return (x == I{0}) ? (modulus - I{1}) : (x - I{1}); }
+constexpr __fhd__ I decrement_modular_remainder(I modular_remainder, I modulus) noexcept
+{
+	return (modular_remainder == 0) ? (modulus - I{1}) : (modular_remainder - I{1});
+}
 
 } // namespace detail
 
 // Note: Safe but slow
 template <typename I>
-constexpr inline I modular_inc(I x, I modulus) { return detail::modular_inc<I>(x % modulus, modulus); }
+constexpr __fhd__ I modular_increment(I x, I modulus) { return detail::increment_modular_remainder<I>(x % modulus, modulus); }
 
 // Note: Safe but slow
 template <typename I>
-constexpr inline I modular_dec(I x, I modulus) { return detail::modular_dec<I>(x % modulus, modulus); }
+constexpr __fhd__ I modular_decrement(I x, I modulus) { return detail::decrement_modular_remainder<I>(x % modulus, modulus); }
+
+
 
 /**
  * Faster implementations of mathematical functions which can be incorrect for extremal or near-extremal values.
@@ -226,8 +247,8 @@ constexpr __fhd__ I1 round_up(I1 x, I2 y) noexcept
 	return round_down(x + I1{y} - I1{1}, y);
 }
 
-template <typename I> constexpr inline I modular_inc(I x, I modulus) { return (x + I{1}) % modulus; }
-template <typename I> constexpr inline I modular_dec(I x, I modulus) { return (x + modulus - I{1}) % modulus; }
+template <typename I> constexpr inline I modular_increment(I x, I modulus) { return (x + I{1}) % modulus; }
+template <typename I> constexpr inline I modular_decrement(I x, I modulus) { return (x + modulus - I{1}) % modulus; }
 
 
 } // namespace unsafe
@@ -249,9 +270,8 @@ using kat::round_down_to_full_warps;
 using kat::round_up;
 using kat::round_up_to_power_of_2;
 using kat::round_up_to_full_warps;
-#if __cplusplus >= 201402L
 using kat::gcd;
-#endif
+using kat::lcm;
 using kat::divides;
 using kat::is_divisible_by;
 using kat::modulo_power_of_2;
@@ -259,8 +279,8 @@ using kat::power_of_2_divides;
 using kat::is_divisible_by_power_of_2;
 using kat::is_even;
 using kat::is_odd;
-using kat::modular_inc;
-using kat::modular_dec;
+using kat::modular_increment;
+using kat::modular_decrement;
 
 namespace unsafe {
 
@@ -268,8 +288,8 @@ using kat::unsafe::round_up_to_power_of_2;
 using kat::unsafe::round_up_to_full_warps;
 using kat::unsafe::div_rounding_up;
 using kat::unsafe::round_up;
-using kat::unsafe::modular_inc;
-using kat::unsafe::modular_dec;
+using kat::unsafe::modular_increment;
+using kat::unsafe::modular_decrement;
 
 }  // namespace unsafe
 
@@ -278,20 +298,6 @@ constexpr __fhd__ int log2(I val) noexcept
 {
 	return val ? 1 + log2(val >> 1) : -1;
 }
-
-template <typename S, typename T = S>
-constexpr __fhd__ typename std::common_type<S,T>::type gcd(S u, T v) noexcept
-{
-	return (v == 0) ? u : gcd(v, u % v);
-}
-
-template <typename S, typename T = S>
-constexpr __fhd__ typename std::common_type<S,T>::type lcm(S u, T v) noexcept
-{
-	using result_type = typename std::common_type<S,T>::type;
-	return ((result_type) u / constexpr_::gcd(u,v)) * v;
-}
-
 
 namespace detail {
 template <typename T>

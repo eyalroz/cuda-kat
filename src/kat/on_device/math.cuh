@@ -106,6 +106,22 @@ __fd__ I lcm(I u, I v)
 	return (u / gcd(u,v)) * v;
 }
 
+namespace detail {
+
+
+template <typename I> __fd__ int count_leading_zeros(I x)
+{
+	static_assert(std::is_integral<I>::value, "Only integral types are supported");
+	static_assert(sizeof(I) <= sizeof(long long), "Unexpectedly large type");
+
+	using native_clz_type =
+		typename std::conditional< sizeof(I) <= sizeof(int), int, long long >::type;
+	enum : int { width_difference_in_bits = (sizeof(native_clz_type) - sizeof(I)) * CHAR_BIT };
+	return builtins::count_leading_zeros<native_clz_type>(static_cast<native_clz_type>(x)) - width_difference_in_bits;
+}
+
+}
+
 /**
  * @brief compute the (integral) base-two logarithm of a number
  *
@@ -120,7 +136,7 @@ __fd__ I lcm(I u, I v)
 template <typename I>
 __fd__ unsigned log2(I x) {
 	assert(x > 0);
-	return (CHAR_BIT * sizeof(I) - 1) - builtins::count_leading_zeros(x);
+	return I{CHAR_BIT * sizeof(I) - I{1} } - detail::count_leading_zeros<I>(x);
 }
 
 } // namespace kat

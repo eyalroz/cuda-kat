@@ -35,7 +35,22 @@ template <> __fd__  unsigned long long multiplication_high_bits<unsigned long lo
 template <> __fd__  float  divide<float >(float dividend, float divisor)   { return fdividef(dividend, divisor); }
 template <> __fd__  double divide<double>(double dividend, double divisor) { return fdividef(dividend, divisor); }
 
-template <> __fd__ int population_count<unsigned          >(unsigned int x)       { return __popc(x); }
+// TODO: Does this really translate into a single instruction? I'm worried the casting might incur more than a single one.
+template <typename I> __fd__ int population_count(I x)
+{
+	static_assert(std::is_integral<I>::value, "Only integral types are supported");
+	static_assert(sizeof(I) <= sizeof(unsigned long long), "Unexpectedly large type");
+
+	using native_popc_type =
+		typename std::conditional<
+			sizeof(I) <= sizeof(unsigned),
+			unsigned,
+			unsigned long long
+		>::type;
+	return population_count<native_popc_type>(static_cast<native_popc_type>(x));
+}
+
+template <> __fd__ int population_count<unsigned>(unsigned x)                     { return __popc(x);   }
 template <> __fd__ int population_count<unsigned long long>(unsigned long long x) { return __popcll(x); }
 
 template <> __fd__ int      sum_with_absolute_difference<int     >(int x,      int y,      int addend)      { return __sad (x, y, addend); }
@@ -108,6 +123,16 @@ __fd__ native_word_t funnel_shift(
 
 #endif // __CUDA_ARCH__ >= 320
 
+template <bool Signed, bool Rounded> __fd__
+typename std::conditional<Signed, int, unsigned>::type average(
+	typename std::conditional<Signed, int, unsigned>::type x,
+	typename std::conditional<Signed, int, unsigned>::type y);
+
+template <> __fd__ unsigned average<false, false>(unsigned x, unsigned y) { return __uhadd(x,y);  }
+template <> __fd__ int      average<true,  false>(int      x, int y     ) { return __hadd(x,y);   }
+template <> __fd__ unsigned average<false, true >(unsigned x, unsigned y) { return __urhadd(x,y); }
+template <> __fd__ int      average<true,  true >(int      x, int y     ) { return __rhadd(x,y);  }
+
 
 namespace warp {
 
@@ -165,10 +190,10 @@ __fd__ lane_mask_t lanes_matching_values(T value, lane_mask_t lane_mask)
 namespace shuffle {
 
 #if (__CUDACC_VER_MAJOR__ < 9)
-template <typename T> __fd__ T arbitrary(T x, int source_lane, int width)                 { return __shfl(x, source_lane, width);   }
-template <typename T> __fd__ T down(T x, unsigned delta, int width)                       { return __shfl_down(x, delta, width);    }
-template <typename T> __fd__ T up(T x, unsigned delta, int width)                         { return __shfl_up(x, delta, width);      }
-template <typename T> __fd__ T xor_(T x, lane_mask_t  xoring_mask_for_lane_id, int width) { return __shfl_xor(x, xoring lane_mask, width); }
+template <typename T> __fd__ T arbitrary(T x, int source_lane, int width)        { return __shfl(x, source_lane, width);   }
+template <typename T> __fd__ T down(T x, unsigned delta, int width)              { return __shfl_down(x, delta, width);    }
+template <typename T> __fd__ T up(T x, unsigned delta, int width)                { return __shfl_up(x, delta, width);      }
+template <typename T> __fd__ T xor_(T x, int xoring_mask_for_lane_id, int width) { return __shfl_xor(x, xoring_mask_for_lane_id, width); }
 	// we have to use xor_ here since xor is a reserved word
 #else
 template <typename T> __fd__ T arbitrary( T x, int source_lane, int width, lane_mask_t participating_lanes)
@@ -183,7 +208,7 @@ template <typename T> __fd__ T up(T x, unsigned delta, int width, lane_mask_t pa
 {
 	return __shfl_up_sync(participating_lanes, x, delta, width);
 }
-template <typename T> __fd__ T xor_(T x, lane_mask_t lane_id_xoring_mask, int width, lane_mask_t participating_lanes)
+template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width, lane_mask_t participating_lanes)
 {
 	return __shfl_xor_sync(participating_lanes, x, lane_id_xoring_mask, width);
 }
@@ -204,8 +229,10 @@ template <>  __fd__ uint32_t find_last_non_sign_bit<unsigned long long>(unsigned
 template <typename T>
 __forceinline__ __device__ T load_global_with_non_coherent_cache(const T* ptr)  { return ptx::ldg(ptr); }
 
+// Note: We can't generalize clz to an arbitrary type, without subtracting the size difference from the result of the builtin clz instruction.
+
 template <> __fd__ int count_leading_zeros<int               >(int x)                { return __clz(x);   }
-template <> __fd__ int count_leading_zeros<unsigned          >(unsigned int x)       { return __clz(x);   }
+template <> __fd__ int count_leading_zeros<unsigned          >(unsigned x)           { return __clz(x);   }
 template <> __fd__ int count_leading_zeros<long long         >(long long x)          { return __clzll(x); }
 template <> __fd__ int count_leading_zeros<unsigned long long>(unsigned long long x) { return __clzll(x); }
 
@@ -213,7 +240,7 @@ template <> __fd__ int                 minimum<int               >(int x, int y)
 template <> __fd__ unsigned int        minimum<unsigned          >(unsigned int x, unsigned int y)             { return umin(x,y);   }
 template <> __fd__ long                minimum<long              >(long x, long y)                             { return llmin(x,y);  }
 template <> __fd__ unsigned long       minimum<unsigned long     >(unsigned long x, unsigned long y)           { return ullmin(x,y); }
-template <> __fd__ long long           minimum< long long        >(long long x, long long y)                   { return llmin(x,y);  }
+template <> __fd__ long long           minimum<long long         >(long long x, long long y)                   { return llmin(x,y);  }
 template <> __fd__ unsigned long long  minimum<unsigned long long>(unsigned long long x, unsigned long long y) { return ullmin(x,y); }
 template <> __fd__ float               minimum<float             >(float x, float y)                           { return fminf(x,y);  }
 template <> __fd__ double              minimum<double            >(double x, double y)                         { return fmin(x,y);   }
@@ -222,7 +249,7 @@ template <> __fd__ int                 maximum<int               >(int x, int y)
 template <> __fd__ unsigned int        maximum<unsigned          >(unsigned int x, unsigned int y)             { return umax(x,y);   }
 template <> __fd__ long                maximum<long              >(long x, long y)                             { return llmax(x,y);  }
 template <> __fd__ unsigned long       maximum<unsigned long     >(unsigned long x, unsigned long y)           { return ullmax(x,y); }
-template <> __fd__ long long           maximum< long long        >(long long x, long long y)                   { return llmax(x,y);  }
+template <> __fd__ long long           maximum<long long         >(long long x, long long y)                   { return llmax(x,y);  }
 template <> __fd__ unsigned long long  maximum<unsigned long long>(unsigned long long x, unsigned long long y) { return ullmax(x,y); }
 template <> __fd__ float               maximum<float             >(float x, float y)                           { return fmaxf(x,y);  }
 template <> __fd__ double              maximum<double            >(double x, double y)                         { return fmax(x,y);   }
