@@ -11,7 +11,7 @@
 
 #include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/miscellany.cuh>
-#include <kat/on_device/builtins.cuh>
+#include <kat/on_device/wrappers/builtins.cuh>
 
 #include <math_functions.h>
 

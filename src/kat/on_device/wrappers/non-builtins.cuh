@@ -1,5 +1,5 @@
 /**
- * @file on_device/non-builtins.cuh
+ * @file on_device/wrappers/non-builtins.cuh
  *
  * @brief Namespace with uniform-naming scheme, templated-when-relevant,
  * wrappers of what could be (or should be) single PTX instruction - but
@@ -8,7 +8,7 @@
 #ifndef CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_
 #define CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_
 
-#include <kat/on_device/builtins.cuh>
+#include <kat/on_device/wrappers/builtins.cuh>
 
 
 ///@cond

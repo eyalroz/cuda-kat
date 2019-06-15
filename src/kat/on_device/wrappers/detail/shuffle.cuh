@@ -6,7 +6,7 @@
 #include <sm_30_intrinsics.h>
 #include <vector_types.h>
 #include <kat/containers/array.hpp>
-#include <kat/on_device/builtins.cuh>
+#include <kat/on_device/wrappers/builtins.cuh>
 
 
 ///@cond
