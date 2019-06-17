@@ -18,6 +18,7 @@
 #define CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
 #include "common.cuh"
+#include <kat/on_device/sequence_ops/warp.cuh>
 #include <kat/on_device/collaboration/block.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
 
@@ -238,7 +239,7 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 	if (!AllThreadsObtainResult) {
 		// We currently only guarantee the first thread has the final result,
 		// which is what allows most threads to return already:
-		if (!warp::is_first_in_block()) { return op.neutral_value(); }
+		if (!linear_grid::grid_info::warp::is_first_in_block()) { return op.neutral_value(); }
 	}
 
 	__syncthreads(); // Perhaps a block fence is enough here?
@@ -247,8 +248,8 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 
 	// read from shared memory only if that warp actually existed
 	result_type other_warp_result  =
-		(lane::index() < block::num_warps()) ?
-		warp_reductions[lane::index()] : op.neutral_value();
+		(grid_info::lane::index() < linear_grid::grid_info::block::num_warps()) ?
+		warp_reductions[grid_info::lane::index()] : op.neutral_value();
 
 	return kat::collaboration::warp::reduce<ReductionOp>(other_warp_result);
 }
@@ -434,6 +435,8 @@ template<
  * @todo Some inclusions in the block-primitives might only be relevant to the
  * functions here; double-check.
  *
+ * @todo consider using elementwise_apply for this.
+ *
  */
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
 __fd__ void elementwise_accumulate(
@@ -447,34 +450,18 @@ __fd__ void elementwise_accumulate(
 	}
 }
 
-// TODO: Make this a variadic template
-template <typename ResultDatum, typename LHSDatum, typename RHSDatum, typename Operation, typename Size>
-__fd__ void elementwise_apply(
-	ResultDatum*     __restrict__  results,
-	const LHSDatum*  __restrict__  lhs,
-	const RHSDatum*  __restrict__  rhs,
-	Size                           length)
-{
-	using namespace linear_grid::grid_info;
-	Operation op;
-	for(promoted_size_t<Size> pos = thread::index(); pos < length; pos += block::size()) {
-		results[pos] = op(lhs[pos], rhs[pos]);
-	}
-}
-
-/*
-template <typename ResultDatum, typename... Args, typename Operation, typename Size>
+template <typename Operation, typename Size, typename ResultDatum, typename... Args>
 __fd__ void elementwise_apply(
 	ResultDatum*     __restrict__  results,
 	Size                           length,
 	Operation                      op,
-	const Args*  __restrict__      arguments...)
+	const Args* __restrict__ ...   arguments)
 {
-	auto f = [&](promoted_size<Size> pos) {
+	auto f = [&](promoted_size_t<Size> pos) {
 		return op(arguments[pos]...);
 	};
 	at_block_stride(length, f);
-}*/
+}
 
 
 } // namespace block
