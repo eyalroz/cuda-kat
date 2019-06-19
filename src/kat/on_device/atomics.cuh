@@ -1,5 +1,5 @@
 /**
- * @file wrappers/atomics.cuh Type-generic wrappers for CUDA atomic operations
+ * @file atomics.cuh Type-generic wrappers for CUDA atomic operations
  */
 
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_

@@ -24,7 +24,7 @@
 ///@endcond
 
 namespace kat {
-namespace collaboration {
+namespace collaborative {
 namespace grid {
 namespace linear {
 
@@ -193,7 +193,7 @@ __fd__ void accumulation_to_scalar(
 
 
 } // namespace block_to_grid
-} // namespace collaboration
+} // namespace collaborative
 } // namespace kat
 
 

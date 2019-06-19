@@ -29,9 +29,9 @@
 
 namespace kat {
 namespace linear_grid {
-namespace collaboration {
+namespace collaborative {
 
-using kat::collaboration::inclusivity_t;
+using kat::collaborative::inclusivity_t;
 
 namespace block {
 
@@ -229,8 +229,8 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 	ReductionOp op;
 	static __shared__ result_type warp_reductions[warp_size];
 
-	result_type intra_warp_result = kat::collaboration::warp::reduce<ReductionOp>(static_cast<result_type>(value));
-	kat::linear_grid::collaboration::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
+	result_type intra_warp_result = kat::collaborative::warp::reduce<ReductionOp>(static_cast<result_type>(value));
+	kat::linear_grid::collaborative::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
@@ -251,7 +251,7 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 		(grid_info::lane::index() < linear_grid::grid_info::block::num_warps()) ?
 		warp_reductions[grid_info::lane::index()] : op.neutral_value();
 
-	return kat::collaboration::warp::reduce<ReductionOp>(other_warp_result);
+	return kat::collaborative::warp::reduce<ReductionOp>(other_warp_result);
 }
 
 /**
@@ -275,9 +275,9 @@ template<
 	ReductionOp op;
 
 	result_type intra_warp_inclusive_scan_result =
-		kat::collaboration::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
+		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
 
-	collaboration::block::share_warp_datum_with_whole_block(
+	collaborative::block::share_warp_datum_with_whole_block(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
 		// Note: if the block is not made up of full warps, this will fail,
 		// since the last warp will not have a lane to do the writing
@@ -293,7 +293,7 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaboration::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
+			kat::collaborative::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
 				scratch[lane::index()]);
 		scratch[lane::index()] = warp_reductions_scan_result;
 	}
@@ -351,10 +351,10 @@ template<
 	typename ReductionOp::accumulator acc_op;
 
 	result_type intra_warp_inclusive_scan_result =
-		kat::collaboration::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
+		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
 			static_cast<result_type>(value));
 
-	collaboration::block::share_warp_datum_with_whole_block(
+	collaborative::block::share_warp_datum_with_whole_block(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
 		// Note: if the block is not made up of full warps, this will fail,
 		// since the last warp will not have a lane to do the writing
@@ -373,7 +373,7 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaboration::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
+			kat::collaborative::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
 				scratch[lane::index()]);
 		scratch[lane::index()] = warp_reductions_scan_result;
 	}
@@ -465,7 +465,7 @@ __fd__ void elementwise_apply(
 
 
 } // namespace block
-} // namespace collaboration
+} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 

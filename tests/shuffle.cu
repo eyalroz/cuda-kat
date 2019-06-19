@@ -2,7 +2,7 @@
 #include "common.cuh"
 #include <kat/on_device/math.cuh>
 #include <kat/on_device/printing.cuh>
-#include <kat/on_device/wrappers/shuffle.cuh>
+#include <kat/on_device/shuffle.cuh>
 #include <kat/containers/array.hpp>
 
 // TODO: Run some/all tests for half-precision floating-point values, e.g __half from:

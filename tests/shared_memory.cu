@@ -3,7 +3,7 @@
 #include "common.cuh"
 
 #include <kat/on_device/shared_memory.cuh>
-#include <kat/on_device/wrappers/atomics.cuh>
+#include <kat/on_device/atomics.cuh>
 
 using namespace kat;
 

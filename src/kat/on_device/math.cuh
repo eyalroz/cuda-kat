@@ -11,7 +11,7 @@
 // the op store's implementation
 #include "common.cuh"
 #include "constexpr_math.cuh"
-#include <kat/on_device/wrappers/builtins.cuh>
+#include <kat/on_device/builtins.cuh>
 	// for absolute_value(), sum_of_absolute_differences(), minimum(), maximum() etc...
 
 

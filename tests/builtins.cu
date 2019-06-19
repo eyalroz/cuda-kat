@@ -2,8 +2,8 @@
 #include "macro.h"
 #include "common.cuh"
 #include "utilities.cuh"
-#include <kat/on_device/wrappers/builtins.cuh>
-#include <kat/on_device/wrappers/non-builtins.cuh>
+#include <kat/on_device/builtins.cuh>
+#include <kat/on_device/non-builtins.cuh>
 #include <kat/on_device/printing.cuh>
 #include <limits>
 

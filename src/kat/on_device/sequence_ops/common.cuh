@@ -11,7 +11,7 @@
 #include <kat/on_device/math.cuh>
 
 namespace kat {
-namespace collaboration {
+namespace collaborative {
 
 enum inclusivity_t : bool {
 	Exclusive = false,
@@ -35,7 +35,7 @@ struct elements_per_lane_in_full_warp_write {
 };
 } // namespace detail
 
-} // namespace collaboration
+} // namespace collaborative
 } // namespace kat
 
 #endif // CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_COMMON_CUH_
