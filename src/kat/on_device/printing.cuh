@@ -13,8 +13,6 @@
 #include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/builtins.cuh>
 
-#include <math_functions.h>
-
 // Necessary for printf()'ing in kernel code
 #include <cstdio>
 

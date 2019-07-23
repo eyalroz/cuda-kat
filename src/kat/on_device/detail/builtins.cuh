@@ -7,7 +7,6 @@
 #ifndef CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_
 #define CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_
 
-#include <device_functions.h> // Do we really need this here?
 #include <kat/on_device/ptx.cuh>
 
 #if ! __CUDA_ARCH__ >= 300
