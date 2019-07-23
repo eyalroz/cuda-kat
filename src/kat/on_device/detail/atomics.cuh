@@ -208,6 +208,7 @@ __fd__ T apply_atomically(
 	return apply_atomically(uf, address);
 }
 
+
 namespace detail {
 
 /**
@@ -239,9 +240,6 @@ template<> __fd__ int reinterpret<float, int>(float x) { return __float_as_int(x
 
 } // namespace detail
 
-// TODO: Consider making apply_atomically take functors,
-// including the functors header and having using statements here
-// instead of actual definitions
 template <typename T>
 __fd__ T bitwise_or (T* address, T val)
 {
@@ -282,7 +280,6 @@ __fd__ T unset_bit (T* address, native_word_t bit_index)
 	auto f = [](T x, native_word_t y) { return x & ~(1 << y); };
 	return apply_atomically(f, address, bit_index);
 }
-
 
 // This next #if-#endif block is intended to supply us with 64-bits of some
 // atomic primitives only available with compute capability 3.2 or higher
@@ -499,7 +496,6 @@ __fd__ T add (
 		//std::integral_constant<bool, false>{},
 		address, val);
 }
-
 
 template <typename T>  __fd__ T subtract   (T* address, T val)  { return atomicSub (address, val); }
 template <typename T>  __fd__ T exchange   (T* address, T val)  { return atomicExch(address, val); }
