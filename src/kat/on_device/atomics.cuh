@@ -68,18 +68,13 @@ __fd__ T apply_atomically(UnaryFunction f, T* address);
  * replacing the first at its memory location with the result before anything
  * else changes it.
  *
- * @todo Take a template parameter pack and multiple arguments to f
- *
- * @note using `__restrict__` here just to be on the safe side, in case
- * UnaryFunction ends up being some sort of pointer
- *
  * @return The new value which was stored in memory
  */
-template <typename BinaryFunction, typename T>
+template <typename Function, typename T, typename... Ts>
 __fd__ T apply_atomically(
-	BinaryFunction         f,
-	T*       __restrict__  address,
-	const T  __restrict__  rhs);
+	Function                f,
+	T*       __restrict__   address,
+	const Ts...             xs);
 
 
 } // namespace atomic

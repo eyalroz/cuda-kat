@@ -198,13 +198,13 @@ __fd__ T apply_atomically(UnaryFunction f, T* __restrict__ address)
 	return actual_previous_value;
 }
 
-template <typename BinaryFunction, typename T>
+template <typename Function, typename T, typename... Ts>
 __fd__ T apply_atomically(
-	BinaryFunction         f,
-	T*       __restrict__  address,
-	const T  __restrict__  rhs)
+	Function                f,
+	T*       __restrict__   address,
+	const Ts...             xs)
 {
-	auto uf = [&](T lhs) { return f(lhs, rhs); };
+	auto uf = [&](T x) { return f(x, xs...); };
 	return apply_atomically(uf, address);
 }
 
@@ -244,28 +244,28 @@ template <typename T>
 __fd__ T bitwise_or (T* address, T val)
 {
 	auto f = [](T x, T y) { return x | y; };
-	return apply_atomically<T>(f, address, val);
+	return apply_atomically<T, T>(f, address, val);
 }
 
 template <typename T>
 __fd__ T bitwise_and (T* address, T val)
 {
 	auto f = [](T x, T y) { return x & y; };
-	return apply_atomically<T>(f, address, val);
+	return apply_atomically<T, T>(f, address, val);
 }
 
 template <typename T>
 __fd__ T bitwise_xor (T* address, T val)
 {
 	auto f = [](T x, T y) { return x ^ y; };
-	return apply_atomically<T>(f, address, val);
+	return apply_atomically<T, T>(f, address, val);
 }
 
 template <typename T>
 __fd__ T bitwise_not (T* address)
 {
 	auto f = [](T x) { return ~x; };
-	return apply_atomically<T>(f, address);
+	return apply_atomically<T, T>(f, address);
 }
 
 template <typename T>
