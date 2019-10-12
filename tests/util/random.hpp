@@ -14,6 +14,8 @@
  ************************************************************/
 
 #include <random>
+#include <algorithm>
+#include <iterator>
 
 namespace util {
 
@@ -38,12 +40,14 @@ inline typename Distribution::result_type sample_from(Distribution& distribution
 
 template <typename Distribution, typename Engine = std::default_random_engine>
 inline typename Distribution::result_type sample_from(
-	Distribution& distribution,
-	Engine& engine = util::random::engine) {
+	Distribution&  distribution,
+	Engine&        engine = util::random::engine)
+{
 	return distribution(engine);
 }
 
-inline void seed(const seed_t& seed_value) {
+inline void seed(const seed_t& seed_value)
+{
 	engine.seed(seed_value);
 }
 
@@ -63,6 +67,32 @@ inline void seed(const seed_t& seed_value) {
 //std::uniform_int_distribution<uint32_t> uint_dist;         // by default range [0, MAX]
 //std::uniform_int_distribution<uint32_t> uint_dist10(0,10); // range [0,10]
 //std::normal_distribution<double> normal_dist(mean, stddeviation);  // N(mean, stddeviation)
+
+template <typename ForwardIt, typename Distribution, typename Engine = std::default_random_engine>
+constexpr inline void generate(
+	ForwardIt first,
+	ForwardIt last,
+	Distribution& distribution,
+	Engine& engine = util::random::engine)
+{
+	// If we could rely on having C++17, we could generate in parallel...
+	std::generate(first, last, [&distribution, &engine]() {
+		return static_cast<typename std::iterator_traits<ForwardIt>::value_type>(sample_from(distribution, engine));
+	});
+}
+
+template <typename ForwardIt, typename Size, typename Distribution, typename Engine = std::default_random_engine>
+constexpr inline void generate_n(
+	ForwardIt first,
+	Size count,
+	Distribution& distribution,
+	Engine& engine = util::random::engine)
+{
+//	static_assert(is_iterator<ForwardIt>::value == true, "The 'first' parameter is not of an iterator type");
+	// If we could rely on having C++17, we could generate in parallel...
+	return generate(first, first + count, distribution, engine);
+}
+
 
 } // namespace random
 } // namespace util
