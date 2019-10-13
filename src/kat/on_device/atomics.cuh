@@ -34,6 +34,7 @@ template <typename T>  __fd__ T min        (T* address, T val);
 template <typename T>  __fd__ T max        (T* address, T val);
 template <typename T>  __fd__ T logical_and(T* address, T val);
 template <typename T>  __fd__ T logical_or (T* address, T val);
+template <typename T>  __fd__ T logical_not(T* address);
 template <typename T>  __fd__ T logical_xor(T* address, T val);
 template <typename T>  __fd__ T bitwise_or (T* address, T val);
 template <typename T>  __fd__ T bitwise_and(T* address, T val);
