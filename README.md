@@ -1,6 +1,6 @@
 # cuda-kat: CUDA Kernel Author's Tools
 
-An install-less, header-only library of small, self-contained **pieces of utility code** for writing device-side CUDA functions and kernels.
+An install-less, header-only library of small, self-contained **nuggets of utility code** for writing device-side CUDA functions and kernels.
 
 
 | Table of contents|
@@ -15,10 +15,10 @@ The various utility functions (and occasional other constructs) available in the
 
 | Header(s)                        | Description                                                             |
 |----------------------------------|-------------------------------------------------------------------------|
-| [`grid_info.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/grid_info.cuh)         | Shorthands/mnemonics for information about positions and sizes of lanes, threads, warps and blocks within warps, blocks and grids (particularly for one-dimensional/linear grids). See also the [motivational section below](#the-patterns-that-repeat). |
+| [`grid_info.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/grid_info.cuh)         |  Shorthands/mnemonics for information about positions and sizes of lanes, threads, warps and blocks within warps, blocks and grids (particularly for one-dimensional/linear grids). See also the [motivational section below](#the-patterns-that-repeat). |
 | [`ptx.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/ptx.cuh)               | C++ bindings for PTX instructions which are not made available by CUDA itself: Special registers, [`bfind`](https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-bfind), [`prmt`](https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-prmt) and so on. Functions here are all non-templated and type-specific; the generic versions appear in `builtins.cuh` |
-| [`shared_memory.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shared_memory.cuh)               | Mainly - a proxy for accessing templated dynamic shared memory which is not directly possible in CUDA; shared memory size getters; and code to divvy up shared memory among the thread blocks. |
-| [`atomics.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/atomics.cuh)  | A uniform, templated zero-overhead way to perform all CUDA-supported atomic operations, and generic `apply_atomically()` for not-directly-supported unary and binary functions.  |
+| [`shared_memory.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shared_memory.cuh)               | A gadget for accessing templated dynamic shared memory (which is not directly possible in CUDA!); shared memory size getters; and code to divvy up shared memory among the thread blocks. |
+| [`atomics.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/atomics.cuh)  | Uniform, templated, zero-overhead invocation of all CUDA-supported atomic operations; compare-and-swap-based implementation for often-atomic operations not supported by CUDA or your specific GPU; and a generic `apply_atomically()` function for any kind of computation.  |
 | [`builtins.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/builtins.cuh)  | A uniform, templated zero-overhead way to execute any (non-atomic) operations which involves a single PTX instructions and are not C++ language builtins - similarly to the host-side compiler builtins: bit operations; warp balloting, conjunction and disjunction, intra-warp shuffles and lane mask manipulation. |
 | [`shuffle.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shuffle.cuh)  | Exchange arbitrary-type (and arbitrarily large) values using intra-warp shuffles. |
 | [`math.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/math.cuh)  | Templated mathmetical functions - some `constexpr`, some using special GPU capabilities which cannot be exeucted at compile time even when data is available, and more efficient runtime implementation of compile-time-executable functions. |
