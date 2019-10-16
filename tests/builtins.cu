@@ -3,7 +3,7 @@
 #include "common.cuh"
 #include "utilities.cuh"
 #include <kat/on_device/builtins.cuh>
-#include <kat/on_device/non_builtins.cuh>
+#include <kat/on_device/non-builtins.cuh>
 #include <kat/on_device/printing.cuh>
 #include <limits>
 

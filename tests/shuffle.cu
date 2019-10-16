@@ -1,8 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
-#include <kat/on_device/math.cuh>
 #include <kat/on_device/printing.cuh>
-#include <kat/on_device/wrappers/shuffle.cuh>
+#include <kat/on_device/shuffle.cuh>
 #include <kat/containers/array.hpp>
 
 // TODO: Run some/all tests for half-precision floating-point values, e.g __half from:
@@ -141,7 +140,6 @@ TEST_CASE_TEMPLATE("up", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE
 	std::array<I, block_size> host_side_shuffled;
 
 	std::iota(host_side_unshuffled.begin(),host_side_unshuffled.end(), 0);
-	std::fill(host_side_shuffled.begin(),host_side_shuffled.end(), 123);
 
 	std::array<I, block_size> host_side_expected_shuffled;
 
@@ -199,7 +197,6 @@ TEST_CASE_TEMPLATE("down", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SI
 	std::array<I, block_size> host_side_shuffled;
 
 	std::iota(host_side_unshuffled.begin(),host_side_unshuffled.end(), 0);
-	std::fill(host_side_shuffled.begin(),host_side_shuffled.end(), 123);
 
 	std::array<I, block_size> host_side_expected_shuffled;
 
@@ -257,7 +254,6 @@ TEST_CASE_TEMPLATE("xor", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZ
 	std::array<I, block_size> host_side_shuffled;
 
 	std::iota(host_side_unshuffled.begin(),host_side_unshuffled.end(), 0);
-	std::fill(host_side_shuffled.begin(),host_side_shuffled.end(), 123);
 
 	std::array<I, block_size> host_side_expected_shuffled;
 
@@ -318,4 +314,4 @@ TEST_CASE_TEMPLATE("xor", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZ
 
 #include <kat/undefine_specifiers.hpp>
 
-} // TEST_SUITE("constexpr_math")
+} // TEST_SUITE("shuffle")

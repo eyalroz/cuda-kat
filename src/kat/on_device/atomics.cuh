@@ -1,5 +1,18 @@
 /**
- * @file wrappers/atomics.cuh Type-generic wrappers for CUDA atomic operations
+ * @file atomics.cuh Type-generic wrappers for CUDA atomic operations
+ *
+ * @note nVIDIA makes a rather unfortunate and non-intuitive choice of parameter
+ * names for its atomic functions, which - at least for now, and for the sake of
+ * consistency - I adopt: they call a pointer an "address", and they call the
+ * new value "val" even if there is another value to consider (e.g. atomicCAS).
+ * Also, what's with the shorthand? Did you run out of disk space? :-(
+ *
+ * @note If you use an atomic function implemented here for a type size for
+ * which CUDA doesn't support atomic primitives, you must have read and write
+ * to the memory before it, so that a compare-and-swap on that memory and the
+ * actual value of interest would be possible. This is a subtle point, since the
+ * CUDA primitives themselves don't have any such requirements, nor do their
+ * wrappers here; and - we can't afford to check (nor is it possible to check).
  */
 
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
@@ -16,11 +29,12 @@ namespace atomic {
 
 template <typename T>  __fd__ T add        (T* address, T val);
 template <typename T>  __fd__ T subtract   (T* address, T val);
-template <typename T>  __fd__ T exchange   (T* address, const T& val);
+template <typename T>  __fd__ T exchange   (T* address, T val);
 template <typename T>  __fd__ T min        (T* address, T val);
 template <typename T>  __fd__ T max        (T* address, T val);
 template <typename T>  __fd__ T logical_and(T* address, T val);
 template <typename T>  __fd__ T logical_or (T* address, T val);
+template <typename T>  __fd__ T logical_not(T* address);
 template <typename T>  __fd__ T logical_xor(T* address, T val);
 template <typename T>  __fd__ T bitwise_or (T* address, T val);
 template <typename T>  __fd__ T bitwise_and(T* address, T val);
@@ -68,18 +82,13 @@ __fd__ T apply_atomically(UnaryFunction f, T* address);
  * replacing the first at its memory location with the result before anything
  * else changes it.
  *
- * @todo Take a template parameter pack and multiple arguments to f
- *
- * @note using `__restrict__` here just to be on the safe side, in case
- * UnaryFunction ends up being some sort of pointer
- *
  * @return The new value which was stored in memory
  */
-template <typename BinaryFunction, typename T>
+template <typename Function, typename T, typename... Ts>
 __fd__ T apply_atomically(
-	BinaryFunction         f,
-	T*       __restrict__  address,
-	const T  __restrict__  rhs);
+	Function                f,
+	T*       __restrict__   address,
+	const Ts...             xs);
 
 
 } // namespace atomic

@@ -30,30 +30,10 @@
 // Library Exception are available at <http://www.gnu.org/licenses/>.
 
 #pragma once
-#ifndef CUDA_STL_ARRAY_CUH_
-#define CUDA_STL_ARRAY_CUH_
+#ifndef CUDA_KAT_CONTAINERS_ARRAY_HPP_
+#define CUDA_KAT_CONTAINERS_ARRAY_HPP_
 
-#if __cplusplus < 201103L
-#error "C++11 or newer is required to use this header"
-#endif
-
-#ifndef CONSTEXPR_SINCE_CPP_14
-#if __cplusplus >= 201402L
-#define CONSTEXPR_SINCE_CPP_14 constexpr
-#else
-#define CONSTEXPR_SINCE_CPP_14
-#endif
-#endif
-
-#ifndef CONSTEXPR_SINCE_CPP_17
-#if __cplusplus >= 201701L
-#define CONSTEXPR_SINCE_CPP_17 constexpr
-#else
-#define CONSTEXPR_SINCE_CPP_17
-#endif
-#endif
-
-
+#include <kat/detail/constexpr_by_cpp_version.hpp>
 
 ///@cond
 #include <kat/define_specifiers.hpp>
@@ -294,4 +274,4 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 #include <kat/undefine_specifiers.hpp>
 ///@endcond
 
-#endif // CUDA_STL_ARRAY_CUH_
+#endif // CUDA_KAT_CONTAINERS_ARRAY_HPP_

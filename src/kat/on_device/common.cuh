@@ -9,6 +9,7 @@
 
 #include <type_traits>
 #include <climits> // for CHAR_BIT
+#include <cuda_runtime_api.h>
 
 namespace kat {
 

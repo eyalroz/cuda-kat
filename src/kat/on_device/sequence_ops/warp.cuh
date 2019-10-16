@@ -37,7 +37,7 @@
 ///@endcond
 
 namespace kat {
-namespace collaboration {
+namespace collaborative {
 namespace warp {
 
 namespace detail {
@@ -261,7 +261,7 @@ __fd__ void copy_n(
 	using namespace linear_grid::grid_info;
 	enum {
 		elements_per_lane_in_full_warp_write =
-			collaboration::detail::elements_per_lane_in_full_warp_write<T>::value
+			collaborative::detail::elements_per_lane_in_full_warp_write<T>::value
 	};
 
 	if ((elements_per_lane_in_full_warp_write == 1) or
@@ -399,7 +399,7 @@ __fd__ void elementwise_accumulate(
 }
 
 } // namespace warp
-} // namespace collaboration
+} // namespace collaborative
 } // namespace kat
 
 

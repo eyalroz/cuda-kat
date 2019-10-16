@@ -19,7 +19,7 @@
 ///@endcond
 
 namespace kat {
-namespace collaboration {
+namespace collaborative {
 namespace warp_to_grid {
 
 /**
@@ -58,7 +58,7 @@ __fd__ void collaborative_append_to_global_memory(
 	using namespace grid_info;
 	Size previous_output_size = thread::is_first_in_warp() ?
 		atomic::add(global_output_length, fragment_length) : 0;
-	Size offset_to_start_writing_at = collaboration::warp::get_from_first_lane(
+	Size offset_to_start_writing_at = collaborative::warp::get_from_first_lane(
 		previous_output_size);
 
 	// Now the (0-based) positions
@@ -81,7 +81,7 @@ __fd__ void collaborative_append_to_global_memory(
 }
 
 } // namespace warp_to_grid
-} // namespace collaboration
+} // namespace collaborative
 } // namespace kat
 
 

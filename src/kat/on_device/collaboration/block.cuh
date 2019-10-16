@@ -27,7 +27,7 @@
 
 namespace kat {
 namespace linear_grid {
-namespace collaboration {
+namespace collaborative {
 namespace block {
 
 ///@cond
@@ -143,10 +143,10 @@ __fd__ T get_from_first_thread(const T& value)
 }
 
 } // namespace block
-} // namespace collaboration
+} // namespace collaborative
 } // namespace linear_grid
 
-namespace collaboration {
+namespace collaborative {
 
 namespace block {
 
@@ -232,7 +232,7 @@ __fd__ T get_from_first_thread(const T& value)
 }
 
 } // namespace block
-} // namespace collaboration
+} // namespace collaborative
 } // namespace kat
 
 

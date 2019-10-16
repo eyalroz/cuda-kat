@@ -18,6 +18,7 @@
 #define CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
 #include "common.cuh"
+#include <kat/on_device/sequence_ops/warp.cuh>
 #include <kat/on_device/collaboration/block.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
 
@@ -28,9 +29,9 @@
 
 namespace kat {
 namespace linear_grid {
-namespace collaboration {
+namespace collaborative {
 
-using kat::collaboration::inclusivity_t;
+using kat::collaborative::inclusivity_t;
 
 namespace block {
 
@@ -228,8 +229,8 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 	ReductionOp op;
 	static __shared__ result_type warp_reductions[warp_size];
 
-	result_type intra_warp_result = kat::collaboration::warp::reduce<ReductionOp>(static_cast<result_type>(value));
-	kat::linear_grid::collaboration::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
+	result_type intra_warp_result = kat::collaborative::warp::reduce<ReductionOp>(static_cast<result_type>(value));
+	kat::linear_grid::collaborative::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
@@ -238,7 +239,7 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 	if (!AllThreadsObtainResult) {
 		// We currently only guarantee the first thread has the final result,
 		// which is what allows most threads to return already:
-		if (!warp::is_first_in_block()) { return op.neutral_value(); }
+		if (!linear_grid::grid_info::warp::is_first_in_block()) { return op.neutral_value(); }
 	}
 
 	__syncthreads(); // Perhaps a block fence is enough here?
@@ -247,10 +248,10 @@ __device__ typename ReductionOp::result_type reduce(InputDatum value)
 
 	// read from shared memory only if that warp actually existed
 	result_type other_warp_result  =
-		(lane::index() < block::num_warps()) ?
-		warp_reductions[lane::index()] : op.neutral_value();
+		(grid_info::lane::index() < linear_grid::grid_info::block::num_warps()) ?
+		warp_reductions[grid_info::lane::index()] : op.neutral_value();
 
-	return kat::collaboration::warp::reduce<ReductionOp>(other_warp_result);
+	return kat::collaborative::warp::reduce<ReductionOp>(other_warp_result);
 }
 
 /**
@@ -274,9 +275,9 @@ template<
 	ReductionOp op;
 
 	result_type intra_warp_inclusive_scan_result =
-		kat::collaboration::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
+		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
 
-	collaboration::block::share_warp_datum_with_whole_block(
+	collaborative::block::share_warp_datum_with_whole_block(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
 		// Note: if the block is not made up of full warps, this will fail,
 		// since the last warp will not have a lane to do the writing
@@ -292,7 +293,7 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaboration::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
+			kat::collaborative::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
 				scratch[lane::index()]);
 		scratch[lane::index()] = warp_reductions_scan_result;
 	}
@@ -350,10 +351,10 @@ template<
 	typename ReductionOp::accumulator acc_op;
 
 	result_type intra_warp_inclusive_scan_result =
-		kat::collaboration::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
+		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
 			static_cast<result_type>(value));
 
-	collaboration::block::share_warp_datum_with_whole_block(
+	collaborative::block::share_warp_datum_with_whole_block(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
 		// Note: if the block is not made up of full warps, this will fail,
 		// since the last warp will not have a lane to do the writing
@@ -372,7 +373,7 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaboration::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
+			kat::collaborative::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
 				scratch[lane::index()]);
 		scratch[lane::index()] = warp_reductions_scan_result;
 	}
@@ -434,6 +435,8 @@ template<
  * @todo Some inclusions in the block-primitives might only be relevant to the
  * functions here; double-check.
  *
+ * @todo consider using elementwise_apply for this.
+ *
  */
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
 __fd__ void elementwise_accumulate(
@@ -447,38 +450,22 @@ __fd__ void elementwise_accumulate(
 	}
 }
 
-// TODO: Make this a variadic template
-template <typename ResultDatum, typename LHSDatum, typename RHSDatum, typename Operation, typename Size>
-__fd__ void elementwise_apply(
-	ResultDatum*     __restrict__  results,
-	const LHSDatum*  __restrict__  lhs,
-	const RHSDatum*  __restrict__  rhs,
-	Size                           length)
-{
-	using namespace linear_grid::grid_info;
-	Operation op;
-	for(promoted_size_t<Size> pos = thread::index(); pos < length; pos += block::size()) {
-		results[pos] = op(lhs[pos], rhs[pos]);
-	}
-}
-
-/*
-template <typename ResultDatum, typename... Args, typename Operation, typename Size>
+template <typename Operation, typename Size, typename ResultDatum, typename... Args>
 __fd__ void elementwise_apply(
 	ResultDatum*     __restrict__  results,
 	Size                           length,
 	Operation                      op,
-	const Args*  __restrict__      arguments...)
+	const Args* __restrict__ ...   arguments)
 {
-	auto f = [&](promoted_size<Size> pos) {
+	auto f = [&](promoted_size_t<Size> pos) {
 		return op(arguments[pos]...);
 	};
 	at_block_stride(length, f);
-}*/
+}
 
 
 } // namespace block
-} // namespace collaboration
+} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 

@@ -1,5 +1,5 @@
 /**
- * @file wrappers/shuffle.cuh Templated warp-shuffle operation variants
+ * @file shuffle.cuh Templated warp-shuffle operation variants
  */
 
 /*
