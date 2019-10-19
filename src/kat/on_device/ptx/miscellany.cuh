@@ -121,7 +121,7 @@ DEFINE_PRMT_WITH_MODE( edge_clam_right,    ecl  ) // prmt_edge_clam_right
  */
 __fd__  void trap()
 {
-	asm("trap");
+	asm("trap;");
 }
 
 /**
@@ -129,7 +129,7 @@ __fd__  void trap()
  */
 __fd__ void exit()
 {
-	asm("exit");
+	asm("exit;");
 }
 
 
