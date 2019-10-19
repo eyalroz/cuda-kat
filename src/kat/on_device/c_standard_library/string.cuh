@@ -13,7 +13,7 @@
 #ifndef CUDAT_KAT_ON_DEVICE_C_STANDARD_LIBRARY_EQUIVALENTS_STRING_H_
 #define CUDAT_KAT_ON_DEVICE_C_STANDARD_LIBRARY_EQUIVALENTS_STRING_H_
 
-#include <on_device/common.cuh>
+#include <kat/on_device/common.cuh>
 
 
 ///@cond
@@ -136,7 +136,7 @@ char* strncpy(char *dst, const char *src, size_t n)
 inline __device__
 std::size_t strlen(const char *s)
 {
-	char* p = s;
+	const char* p = s;
 	while(*p != '\0') { p++; }
 	return p - s;
 }
@@ -220,8 +220,9 @@ void* memset(void* destination, int c, size_t size)
 inline __device__
 void *memchr(const void *s, int c, size_t n)
 {
-	for(const char* p = s; p < s + n; p++) {
-		if (*p == c) { return p; }
+	auto s_end = ((const char *) s) + n;
+	for(const char* p = (const char *) s; p < s_end; p++) {
+		if (*p == c) { return (void *) p; }
 	}
 	return nullptr;
 }
@@ -238,7 +239,7 @@ inline __device__
 char *strchr(const char *s, int c)
 {
 	for(const char* p = s; *p != '\0'; p++) {
-		if (*p == c) { return p; }
+		if (*p == c) { return const_cast<char*>(p); }
 	}
 	return nullptr;
 }
@@ -258,7 +259,7 @@ char *strrchr(const char *s, int c)
 	for(const char* p = s ; *p != '\0'; p++) {
 		if (*p == c) { last = p; }
 	}
-	return last;
+	return const_cast<char*>(last);
 }
 
 // Naive implementation!
@@ -266,7 +267,7 @@ inline __device__
 char *strpbrk(const char *s, const char *accept)
 {
 	for(const char* p = s; *p != '\0'; *p++) {
-		if (strchr(accept, *p)) { return p; }
+		if (strchr(accept, *p)) { return const_cast<char*>(p); }
 	}
 	return nullptr;
 }
@@ -276,7 +277,7 @@ inline __device__
 size_t strspn(const char *s, const char *accept)
 {
 	const char* p = s;
-	while(*p != '\0' && strchr(accept, p)) { p++; }
+	while(*p != '\0' && strchr(accept, *p)) { p++; }
 	return p - s;
 }
 
@@ -285,7 +286,7 @@ inline __device__
 size_t strcspn(const char *s, const char *reject)
 {
 	const char* p = s;
-	while(*p != '\0' && !strchr(reject, p)) { p++; }
+	while(*p != '\0' && !strchr(reject, *p)) { p++; }
 	return p - s;
 }
 
@@ -305,7 +306,7 @@ char *strstr(const char *haystack, const char *needle)
 			i++;
 		}
 		bool found_match = (i != needle_length);
-		if (found_match) { return true; }
+		if (found_match) { return const_cast<char*>(p); }
 		p++;
 	} while (p <= last_possible_location);
 	return nullptr;
@@ -326,7 +327,7 @@ char *strrstr(const char *haystack, const char *needle)
 			i++;
 		}
 		bool found_match = (i != needle_length);
-		if (found_match) { return true; }
+		if (found_match) { return const_cast<char*>(p); }
 		p--;
 	} while (p >= haystack); // This assumes haystack is not 0.
 	return nullptr;
