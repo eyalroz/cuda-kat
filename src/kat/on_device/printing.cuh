@@ -12,9 +12,12 @@
 #include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/builtins.cuh>
+#include <kat/on_device/c_standard_library/string.cuh>
+#include <kat/on_device/detail/itoa.cuh>
 
 // Necessary for printf()'ing in kernel code
 #include <cstdio>
+#include <cstdarg>
 
 
 ///@cond
@@ -98,84 +101,97 @@ constexpr __fd__ const char* ordinal_suffix(int n)
 #define BIT_PRINTING_ARGUMENTS_64BIT(x) DOUBLE_LENGTH_ARGUMENTS(x, 32, BIT_PRINTING_ARGUMENTS_32BIT)
 ///@endcond
 
-#define printf_32_bits(x) \
-printf( \
-	"%04u'%04u'%04u'%04u'%04u'%04u'%04u'%04u\n", \
-	detail::get_bit(x,  0) * 1000 + \
-	detail::get_bit(x,  1) * 100 + \
-	detail::get_bit(x,  2) * 10 + \
-	detail::get_bit(x,  3) * 1, \
-	detail::get_bit(x,  4) * 1000 + \
-	detail::get_bit(x,  5) * 100 + \
-	detail::get_bit(x,  6) * 10 + \
-	detail::get_bit(x,  7) * 1, \
-	detail::get_bit(x,  8) * 1000 + \
-	detail::get_bit(x,  9) * 100 + \
-	detail::get_bit(x, 10) * 10 + \
-	detail::get_bit(x, 11) * 1, \
-	detail::get_bit(x, 12) * 1000 + \
-	detail::get_bit(x, 13) * 100 + \
-	detail::get_bit(x, 14) * 10 + \
-	detail::get_bit(x, 15) * 1, \
-	detail::get_bit(x, 16) * 1000 + \
-	detail::get_bit(x, 17) * 100 + \
-	detail::get_bit(x, 18) * 10 + \
-	detail::get_bit(x, 19) * 1, \
-	detail::get_bit(x, 20) * 1000 + \
-	detail::get_bit(x, 21) * 100 + \
-	detail::get_bit(x, 22) * 10 + \
-	detail::get_bit(x, 23) * 1, \
-	detail::get_bit(x, 24) * 1000 + \
-	detail::get_bit(x, 25) * 100 + \
-	detail::get_bit(x, 26) * 10 + \
-	detail::get_bit(x, 27) * 1, \
-	detail::get_bit(x, 28) * 1000 + \
-	detail::get_bit(x, 29) * 100 + \
-	detail::get_bit(x, 30) * 10 + \
-	detail::get_bit(x, 31) * 1 \
-);
-
-#define thread_printf_32_bits(x) \
-thread_printf( \
-	"%04u'%04u'%04u'%04u'%04u'%04u'%04u'%04u", \
-	detail::get_bit(x,  0) * 1000 + \
-	detail::get_bit(x,  1) * 100 + \
-	detail::get_bit(x,  2) * 10 + \
-	detail::get_bit(x,  3) * 1, \
-	detail::get_bit(x,  4) * 1000 + \
-	detail::get_bit(x,  5) * 100 + \
-	detail::get_bit(x,  6) * 10 + \
-	detail::get_bit(x,  7) * 1, \
-	detail::get_bit(x,  8) * 1000 + \
-	detail::get_bit(x,  9) * 100 + \
-	detail::get_bit(x, 10) * 10 + \
-	detail::get_bit(x, 11) * 1, \
-	detail::get_bit(x, 12) * 1000 + \
-	detail::get_bit(x, 13) * 100 + \
-	detail::get_bit(x, 14) * 10 + \
-	detail::get_bit(x, 15) * 1, \
-	detail::get_bit(x, 16) * 1000 + \
-	detail::get_bit(x, 17) * 100 + \
-	detail::get_bit(x, 18) * 10 + \
-	detail::get_bit(x, 19) * 1, \
-	detail::get_bit(x, 20) * 1000 + \
-	detail::get_bit(x, 21) * 100 + \
-	detail::get_bit(x, 22) * 10 + \
-	detail::get_bit(x, 23) * 1, \
-	detail::get_bit(x, 24) * 1000 + \
-	detail::get_bit(x, 25) * 100 + \
-	detail::get_bit(x, 26) * 10 + \
-	detail::get_bit(x, 27) * 1, \
-	detail::get_bit(x, 28) * 1000 + \
-	detail::get_bit(x, 29) * 100 + \
-	detail::get_bit(x, 30) * 10 + \
-	detail::get_bit(x, 31) * 1 \
-);
-
-
-
 
 namespace linear_grid {
+
+namespace detail {
+
+std::size_t constexpr constexpr_cstring_length(const char* str)
+{
+	return *str ? std::size_t{1} + constexpr_cstring_length(str + 1) : std::size_t{0};
+}
+
+constexpr unsigned __device__ get_thread_printf_max_prefix_length()
+{
+	using num_threads_type = decltype(kat::linear_grid::grid_info::grid::num_threads());
+	using thread_index_type = typename std::make_unsigned<grid_dimension_t>::type;
+	return detail::constexpr_cstring_length("T = (,00,00): ")
+			+ kat::detail::max_num_digits<num_threads_type>::value
+			+ kat::detail::max_num_digits<thread_index_type>::value;
+}
+
+__device__  char* get_prefixed_format_string(const char* format_str)
+{
+	struct lengths { unsigned thread_global_index, block_index; } ;
+
+	if (format_str == nullptr) { ptx::exit(); }
+
+	struct lengths field_lengths;
+	field_lengths.thread_global_index = ::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_threads() - 1llu));
+	field_lengths.block_index = ::max(2u,kat::detail::num_digits_required_for(kat::linear_grid::grid_info::grid::num_blocks() - 1llu));
+
+	auto prefix_length =
+		detail::constexpr_cstring_length("T = (,00,00): ")
+		+ field_lengths.thread_global_index
+		+ field_lengths.block_index;
+
+	std::size_t format_string_length = c_std_lib::strlen(format_str);
+	auto prefixed_format_str = (char *) malloc(prefix_length + format_string_length + 2);
+		// 1 for the trailing '\0' and 1 for a line break
+
+	if (prefixed_format_str == nullptr) { ptx::exit(); }
+
+	// Now let's build the prefixed format string
+
+	struct lengths actual_lengths;
+
+	auto ptr = prefixed_format_str;
+	*ptr++ = 'T';
+	*ptr++ = ' ';
+	// Could do the reverse itoa, get the length, then copy-in-reverse
+	actual_lengths.thread_global_index =
+		kat::detail::integer_to_string(kat::linear_grid::grid_info::thread::global_index(), ptr);
+	c_std_lib::memset(ptr, '0', field_lengths.thread_global_index);
+	kat::detail::integer_to_string(kat::linear_grid::grid_info::thread::global_index(), ptr + field_lengths.thread_global_index - actual_lengths.thread_global_index);
+	ptr += field_lengths.thread_global_index;
+	*ptr++ = ' ';
+	*ptr++ = '=';
+	*ptr++ = ' ';
+	*ptr++ = '(';
+	actual_lengths.block_index =
+		kat::detail::integer_to_string(kat::linear_grid::grid_info::block::index_in_grid(), ptr);
+	c_std_lib::memset(ptr, '0', field_lengths.block_index);
+	kat::detail::integer_to_string(kat::linear_grid::grid_info::block::index_in_grid(), ptr + field_lengths.block_index - actual_lengths.block_index);
+	ptr += field_lengths.block_index;
+	*ptr++ = ',';
+	auto warp_index = kat::linear_grid::grid_info::warp::index_in_block();
+	if (warp_index < 10) { *ptr++ = '0'; }
+	ptr += kat::detail::integer_to_string(warp_index, ptr);
+	*ptr++ = ',';
+	auto lane_index = kat::linear_grid::grid_info::lane::index();
+	if (lane_index < 10) { *ptr++ = '0'; }
+	ptr += kat::detail::integer_to_string(lane_index, ptr);
+	*ptr++ = ')';
+	*ptr++ = ':';
+	*ptr++ = ' ';
+	c_std_lib::strncpy(ptr, format_str, format_string_length);
+	ptr += format_string_length;
+	*ptr++ = '\n';
+	*ptr = '\0';
+
+	printf("the format string is \"%s\" with length %u, and the prefixed_format_str is \"%s\"!\n", format_str, (unsigned) format_string_length, prefixed_format_str);
+
+	return prefixed_format_str;
+}
+
+} // namespace detail
+
+#define tprintline(format_str, ... ) { \
+	auto prefixed_format_str = ::kat::linear_grid::detail::get_prefixed_format_string(format_str); \
+	printf(prefixed_format_str, __VA_ARGS__); \
+	free(prefixed_format_str); \
+}
+
 
 /**
  * A wrapper for the printf function, which prefixes the printed string with
@@ -274,6 +290,89 @@ inline __device__ void print_self_identification()
 	__syncthreads(); \
 }
 
+/*
+__fd__ void printf_32_bits(uint32_t x)
+{
+	printf( \
+		"%04u'%04u'%04u'%04u'%04u'%04u'%04u'%04u\n", \
+		detail::get_bit(x,  0) * 1000 +
+		detail::get_bit(x,  1) * 100 +
+		detail::get_bit(x,  2) * 10 +
+		detail::get_bit(x,  3) * 1,
+		detail::get_bit(x,  4) * 1000 +
+		detail::get_bit(x,  5) * 100 +
+		detail::get_bit(x,  6) * 10 +
+		detail::get_bit(x,  7) * 1,
+		detail::get_bit(x,  8) * 1000 +
+		detail::get_bit(x,  9) * 100 +
+		detail::get_bit(x, 10) * 10 +
+		detail::get_bit(x, 11) * 1,
+		detail::get_bit(x, 12) * 1000 +
+		detail::get_bit(x, 13) * 100 +
+		detail::get_bit(x, 14) * 10 +
+		detail::get_bit(x, 15) * 1,
+		detail::get_bit(x, 16) * 1000 +
+		detail::get_bit(x, 17) * 100 +
+		detail::get_bit(x, 18) * 10 +
+		detail::get_bit(x, 19) * 1,
+		detail::get_bit(x, 20) * 1000 +
+		detail::get_bit(x, 21) * 100 +
+		detail::get_bit(x, 22) * 10 +
+		detail::get_bit(x, 23) * 1,
+		detail::get_bit(x, 24) * 1000 +
+		detail::get_bit(x, 25) * 100 +
+		detail::get_bit(x, 26) * 10 +
+		detail::get_bit(x, 27) * 1,
+		detail::get_bit(x, 28) * 1000 +
+		detail::get_bit(x, 29) * 100 +
+		detail::get_bit(x, 30) * 10 +
+		detail::get_bit(x, 31) * 1
+	);
+}
+
+} // namespace linear_grid
+
+namespace linear_grid {
+
+__fd__ void thread_printf_32_bits(uint32_t x)
+{
+	thread_printf(
+		"%04u'%04u'%04u'%04u'%04u'%04u'%04u'%04u",
+		detail::get_bit(x,  0) * 1000 +
+		detail::get_bit(x,  1) * 100 +
+		detail::get_bit(x,  2) * 10 +
+		detail::get_bit(x,  3) * 1,
+		detail::get_bit(x,  4) * 1000 +
+		detail::get_bit(x,  5) * 100 +
+		detail::get_bit(x,  6) * 10 +
+		detail::get_bit(x,  7) * 1,
+		detail::get_bit(x,  8) * 1000 +
+		detail::get_bit(x,  9) * 100 +
+		detail::get_bit(x, 10) * 10 +
+		detail::get_bit(x, 11) * 1,
+		detail::get_bit(x, 12) * 1000 +
+		detail::get_bit(x, 13) * 100 +
+		detail::get_bit(x, 14) * 10 +
+		detail::get_bit(x, 15) * 1,
+		detail::get_bit(x, 16) * 1000 +
+		detail::get_bit(x, 17) * 100 +
+		detail::get_bit(x, 18) * 10 +
+		detail::get_bit(x, 19) * 1,
+		detail::get_bit(x, 20) * 1000 +
+		detail::get_bit(x, 21) * 100 +
+		detail::get_bit(x, 22) * 10 +
+		detail::get_bit(x, 23) * 1,
+		detail::get_bit(x, 24) * 1000 +
+		detail::get_bit(x, 25) * 100 +
+		detail::get_bit(x, 26) * 10 +
+		detail::get_bit(x, 27) * 1,
+		detail::get_bit(x, 28) * 1000 +
+		detail::get_bit(x, 29) * 100 +
+		detail::get_bit(x, 30) * 10 +
+		detail::get_bit(x, 31) * 1
+	);
+}
+*/
 } // namespace linear_grid
 
 } // namespace kat

@@ -11,6 +11,10 @@
 #include <climits> // for CHAR_BIT
 #include <cuda_runtime_api.h>
 
+///@cond
+#include <kat/define_specifiers.hpp>
+///@endcond
+
 namespace kat {
 
 /**
@@ -71,6 +75,11 @@ enum : lane_mask_t {
 template <typename T>
 constexpr std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
 
+//constexpr __fhd__ bool operator==(const dim3& lhs, const dim3& rhs)
+//{
+//	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
+//}
+
 /**
  * The number bits in the representation of a value of type T
  *
@@ -81,18 +90,51 @@ template <typename T>
 constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
 
 
+/*
+namespace detail {
+
+**
+ * Use CUDA intrinsics where possible and relevant to reinterpret the bits
+ * of values of different types
+ *
+ * @param x[in]  the value to reinterpret. No references please!
+ * @return the reinterpreted value
+ *
+template <typename ToInterpret, typename Interpreted>
+__fd__  Interpreted reinterpret(
+	typename std::enable_if<
+		!std::is_same<
+			typename std::decay<ToInterpret>::type, // I actually just don't want references here
+			typename std::decay<Interpreted>::type>::value && // I actually just don't want references here
+		sizeof(ToInterpret) == sizeof(Interpreted), ToInterpret>::type x)
+{
+	return x;
+}
+
+template<> __fd__ double reinterpret<long long int, double>(long long int x) { return __longlong_as_double(x); }
+template<> __fd__ long long int reinterpret<double, long long int>(double x) { return __double_as_longlong(x); }
+
+template<> __fd__ double reinterpret<unsigned long long int, double>(unsigned long long int x) { return __longlong_as_double(x); }
+template<> __fd__ unsigned long long int reinterpret<double, unsigned long long int>(double x) { return __double_as_longlong(x); }
+
+template<> __fd__ float reinterpret<int, float>(int x) { return __int_as_float(x); }
+template<> __fd__ int reinterpret<float, int>(float x) { return __float_as_int(x); }
+
+} // namespace detail
+*/
+
+/**
+ * @note Interpreted can be either a value or a reference type.
+ *
+ * @todo Would it be better to return a reference?
+ */
+template<typename Interpreted, typename Original>
+__fhd__ Interpreted reinterpret(Original& x)
+{
+	return reinterpret_cast<Interpreted&>(x);
+}
+
 } // namespace kat
-
-
-///@cond
-#include <kat/define_specifiers.hpp>
-///@endcond
-
-//constexpr __fhd__ bool operator==(const dim3& lhs, const dim3& rhs)
-//{
-//	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
-//}
-
 
 ///@cond
 #include <kat/undefine_specifiers.hpp>

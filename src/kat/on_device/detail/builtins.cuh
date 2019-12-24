@@ -55,11 +55,16 @@ template <> __fd__ int population_count<unsigned long long>(unsigned long long x
 template <> __fd__ int      sum_with_absolute_difference<int     >(int x,      int y,      int addend)      { return __sad (x, y, addend); }
 template <> __fd__ unsigned sum_with_absolute_difference<unsigned>(unsigned x, unsigned y, unsigned addend) { return __usad(x, y, addend); }
 
-template <> __fd__ int         absolute_value<int                >(int x)         { return abs(x);   }
-template <> __fd__ long        absolute_value<long               >(long x)        { return labs(x);  }
-template <> __fd__ long long   absolute_value<long long          >(long long x)   { return llabs(x); }
-template <> __fd__ float       absolute_value<float              >(float x)       { return fabsf(x); }
-template <> __fd__ double      absolute_value<double             >(double x)      { return fabs(x);  }
+template <> __fd__ int                absolute_value<int                >(int x)                { return abs(x);   }
+template <> __fd__ long               absolute_value<long               >(long x)               { return labs(x);  }
+template <> __fd__ long long          absolute_value<long long          >(long long x)          { return llabs(x); }
+template <> __fd__ float              absolute_value<float              >(float x)              { return fabsf(x); }
+template <> __fd__ double             absolute_value<double             >(double x)             { return fabs(x);  }
+template <> __fd__ unsigned char      absolute_value<unsigned char      >(unsigned char x)      { return x;        }
+template <> __fd__ unsigned short     absolute_value<unsigned short     >(unsigned short x)     { return x;        }
+template <> __fd__ unsigned           absolute_value<unsigned           >(unsigned x)           { return x;        }
+template <> __fd__ unsigned long      absolute_value<unsigned long      >(unsigned long x)      { return x;        }
+template <> __fd__ unsigned long long absolute_value<unsigned long long >(unsigned long long x) { return x;        }
 
 template <> __fd__ int                bit_reverse<int               >(int x)                { return __brev(x);   }
 template <> __fd__ unsigned           bit_reverse<unsigned          >(unsigned x)           { return __brev(x);   }

@@ -25,15 +25,15 @@ namespace detail {
 template <sleep_resolution Resolution>
 struct sleep_unit;
 
-template  struct sleep_unit<sleep_resolution::clock_cycles> { using type = clock_value_t; };
-template  struct sleep_unit<sleep_resolution::nanoseconds > { using type = unsigned int; };
+template<>  struct sleep_unit<sleep_resolution::clock_cycles> { using type = clock_value_t; };
+template<>  struct sleep_unit<sleep_resolution::nanoseconds > { using type = unsigned int; };
 	// Why unsigned int? See the declaration of nanosleep()...
 
 } // namespace detail
 ///@endcond
 
 template <sleep_resolution Resolution>
-using sleep_unit_t = typename detail::sleep_unit<Resolutiom>::type;
+using sleep_unit_t = typename detail::sleep_unit<Resolution>::type;
 
 
 /**
@@ -43,10 +43,10 @@ using sleep_unit_t = typename detail::sleep_unit<Resolutiom>::type;
  * @note In 2017, a typical GPU clock cycle is around 1 ns (i.e. 1 GHz frequency).
  *
  */
-template <sleep_resolution Resolution>
+template <sleep_resolution Resolution = sleep_resolution::clock_cycles>
 __fd__ void sleep(sleep_unit_t<Resolution> num_cycles);
 
-template
+template<>
 __fd__ void sleep<sleep_resolution::clock_cycles>(
 	sleep_unit_t<sleep_resolution::clock_cycles> num_cycles)
 {
@@ -64,9 +64,9 @@ __fd__ void sleep<sleep_resolution::clock_cycles>(
 
 #if __CUDA_ARCH__ >= 700
 
-template
-__fd__ void sleep<sleep_resolution::clock_cycles>(
-	sleep_unit_t<sleep_resolution::clock_cycles> num_cycles)
+template<>
+__fd__ void sleep<sleep_resolution::nanoseconds>(
+	sleep_unit_t<sleep_resolution::nanoseconds> num_cycles)
 {
 	__nanosleep(unsigned int ns);
 }

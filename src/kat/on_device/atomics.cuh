@@ -18,11 +18,11 @@
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 #define CUDA_KAT_ON_DEVICE_ATOMICS_CUH_
 
+#include <limits>
 
 ///@cond
 #include <kat/define_specifiers.hpp>
 ///@endcond
-#include <limits>
 
 namespace kat {
 namespace atomic {
