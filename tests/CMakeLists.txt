@@ -46,54 +46,37 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRA
 # TODO 2: We're using an extra object target for each test to ensure compilation of .ptx files (the _obj
 # targets). We should try to avoid those.
 
-add_executable(shared_memory shared_memory.cu)
-target_link_libraries(shared_memory PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
-target_include_directories(shared_memory PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-add_test(
-    NAME ${PROJECT_NAME}.shared_memory
-    COMMAND shared_memory ${TEST_RUNNER_PARAMS}
-)
-
-add_executable(math math.cu)
-target_link_libraries(math PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
-target_compile_options(math PRIVATE "--expt-relaxed-constexpr")
-target_include_directories(math PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-add_test(
-    NAME ${PROJECT_NAME}.math
-    COMMAND math ${TEST_RUNNER_PARAMS}
-)
-
-add_executable(shuffle shuffle.cu util/random.cu)
-target_link_libraries(shuffle PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
-target_compile_options(shuffle PRIVATE "--expt-relaxed-constexpr")
-target_include_directories(shuffle PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-add_test(
-    NAME ${PROJECT_NAME}.shuffle
-    COMMAND shuffle ${TEST_RUNNER_PARAMS}
-)
-
-add_executable(constexpr_math constexpr_math.cu)
-target_link_libraries(constexpr_math PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES})
-target_include_directories(constexpr_math PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-add_test(
-	NAME ${PROJECT_NAME}.constexpr_math
-	COMMAND constexpr_math ${TEST_RUNNER_PARAMS}
-)
-
+add_library(test_utils util/random.cu)
 set_target_properties(
-#	failtest
-	shared_memory
-	math
-	constexpr_math
-	shuffle
+	test_utils
 	PROPERTIES 
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED YES 
-    CXX_EXTENSIONS NO
+	CXX_STANDARD 14
+	CXX_STANDARD_REQUIRED YES 
+	CXX_EXTENSIONS NO
 )
+
+set(TESTS shared_memory math shuffle atomics printing constexpr_math)
+
+foreach(TEST_TARGET ${TESTS})
+	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
+	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
+	target_include_directories(${TEST_TARGET} PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
+	target_link_libraries(${TEST_TARGET} PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES} test_utils)
+	set_target_properties(
+		${TEST_TARGET}
+		PROPERTIES 
+		CXX_STANDARD 14
+		CXX_STANDARD_REQUIRED YES 
+		CXX_EXTENSIONS NO
+	)
+	add_test(
+		NAME ${PROJECT_NAME}.${TEST_TARGET}
+		COMMAND ${TEST_TARGET} ${TEST_RUNNER_PARAMS}
+	)
+endforeach(TEST_TARGET)
 
 if (KEEP_PTX)
-	add_library(test_obj OBJECT shared_memory.cu math.cu shuffle.cu)
+	add_library(test_obj OBJECT ${TESTS})
 	target_link_libraries(test_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
 	target_include_directories(test_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
 	target_compile_options(test_obj PRIVATE "--expt-relaxed-constexpr")

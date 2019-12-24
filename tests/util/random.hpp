@@ -93,6 +93,18 @@ constexpr inline void generate_n(
 	return generate(first, first + count, distribution, engine);
 }
 
+template <typename Inserter, typename Size, typename Distribution, typename Engine = std::default_random_engine>
+constexpr inline void insertion_generate_n(
+	Inserter inserter,
+	Size count,
+	Distribution& distribution,
+	Engine& engine = util::random::engine)
+{
+	for(size_t i = 0; i < count; i++) {
+		*(inserter++) = sample_from(distribution, engine);
+	}
+}
+
 
 } // namespace random
 } // namespace util

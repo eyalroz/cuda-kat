@@ -410,4 +410,4 @@ TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
 	}
 }
 
-} // TEST_SUITE("constexpr_math")
+} // TEST_SUITE("math")

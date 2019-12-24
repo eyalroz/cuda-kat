@@ -503,4 +503,4 @@ TEST_CASE_TEMPLATE("multiplication high bits", I, int, unsigned, unsigned long, 
 	}
 }
 
-} // TEST_SUITE("constexpr_math")
+} // TEST_SUITE("builtins (and non-builtins)")
