@@ -19,6 +19,9 @@ find_package(CUDA 8.0 REQUIRED)
 find_package(cuda-api-wrappers REQUIRED)
 find_package(cuda-nvtx REQUIRED) # Actually, it's sort-of required by cuda-api-wrappers
 
+include(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(BUILD_PRINTING_RELATED_TESTS "Build (strf-based) printing-related tests" ON "BUILD_TESTS" ON)
+
 # This overcomes some linking issues I've encountered... I'm sure there's a better solution
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRARY})
 
@@ -55,9 +58,13 @@ set_target_properties(
 	CXX_EXTENSIONS NO
 )
 
-set(TESTS shared_memory math shuffle atomics printing constexpr_math)
+set(tests shared_memory math shuffle atomics constexpr_math)
 
-foreach(TEST_TARGET ${TESTS})
+if (BUILD_PRINTING_RELATED_TESTS)
+	list(APPEND tests printing)
+endif()
+
+foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
 	target_include_directories(${TEST_TARGET} PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
@@ -75,8 +82,12 @@ foreach(TEST_TARGET ${TESTS})
 	)
 endforeach(TEST_TARGET)
 
+if (BUILD_PRINTING_RELATED_TESTS)
+	add_dependencies(printing strf::strf-header-only)
+endif()
+
 if (KEEP_PTX)
-	add_library(test_obj OBJECT ${TESTS})
+	add_library(test_obj OBJECT ${tests})
 	target_link_libraries(test_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
 	target_include_directories(test_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
 	target_compile_options(test_obj PRIVATE "--expt-relaxed-constexpr")
