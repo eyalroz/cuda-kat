@@ -1,7 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
 #include <kat/on_device/math.cuh>
-#include <kat/on_device/printing.cuh>
 #include <kat/on_device/shuffle.cuh>
 #include <kat/containers/array.hpp>
 #include <kat/on_device/atomics.cuh>
@@ -43,7 +42,6 @@ __global__ void test_add(
 	auto global_thread_index = threadIdx.x + blockIdx.x * blockDim.x;
 
 	std::size_t pos = global_thread_index * elements_per_thread;
-	thread_print("Hello");
 	for(int i = 0; (i < elements_per_thread) and (pos < data_size); i++)
 	{
 		kat::atomic::add(result, data[pos]);

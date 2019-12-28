@@ -1,6 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
-#include <kat/on_device/printing.cuh>
 #include <kat/on_device/shuffle.cuh>
 #include <kat/containers/array.hpp>
 

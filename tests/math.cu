@@ -1,11 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
 #include <kat/on_device/math.cuh>
-#include <kat/on_device/printing.cuh>
 
 namespace kernels {
-
-
 
 template <typename I>
 __global__ void try_out_integral_math_functions(I* results, I* __restrict expected)
