@@ -67,8 +67,10 @@ endif()
 foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
-	target_include_directories(${TEST_TARGET} PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-	target_link_libraries(${TEST_TARGET} PRIVATE ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES} test_utils)
+	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES} test_utils)
+	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
+	target_include_directories(${TEST_TARGET} PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR} ${PROJECT_SOURCE_DIR}/src)
+
 	set_target_properties(
 		${TEST_TARGET}
 		PROPERTIES 
@@ -83,14 +85,14 @@ foreach(TEST_TARGET ${tests})
 endforeach(TEST_TARGET)
 
 if (BUILD_PRINTING_RELATED_TESTS)
-	add_dependencies(printing strf::strf-header-only)
+	target_link_libraries(printing PRIVATE strf::strf-header-only)
 endif()
 
 if (KEEP_PTX)
 	add_library(test_obj OBJECT ${tests})
-	target_link_libraries(test_obj ${LIBRARY_NAME} cudart ${CUDA_API_WRAPPERS_LIB} doctest)
+	target_link_libraries(test_obj PRIVATE cuda-kat cudart ${CUDA_API_WRAPPERS_LIB} doctest)
 	target_include_directories(test_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-	target_compile_options(test_obj PRIVATE "--expt-relaxed-constexpr")
+	target_compile_options(test_obj PRIVATE --expt-relaxed-constexpr)
 
 	# Note: The constexpr_math test doesn't have any kernel code
 

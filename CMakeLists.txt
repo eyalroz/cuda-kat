@@ -12,8 +12,10 @@
 cmake_minimum_required(VERSION 3.8.2)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
-project(cuda-kat LANGUAGES CXX CUDA)
-set(LIBRARY_NAME cuda-kat)
+project(cuda-kat
+	DESCRIPTION "CUDA kernel author's tools"
+	HOMEPAGE_URL "https://github.com/eyalroz/cuda-kat"
+	LANGUAGES CXX CUDA)
 
 ###############
 ##  Modules  ##
@@ -40,7 +42,6 @@ find_package(strf)
 ##  OPTIONS  ##
 ###############
 
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 #message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(BUILD_TESTS FALSE CACHE BOOL "Build tests for the library")
@@ -53,10 +54,10 @@ set(KEEP_PTX FALSE CACHE BOOL "Keep kernel PTX files for build targets")
 
 add_library(cuda-kat INTERFACE)
 target_include_directories(
-    cuda-kat
-    INTERFACE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
-    "$<INSTALL_INTERFACE:include>"
+	cuda-kat
+	INTERFACE
+	"$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
+	"$<INSTALL_INTERFACE:include>"
 )
 
 
@@ -75,9 +76,9 @@ target_include_directories(
 #############
 
 if(BUILD_TESTS)
-    enable_testing()
-    # set(TEST_RUNNER_PARAMS "--force-colors=true" CACHE STRING "Options to add to our test runners commands")
-    add_subdirectory(tests)
+	enable_testing()
+	# set(TEST_RUNNER_PARAMS "--force-colors=true" CACHE STRING "Options to add to our test runners commands")
+	add_subdirectory(tests)
 endif()
 
 
@@ -85,4 +86,25 @@ endif()
 ##  Installation  ##
 ####################
 
-# WRITE ME!
+include(GNUInstallDirs)
+
+install(
+	TARGETS cuda-kat
+	EXPORT cuda-kat_export
+	INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+)
+
+install(
+	DIRECTORY src
+	DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+	FILES_MATCHING REGEX "\\.(h|hpp|cuh)$"
+)
+
+install(
+	EXPORT cuda-kat_export
+	DESTINATION "share/cmake/cuda-kat"
+	NAMESPACE "cuda-kat::"
+	# In this CMake config file no dependencies are considered. But since we
+	# do not use any `find_package` call here this approach is sufficient.
+	FILE cuda-kat-config.cmake
+)
