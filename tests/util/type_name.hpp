@@ -2,6 +2,7 @@
 #ifndef UTIL_TYPE_NAME_HPP_
 #define UTIL_TYPE_NAME_HPP_
 
+#include "poor_mans_constexpr_string.hpp"
 #include <type_traits>
 #include <typeinfo>
 #include <iostream>
@@ -12,7 +13,54 @@
 #include <sstream>
 #include <memory>
 
+
+///@cond
+#include <kat/define_specifiers.hpp>
+///@endcond
+
 namespace util {
+
+template <class T>
+CONSTEXPR14_TN __hd__ constexpr_string type_name()
+{
+#ifdef __clang__
+    constexpr_string p = __PRETTY_FUNCTION__;
+    return constexpr_string(p.data() + 31, p.size() - 31 - 1);
+//#elif defined(__CUDA_ARCH__)
+//    constexpr_string p = __PRETTY_FUNCTION__;
+//    return constexpr_string(p.data(), p.size());
+#elif defined(__CUDACC__)
+    constexpr_string p = __PRETTY_FUNCTION__;
+#  if __cplusplus < 201402 || defined(__CUDA_ARCH__)
+    return constexpr_string(p.data() + 51, p.size() - 51 - 1); // 50 is the length of util::constexpr_string util::type_name() [with T =
+#  else
+    return constexpr_string(p.data() + 61, p.size() - 61 - 1); // 50 is the length of constexpr util::constexpr_string util::type_name() [with T =
+#  endif
+#elif defined(__GNUC__)
+    constexpr_string p = __PRETTY_FUNCTION__;
+#  if __cplusplus < 201402
+    return constexpr_string(p.data() + 36, p.size() - 36 - 1);
+#  else
+    return constexpr_string(p.data() + 46, p.size() - 46 - 1);
+#  endif
+#elif defined(_MSC_VER)
+    constexpr_string p = __FUNCSIG__;
+    return constexpr_string(p.data() + 38, p.size() - 38 - 7);
+#endif
+}
+
+/*template <class T>
+CONSTEXPR14_TN __fhd__ constexpr_string type_name(T&&)
+{
+	return type_name<T>();
+}
+
+template <class T>
+CONSTEXPR14_TN __fhd__ constexpr_string type_name(const T&)
+{
+	return type_name<T>();
+}*/
+
 
 /**
  * A function for obtaining the string name
@@ -31,7 +79,7 @@ namespace util {
 
 
 template <typename T, bool WithCVCorrections = false>
-std::string type_name()
+std::string type_name_()
 {
 	typedef typename std::remove_reference<T>::type TR;
 
@@ -74,8 +122,8 @@ std::string type_name_of(const T& v) { return util::type_name<T, WithCVCorrectio
 
 
 template <typename... Ts>
-auto type_names() -> decltype(std::make_tuple(type_name<Ts>()...))
-{ return std::make_tuple(type_name<Ts>()...); }
+auto type_names_() -> decltype(std::make_tuple(type_name_<Ts>()...))
+{ return std::make_tuple(type_name_<Ts>()...); }
 
 
 /**
@@ -113,5 +161,10 @@ inline std::string discard_template_parameters(const std::string& type_name)
 }
 
 } /* namespace util */
+
+
+///@cond
+#include <kat/undefine_specifiers.hpp>
+///@endcond
 
 #endif /* UTIL_TYPE_NAME_HPP_ */
