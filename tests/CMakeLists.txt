@@ -58,7 +58,7 @@ set_target_properties(
 	CXX_EXTENSIONS NO
 )
 
-set(tests shared_memory math shuffle atomics constexpr_math)
+set(tests shared_memory math shuffle atomics constexpr_math time)
 
 if (BUILD_PRINTING_RELATED_TESTS)
 	list(APPEND tests printing)
