@@ -40,12 +40,10 @@ using size_t = std::size_t;
 inline __device__
 int strcmp(const char* lhs, const char* rhs)
 {
-	do {
-		if (*lhs > *rhs) { return  1; }
-		if (*rhs < *lhs) { return -1; }
+    while((*lhs != '\0') and (*rhs == *lhs)) {
 		lhs++, rhs++;
-	} while(*lhs != '\0');
-	return 0;
+    }
+    return ((unsigned char) *lhs) - ((unsigned char) *rhs);
 }
 
 /**
@@ -60,12 +58,13 @@ int strcmp(const char* lhs, const char* rhs)
 inline __device__
 int strncmp(const char* lhs, const char* rhs, size_t n)
 {
-	for(size_t i = 0; i < n; i++) {
-		if (lhs[i] > rhs[i]) { return  1; }
-		if (rhs[i] < lhs[i]) { return -1; }
-		if (lhs[i] == '\0') { break; }
+	while (n && *lhs && (*lhs == *rhs)) {
+		++lhs;
+		++rhs;
+		--n;
 	}
-	return 0;
+	if (n == 0) { return 0; }
+	return (*(unsigned char *) lhs - *(unsigned char *) rhs);
 }
 
 /**
@@ -82,11 +81,11 @@ int strncmp(const char* lhs, const char* rhs, size_t n)
 inline __device__
 int memcmp(const void* lhs, const void* rhs, size_t n)
 {
-	const char* lhs_as_chars;
-	const char* rhs_as_chars;
+	auto lhs_as_chars = static_cast<const char*>(lhs);
+	auto rhs_as_chars = static_cast<const char*>(rhs);
 	for(size_t i = 0; i < n; i++) {
 		if (lhs_as_chars[i] > rhs_as_chars[i]) { return  1; }
-		if (rhs_as_chars[i] < lhs_as_chars[i]) { return -1; }
+		if (lhs_as_chars[i] < rhs_as_chars[i]) { return -1; }
 	}
 	return 0;
 }
@@ -101,9 +100,10 @@ int memcmp(const void* lhs, const void* rhs, size_t n)
 inline __device__
 char* strcpy(char *dst, const char *src)
 {
+	auto ret = dst;
 	while (*src != '\0') { *(dst++) = *(src++); }
 	*dst = *src;
-	return dst;
+	return ret;
 }
 
 /**
@@ -121,13 +121,14 @@ inline __device__
 char* strncpy(char *dst, const char *src, size_t n)
 {
 	size_t i = 0;
+	auto ret = dst;
 	for(; i < n && *src != '\0'; i++, src++, dst++) {
 		*dst = *src;
 	}
 	for(; i < n; i++, dst++) {
 		*dst = '\0';
 	}
-	return dst;
+	return ret;
 }
 
 /**
@@ -155,7 +156,8 @@ std::size_t strlen(const char *s)
 inline __device__
 char *strcat(char *dest, const char *src)
 {
-	return strcpy(dest + strlen(dest), src);
+	strcpy(dest + strlen(dest), src);
+	return dest;
 }
 
 /**
@@ -172,7 +174,8 @@ char *strcat(char *dest, const char *src)
 inline __device__
 char *strncat(char *dest, const char *src, size_t n)
 {
-	return strncpy(dest + strlen(dest), src, n);
+	strncpy(dest + strlen(dest), src, n);
+	return dest;
 }
 
 /**
@@ -241,9 +244,12 @@ void *memchr(const void *s, int c, size_t n)
 inline __device__
 char *strchr(const char *s, int c)
 {
-	for(const char* p = s; *p != '\0'; p++) {
-		if (*p == c) { return const_cast<char*>(p); }
-	}
+	const char* p = s;
+	do {
+		if (*p == static_cast<char>(c)) {
+			return const_cast<char*>(p);
+		}
+	} while(*(p++) != '\0');
 	return nullptr;
 }
 
@@ -259,9 +265,10 @@ inline __device__
 char *strrchr(const char *s, int c)
 {
 	const char* last = nullptr;
-	for(const char* p = s ; *p != '\0'; p++) {
+	const char* p = s;
+	do {
 		if (*p == c) { last = p; }
-	}
+	} while(*(p++) != '\0');
 	return const_cast<char*>(last);
 }
 
@@ -297,43 +304,39 @@ size_t strcspn(const char *s, const char *reject)
 inline __device__
 char *strstr(const char *haystack, const char *needle)
 {
-	size_t needle_length = strlen(needle);
-	size_t haystack_length = strlen(haystack);
-	if (haystack_length < needle_length) { return nullptr; }
-	const char* last_possible_location = haystack + haystack_length - needle_length;
-	const char* p = haystack;
+	auto match_prefix = [](const char* s, const char* prefix) {
+	    while((*prefix != '\0') and (*s == *prefix)) {
+			s++, prefix++;
+	    }
+	    return (*prefix == '\0');
+	};
+
 	do {
-		size_t i = 0;
-		while (i < needle_length) {
-			if (p[i] == needle[i]) { break; }
-			i++;
+		if (match_prefix(haystack, needle)) {
+			return const_cast<char *>(haystack);
 		}
-		bool found_match = (i != needle_length);
-		if (found_match) { return const_cast<char*>(p); }
-		p++;
-	} while (p <= last_possible_location);
-	return nullptr;
+	} while(*(haystack++) != '\0');
+	return (*needle == '\0') ? const_cast<char *>(haystack) : nullptr;
 }
 
 // Naive O(|haystack| * |needle|) implementation!
 inline __device__
 char *strrstr(const char *haystack, const char *needle)
 {
-	size_t needle_length   = strlen(needle);
-	size_t haystack_length = strlen(haystack);
-	if (haystack_length < needle_length) { return nullptr; }
-	const char* p = haystack - needle_length;
+	auto match_prefix = [](const char* s, const char* prefix) {
+	    while((*prefix != '\0') and (*s == *prefix)) {
+			s++, prefix++;
+	    }
+	    return (*prefix == '\0');
+	};
+
+	const char* last_match = nullptr;
 	do {
-		size_t i = 0;
-		while (i < needle_length) {
-			if (p[i] == needle[i]) { break; }
-			i++;
+		if (match_prefix(haystack, needle)) {
+			last_match = haystack;
 		}
-		bool found_match = (i != needle_length);
-		if (found_match) { return const_cast<char*>(p); }
-		p--;
-	} while (p >= haystack); // This assumes haystack is not 0.
-	return nullptr;
+	} while(*(haystack++) != '\0');
+	return const_cast<char *>((*needle == '\0') ? haystack : last_match);
 }
 
 
