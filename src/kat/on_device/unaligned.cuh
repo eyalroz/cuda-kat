@@ -11,7 +11,6 @@
 
 #include <kat/on_device/ptx.cuh>
 #include <kat/detail/pointers.cuh>
-#include <kat/on_device/miscellany.cuh>
 
 #include <cstdint>
 #include <type_traits>

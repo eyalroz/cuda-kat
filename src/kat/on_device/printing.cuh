@@ -10,7 +10,6 @@
 #define CUDA_KAT_ON_DEVICE_PRINTING_CUH_
 
 #include <kat/on_device/grid_info.cuh>
-#include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/builtins.cuh>
 #include <kat/on_device/c_standard_library/string.cuh>
 #include <kat/on_device/detail/itoa.cuh>

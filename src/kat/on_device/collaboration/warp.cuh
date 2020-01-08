@@ -22,7 +22,6 @@
 #include <kat/on_device/ptx.cuh>
 #include <kat/on_device/math.cuh>
 #include <kat/on_device/common.cuh>
-#include <kat/on_device/miscellany.cuh>
 
 #include <type_traits>
 

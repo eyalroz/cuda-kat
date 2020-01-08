@@ -14,7 +14,6 @@
 #define BLOCK_LEVEL_PRIMITIVES_CUH_
 
 #include <kat/on_device/collaboration/warp.cuh>
-#include <kat/on_device/miscellany.cuh>
 #include <kat/on_device/shared_memory/basic.cuh>
 #include <kat/on_device/common.cuh>
 #include <kat/on_device/math.cuh>
