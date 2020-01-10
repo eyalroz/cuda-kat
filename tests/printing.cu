@@ -6,7 +6,6 @@
 //#include "util/random.hpp"
 //#include "util/miscellany.cuh"
 //#include "util/macro.h"
-//#include <kat/on_device/sstream/sostream.cuh>
 
 
 #include <doctest.h>

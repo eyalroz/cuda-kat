@@ -1,7 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "macro.h"
 #include "common.cuh"
-#include "utilities.cuh"
 #include <kat/on_device/builtins.cuh>
 #include <kat/on_device/non-builtins.cuh>
 #include <limits>
