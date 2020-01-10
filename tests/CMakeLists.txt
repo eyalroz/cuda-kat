@@ -86,6 +86,7 @@ endforeach(TEST_TARGET)
 
 if (BUILD_PRINTING_RELATED_TESTS)
 	target_link_libraries(printing PRIVATE strf::strf-header-only)
+	target_compile_options(printing PRIVATE --ptxas-options --suppress-stack-size-warning)
 endif()
 
 if (KEEP_PTX)
