@@ -15,7 +15,7 @@
 #include <kat/on_device/sequence_ops/warp.cuh>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -49,7 +49,7 @@ namespace warp_to_grid {
  * @param fragment_length
  */
 template <typename T, typename Size = size_t>
-__fd__ void collaborative_append_to_global_memory(
+KAT_FD void collaborative_append_to_global_memory(
 	T*     __restrict__  global_output,
 	Size*  __restrict__  global_output_length,
 	T*     __restrict__  fragment_to_append,
@@ -83,10 +83,5 @@ __fd__ void collaborative_append_to_global_memory(
 } // namespace warp_to_grid
 } // namespace collaborative
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_GRID_COLLABORATIVE_SEQUENCE_OPS_CUH_

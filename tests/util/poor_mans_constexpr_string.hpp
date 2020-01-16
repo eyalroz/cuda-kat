@@ -7,7 +7,7 @@
 #include <ostream>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 #  if __cplusplus < 201103
@@ -29,23 +29,23 @@ public:
     typedef const char* const_iterator;
 
     template <std::size_t N>
-    constexpr __fhd__ constexpr_string(const char(&a)[N]) noexcept
+    constexpr KAT_FHD constexpr_string(const char(&a)[N]) noexcept
         : p_(a)
         , sz_(N-1)
         {}
 
-    constexpr __fhd__ constexpr_string(const char* p, std::size_t N) noexcept
+    constexpr KAT_FHD constexpr_string(const char* p, std::size_t N) noexcept
         : p_(p)
         , sz_(N)
         {}
 
-    constexpr __fhd__ const char* data() const noexcept {return p_;}
-    constexpr __fhd__ std::size_t size() const noexcept {return sz_;}
+    constexpr KAT_FHD const char* data() const noexcept {return p_;}
+    constexpr KAT_FHD std::size_t size() const noexcept {return sz_;}
 
-    constexpr __fhd__ const_iterator begin() const noexcept {return p_;}
-    constexpr __fhd__ const_iterator end()   const noexcept {return p_ + sz_;}
+    constexpr KAT_FHD const_iterator begin() const noexcept {return p_;}
+    constexpr KAT_FHD const_iterator end()   const noexcept {return p_ + sz_;}
 
-    constexpr __fhd__ char operator[](std::size_t n) const
+    constexpr KAT_FHD char operator[](std::size_t n) const
     {
     	return n < sz_ ? p_[n] :
 #ifdef __CUDA_ARCH__
@@ -56,7 +56,7 @@ public:
     }
 };
 
-__fhd__
+KAT_FHD
 std::ostream&
 operator<<(std::ostream& os, constexpr_string const& s)
 {
@@ -64,9 +64,6 @@ operator<<(std::ostream& os, constexpr_string const& s)
 }
 
 } // namespace util
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
+#include <kat/detail/execution_space_specifiers.hpp>
 
 #endif // CUDA_KAT_TEST_POOR_MANS_CONSTEXPR_STRING_HPP_

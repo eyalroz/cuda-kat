@@ -14,7 +14,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -32,7 +32,7 @@ namespace ptx {
  * through the usual (read-write) caches
  */
 template <typename T>
-__fd__ T ldg(const T* ptr)
+KAT_FD T ldg(const T* ptr)
 {
 #if __CUDA_ARCH__ >= 320
 	return __ldg(ptr);
@@ -46,7 +46,7 @@ __fd__ T ldg(const T* ptr)
  * of the CUDA PTX reference for details on these instructions.
  */
 #define DEFINE_IS_IN_MEMORY_SPACE(_which_space) \
-__fd__ int32_t is_in_ ## _which_space ## _memory (const void *ptr) \
+KAT_FD int32_t is_in_ ## _which_space ## _memory (const void *ptr) \
 { \
 	int32_t result; \
 	asm ("{\n\t" \
@@ -78,7 +78,7 @@ DEFINE_IS_IN_MEMORY_SPACE(shared) // is_in_shared_memory
  */
 
 #define DEFINE_BFIND(ptx_value_type) \
-__fd__ uint32_t \
+KAT_FD uint32_t \
 bfind(CPP_TYPE_BY_PTX_TYPE(ptx_value_type) val) \
 { \
 	uint32_t ret;  \
@@ -96,7 +96,7 @@ DEFINE_BFIND(u64) // bfind
 #undef DEFINE_BFIND
 
 #define DEFINE_PRMT_WITH_MODE(selection_mode_name, selection_mode) \
-__fd__  uint32_t prmt_ ## selection_mode_name (uint32_t first, uint32_t second, uint32_t control_bits) \
+KAT_FD  uint32_t prmt_ ## selection_mode_name (uint32_t first, uint32_t second, uint32_t control_bits) \
 { \
 	uint32_t result; \
 	asm("prmt.b32." PTX_STRINGIFY(selection_mode) " %0, %1, %2, %3;" \
@@ -119,7 +119,7 @@ DEFINE_PRMT_WITH_MODE( edge_clam_right,    ecl  ) // prmt_edge_clam_right
 /**
  * @brief Aborts execution (of the entire kernel grid) and generates an interrupt to the host CPU.
  */
-__fd__  void trap()
+KAT_FD  void trap()
 {
 	asm("trap;");
 }
@@ -127,7 +127,7 @@ __fd__  void trap()
 /**
  * Ends execution of the current thread of this kernel/grid
  */
-__fd__ void exit()
+KAT_FD void exit()
 {
 	asm("exit;");
 }
@@ -149,7 +149,7 @@ __fd__ void exit()
  * @note Only the lower 16 bits of byte_selectors are used.
  * @note "prmt" stands for "permute"
  */
-__fd__ uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
+KAT_FD uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
 {
 	uint32_t result;
 	asm("prmt.b32 %0, %1, %2, %3;"
@@ -169,7 +169,7 @@ __fd__ uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
  * I'll take a different route.
  */
 #define DEFINE_BFE(ptx_value_type) \
-__fd__ CPP_TYPE_BY_PTX_TYPE(ptx_value_type) \
+KAT_FD CPP_TYPE_BY_PTX_TYPE(ptx_value_type) \
 bfe( \
 	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) bits, \
 	uint32_t start_position, \
@@ -193,7 +193,7 @@ DEFINE_BFE(u64) // bfe
 
 #undef DEFINE_BFE
 
-__fd__ uint32_t
+KAT_FD uint32_t
 bfi(
 	uint32_t  bits_to_insert,
 	uint32_t  existing_bit_field,
@@ -212,7 +212,7 @@ bfi(
 	return ret;
 }
 
-__fd__ uint64_t
+KAT_FD uint64_t
 bfi(
 	uint64_t  bits_to_insert,
 	uint64_t  existing_bit_field,
@@ -236,10 +236,6 @@ bfi(
 
 
 #include "detail/undefine_macros.cuh"
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
 

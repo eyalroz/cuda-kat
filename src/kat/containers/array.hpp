@@ -36,7 +36,7 @@
 #include <kat/detail/constexpr_by_cpp_version.hpp>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -47,8 +47,8 @@ struct array_traits
 {
 	typedef T type[NumElements];
 
-	__fhd__ static constexpr T& reference(const type& t, size_t n) noexcept { return const_cast<T&>(t[n]); }
-	__fhd__ static constexpr T* pointer(const type& t) noexcept             { return const_cast<T*>(t); }
+	KAT_FHD static constexpr T& reference(const type& t, size_t n) noexcept { return const_cast<T&>(t[n]); }
+	KAT_FHD static constexpr T* pointer(const type& t) noexcept             { return const_cast<T*>(t); }
 };
 
 template<typename T>
@@ -56,8 +56,8 @@ struct array_traits<T, 0>
 {
 	struct type { };
 
-	__fhd__ static constexpr T& reference(const type&, size_t) noexcept     { return *static_cast<T*>(nullptr); }
-	__fhd__ static constexpr T* pointer(const type&) noexcept               { return nullptr; }
+	KAT_FHD static constexpr T& reference(const type&, size_t) noexcept     { return *static_cast<T*>(nullptr); }
+	KAT_FHD static constexpr T* pointer(const type&) noexcept               { return nullptr; }
 };
 ///@endcond
 
@@ -91,14 +91,14 @@ struct array
 	// No explicit construct/copy/destroy for aggregate type.
 
 	// DR 776.
-	__fhd__ CONSTEXPR_SINCE_CPP_14 void fill(const value_type& u)
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 void fill(const value_type& u)
 	{
 		//std::fill_n(begin(), size(), __u);
 		for(size_type i = 0; i < NumElements; i++) { elements[i] = u; }
 	}
 
 	// Does the noexcept matter here?
-	__fhd__ CONSTEXPR_SINCE_CPP_14 void swap(array& other) noexcept(noexcept(swap(std::declval<T&>(), std::declval<T&>())))
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap(array& other) noexcept(noexcept(swap(std::declval<T&>(), std::declval<T&>())))
 	{
 		// std::swap_ranges(begin(), end(), other.begin());
 		for(size_type i = 0; i < NumElements; i++)
@@ -112,98 +112,97 @@ struct array
 
 	// Iterators.
 
-	__fhd__ CONSTEXPR_SINCE_CPP_14 iterator begin() noexcept { return iterator(data()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_iterator begin() const noexcept { return const_iterator(data()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 iterator end() noexcept { return iterator(data() + NumElements); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_iterator end() const noexcept { return const_iterator(data() + NumElements); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_iterator cbegin() const noexcept	{ return const_iterator(data()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_iterator cend() const noexcept { return const_iterator(data() + NumElements); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(end()); }
-	__fhd__ CONSTEXPR_SINCE_CPP_14 const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 iterator begin() noexcept { return iterator(data()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_iterator begin() const noexcept { return const_iterator(data()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 iterator end() noexcept { return iterator(data() + NumElements); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_iterator end() const noexcept { return const_iterator(data() + NumElements); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_iterator cbegin() const noexcept	{ return const_iterator(data()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_iterator cend() const noexcept { return const_iterator(data() + NumElements); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(end()); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
 	// Capacity.
 
-	__fhd__ constexpr size_type size() const noexcept { return NumElements; }
-	__fhd__ constexpr size_type max_size() const noexcept { return NumElements; }
-	__fhd__ constexpr bool empty() const noexcept { return size() == 0; }
+	KAT_FHD constexpr size_type size() const noexcept { return NumElements; }
+	KAT_FHD constexpr size_type max_size() const noexcept { return NumElements; }
+	KAT_FHD constexpr bool empty() const noexcept { return size() == 0; }
 
 	// Element access.
 
-	__fhd__ CONSTEXPR_SINCE_CPP_14 reference operator[](size_type n) noexcept { return array_traits_type::reference(elements, n); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 reference operator[](size_type n) noexcept { return array_traits_type::reference(elements, n); }
 
-	__fhd__ constexpr const_reference operator[](size_type n) const noexcept { return array_traits_type::reference(elements, n); }
+	KAT_FHD constexpr const_reference operator[](size_type n) const noexcept { return array_traits_type::reference(elements, n); }
 
 	// Note: no bounds checking.
-	__fhd__ CONSTEXPR_SINCE_CPP_14 reference at(size_type n) { return array_traits_type::reference(elements, n); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 reference at(size_type n) { return array_traits_type::reference(elements, n); }
 
-	__fhd__ constexpr const_reference at(size_type n) const
+	KAT_FHD constexpr const_reference at(size_type n) const
 	{
 		// No bounds checking
 		return array_traits_type::reference(elements, n);
 	}
 
-	__fhd__ CONSTEXPR_SINCE_CPP_14 reference front() noexcept
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 reference front() noexcept
 	{ return *begin(); }
 
-	__fhd__ constexpr const_reference front() const noexcept
+	KAT_FHD constexpr const_reference front() const noexcept
 	{ return array_traits_type::reference(elements, 0); }
 
-	__fhd__ reference back() noexcept
+	KAT_FHD reference back() noexcept
 	{ return NumElements ? *(end() - 1) : *end(); }
 
-	__fhd__ constexpr const_reference back() const noexcept
+	KAT_FHD constexpr const_reference back() const noexcept
 	{
 		return NumElements ?
 			array_traits_type::reference(elements, NumElements - 1) :
 			array_traits_type::reference(elements, 0);
 	}
 
-	__fhd__ CONSTEXPR_SINCE_CPP_14 pointer data() noexcept { return array_traits_type::pointer(elements); }
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 pointer data() noexcept { return array_traits_type::pointer(elements); }
 
-	__fhd__ constexpr const_pointer data() const noexcept { return array_traits_type::pointer(elements); }
+	KAT_FHD constexpr const_pointer data() const noexcept { return array_traits_type::pointer(elements); }
 };
 
 // Array comparisons.
 template<typename T, size_t NumElements>
-__fhd__ CONSTEXPR_SINCE_CPP_17
+KAT_FHD CONSTEXPR_SINCE_CPP_17
 bool operator==(const array<T, NumElements>& one, const array<T, NumElements>& two)
 {
 	return std::equal(one.begin(), one.end(), two.begin());
 }
 
 template<typename T, size_t NumElements>
-__fhd__ CONSTEXPR_SINCE_CPP_17 bool
+KAT_FHD CONSTEXPR_SINCE_CPP_17 bool
 operator!=(const array<T, NumElements>& one, const array<T, NumElements>& two)
 { return !(one == two); }
 
 template<typename T, size_t NumElements>
-__fhd__ bool CONSTEXPR_SINCE_CPP_17
+KAT_FHD bool CONSTEXPR_SINCE_CPP_17
 operator<(const array<T, NumElements>& a, const array<T, NumElements>& b)
 {
 	return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
 }
 
 template<typename T, size_t NumElements>
-__fhd__ bool CONSTEXPR_SINCE_CPP_17
+KAT_FHD bool CONSTEXPR_SINCE_CPP_17
 operator>(const array<T, NumElements>& one, const array<T, NumElements>& two)
 {
 	return two < one;
 }
 
 template<typename T, size_t NumElements>
-__fhd__ bool CONSTEXPR_SINCE_CPP_17
+KAT_FHD bool CONSTEXPR_SINCE_CPP_17
 operator<=(const array<T, NumElements>& one, const array<T, NumElements>& two)
 {
 	return !(one > two);
 }
 
 template<typename T, size_t NumElements>
-/* __forceinline__ __device__ */
-__fhd__ bool CONSTEXPR_SINCE_CPP_17
+KAT_FHD bool CONSTEXPR_SINCE_CPP_17
 operator>=(const array<T, NumElements>& one, const array<T, NumElements>& two)
 {
 	return !(one < two);
@@ -211,28 +210,28 @@ operator>=(const array<T, NumElements>& one, const array<T, NumElements>& two)
 
 // Specialized algorithms.
 template<typename T, size_t NumElements>
-__fhd__ CONSTEXPR_SINCE_CPP_14 void swap(array<T, NumElements>& one, array<T, NumElements>& two)
+KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap(array<T, NumElements>& one, array<T, NumElements>& two)
 noexcept(noexcept(one.swap(two)))
 {
 	one.swap(two);
 }
 
 template<size_t Integer, typename T, size_t NumElements>
-__fhd__ constexpr T& get(array<T, NumElements>& arr) noexcept
+KAT_FHD constexpr T& get(array<T, NumElements>& arr) noexcept
 {
 	static_assert(Integer < NumElements, "index is out of bounds");
 	return array_traits<T, NumElements>::reference(arr.elements, Integer);
 }
 
 template<size_t Integer, typename T, size_t NumElements>
-__fhd__ constexpr T&& get(array<T, NumElements>&& arr) noexcept
+KAT_FHD constexpr T&& get(array<T, NumElements>&& arr) noexcept
 {
 	static_assert(Integer < NumElements, "index is out of bounds");
 	return std::move(get<Integer>(arr));
 }
 
 template<size_t Integer, typename T, size_t NumElements>
-__fhd__ constexpr const T& get(const array<T, NumElements>& arr) noexcept
+KAT_FHD constexpr const T& get(const array<T, NumElements>& arr) noexcept
 {
 	static_assert(Integer < NumElements, "index is out of bounds");
 	return array_traits<T, NumElements>::reference(arr.elements, Integer);
@@ -269,9 +268,5 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 
 } // namespace kat
 
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_CONTAINERS_ARRAY_HPP_

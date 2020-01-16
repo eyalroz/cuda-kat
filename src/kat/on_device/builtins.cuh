@@ -27,7 +27,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -48,16 +48,16 @@ namespace builtins {
  * without upcasting, the value of x * y is the lower n bits of the result;
  * this lets you get the upper bits, without performing a 2n-by-2n multiplication
  */
-template <typename I> __fd__  I multiplication_high_bits(I x, I y);
+template <typename I> KAT_FD  I multiplication_high_bits(I x, I y);
 
 /**
  * Division which becomes faster and less precise than regular "/",
  * when --use-fast-math is specified; otherwise it's the same as regular "/".
  */
-template <typename F> __fd__ F divide(F dividend, F divisor);
-template <typename T> __fd__ T absolute_value(T x);
-template <typename T> __fd__ T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
-template <typename T> __fd__ T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
+template <typename F> KAT_FD F divide(F dividend, F divisor);
+template <typename T> KAT_FD T absolute_value(T x);
+template <typename T> KAT_FD T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
+template <typename T> KAT_FD T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 
 /**
  * @brief Computes @p addend + |@p x- @p y| .
@@ -65,7 +65,7 @@ template <typename T> __fd__ T maximum(T x, T y) = delete; // don't worry, it's 
  * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
  * of the PTX ISA reference.
  */
-template <typename I1, typename I2> __fd__ I2 sum_with_absolute_difference(I1 x, I1 y, I2 addend);
+template <typename I1, typename I2> KAT_FD I2 sum_with_absolute_difference(I1 x, I1 y, I2 addend);
 
 
 // --------------------------------------------
@@ -75,12 +75,12 @@ template <typename I1, typename I2> __fd__ I2 sum_with_absolute_difference(I1 x,
 // Bit and byte manipulation
 // --------------------------------------------
 
-template <typename I> __fd__ int population_count(I x);
-template <typename I> __fd__ I bit_reverse(I x) = delete;
+template <typename I> KAT_FD int population_count(I x);
+template <typename I> KAT_FD I bit_reverse(I x) = delete;
 
-template <typename I> __fd__ unsigned find_last_non_sign_bit(I x) = delete;
-template <typename T> __fd__ T load_global_with_non_coherent_cache(const T* ptr);
-template <typename I> __fd__ int count_leading_zeros(I x) = delete;
+template <typename I> KAT_FD unsigned find_last_non_sign_bit(I x) = delete;
+template <typename T> KAT_FD T load_global_with_non_coherent_cache(const T* ptr);
+template <typename I> KAT_FD int count_leading_zeros(I x) = delete;
 
 
 namespace bit_field {
@@ -95,16 +95,16 @@ namespace bit_field {
  * @todo CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
  * For now only adopting his implementation for the 32-bit case.
  */
-template <typename T> __fd__ T extract(T bit_field, unsigned int start_pos, unsigned int num_bits);
-template <typename T> __fd__ T insert(T original_bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
+template <typename T> KAT_FD T extract(T bit_field, unsigned int start_pos, unsigned int num_bits);
+template <typename T> KAT_FD T insert(T original_bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
 
 // TODO: Implement these.
-//template <typename BitField, typename T> __fd__ T extract(BitField bit_field, unsigned int start_pos);
-//template <typename BitField, typename T> __fd__ BitField insert(BitField original_bit_field, T bits_to_insert, unsigned int start_pos);
+//template <typename BitField, typename T> KAT_FD T extract(BitField bit_field, unsigned int start_pos);
+//template <typename BitField, typename T> KAT_FD BitField insert(BitField original_bit_field, T bits_to_insert, unsigned int start_pos);
 
 } // namespace bit_field
 
-template <typename T> __fd__ T select_bytes(T x, T y, unsigned byte_selector);
+template <typename T> KAT_FD T select_bytes(T x, T y, unsigned byte_selector);
 
 /**
  * Use this to select which variant of the funnel shift intrinsic to use
@@ -136,7 +136,7 @@ template <
 	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
 		funnel_shift_amount_resolution_mode_t::take_lower_bits
 >
-__fd__ native_word_t funnel_shift(
+KAT_FD native_word_t funnel_shift(
 	native_word_t  low_word,
 	native_word_t  high_word,
 	native_word_t  shift_amount);
@@ -147,7 +147,7 @@ __fd__ native_word_t funnel_shift(
  * @brief compute the average of two values without needing special
  * accounting for overflow
  */
-template <bool Signed, bool Rounded = false> __fd__
+template <bool Signed, bool Rounded = false> KAT_FD
 typename std::conditional<Signed, int, unsigned>::type average(
 	typename std::conditional<Signed, int, unsigned>::type x,
 	typename std::conditional<Signed, int, unsigned>::type y);
@@ -159,58 +159,58 @@ typename std::conditional<Signed, int, unsigned>::type average(
  */
 namespace special_registers {
 
-__fd__ unsigned           lane_index();
-__fd__ unsigned           symmetric_multiprocessor_index();
-__fd__ unsigned long long grid_index();
-__fd__ unsigned int       dynamic_shared_memory_size();
-__fd__ unsigned int       total_shared_memory_size();
+KAT_FD unsigned           lane_index();
+KAT_FD unsigned           symmetric_multiprocessor_index();
+KAT_FD unsigned long long grid_index();
+KAT_FD unsigned int       dynamic_shared_memory_size();
+KAT_FD unsigned int       total_shared_memory_size();
 
 } // namespace special_registers
 
 namespace warp {
 
 #if (__CUDACC_VER_MAJOR__ >= 9)
-__fd__ lane_mask_t ballot            (int condition, lane_mask_t lane_mask = full_warp_mask);
-__fd__ int         all_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
-__fd__ int         some_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask);
-__fd__ int         all_lanes_agree   (int condition, lane_mask_t lane_mask = full_warp_mask);
+KAT_FD lane_mask_t ballot            (int condition, lane_mask_t lane_mask = full_warp_mask);
+KAT_FD int         all_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
+KAT_FD int         some_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask);
+KAT_FD int         all_lanes_agree   (int condition, lane_mask_t lane_mask = full_warp_mask);
 #else
-__fd__ lane_mask_t ballot            (int condition);
-__fd__ int         all_lanes_satisfy (int condition);
-__fd__ int         some_lanes_satisfy(int condition);
+KAT_FD lane_mask_t ballot            (int condition);
+KAT_FD int         all_lanes_satisfy (int condition);
+KAT_FD int         some_lanes_satisfy(int condition);
 #endif
 
 #if (__CUDACC_VER_MAJOR__ >= 9)
-template <typename T> __fd__ bool is_uniform_across_lanes(T value, lane_mask_t lane_mask = full_warp_mask);
-template <typename T> __fd__ bool is_uniform_across_warp(T value);
-template <typename T> __fd__ lane_mask_t matching_lanes(T value, lane_mask_t lanes = full_warp_mask);
+template <typename T> KAT_FD bool is_uniform_across_lanes(T value, lane_mask_t lane_mask = full_warp_mask);
+template <typename T> KAT_FD bool is_uniform_across_warp(T value);
+template <typename T> KAT_FD lane_mask_t matching_lanes(T value, lane_mask_t lanes = full_warp_mask);
 #endif
 
 namespace mask_of_lanes {
 
-__fd__ unsigned int preceding();
-__fd__ unsigned int preceding_and_self();
-__fd__ unsigned int self();
-__fd__ unsigned int succeeding_and_self();
-__fd__ unsigned int succeeding();
+KAT_FD unsigned int preceding();
+KAT_FD unsigned int preceding_and_self();
+KAT_FD unsigned int self();
+KAT_FD unsigned int succeeding_and_self();
+KAT_FD unsigned int succeeding();
 
-template <typename T> __fd__ lane_mask_t matching_value(lane_mask_t lane_mask, T value);
-template <typename T> __fd__ lane_mask_t matching_value(T value);
+template <typename T> KAT_FD lane_mask_t matching_value(lane_mask_t lane_mask, T value);
+template <typename T> KAT_FD lane_mask_t matching_value(T value);
 
 } // namespace mask_of_lanes
 
 namespace shuffle {
 
 #if (__CUDACC_VER_MAJOR__ < 9)
-template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size);
-template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size);
-template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size);
-template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = warp_size);
+template <typename T> KAT_FD T arbitrary(T x, int source_lane, int width = warp_size);
+template <typename T> KAT_FD T down(T x, unsigned delta, int width = warp_size);
+template <typename T> KAT_FD T up(T x, unsigned delta, int width = warp_size);
+template <typename T> KAT_FD T xor_(T x, int lane_id_xoring_mask, int width = warp_size);
 #else
-template <typename T> __fd__ T arbitrary(T x, int source_lane, int width = warp_size, lane_mask_t participants = full_warp_mask);
-template <typename T> __fd__ T down(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
-template <typename T> __fd__ T up(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
-template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> KAT_FD T arbitrary(T x, int source_lane, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> KAT_FD T down(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> KAT_FD T up(T x, unsigned delta, int width = warp_size, lane_mask_t participants = full_warp_mask);
+template <typename T> KAT_FD T xor_(T x, int lane_id_xoring_mask, int width = warp_size, lane_mask_t participants = full_warp_mask);
 #endif
 // Notes:
 // 1. we have to use `xor_` here since `xor` is a reserved word
@@ -225,10 +225,6 @@ template <typename T> __fd__ T xor_(T x, int lane_id_xoring_mask, int width = wa
 } // namespace builtins
 } // namespace kat
 
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 #include "detail/builtins.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_BUILTINS_CUH_

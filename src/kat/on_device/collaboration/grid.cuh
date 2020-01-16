@@ -19,7 +19,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -69,7 +69,7 @@ namespace lane   = kat::linear_grid::grid_info::lane;
  * @param f The callable to call for each element of the sequence.
  */
 template <typename Function, typename Size = size_t>
-__fd__ void at_grid_stride(Size length, const Function& f)
+KAT_FD void at_grid_stride(Size length, const Function& f)
 {
 	auto num_grid_threads = grid::num_threads();
 	for(promoted_size_t<Size> pos = thread::global_index();
@@ -133,7 +133,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
  * @param f The callable to execute for each element of the sequence.
  */
 template <typename Function, typename Size = size_t, typename SerializationFactor = unsigned>
-__fd__ void at_block_stride(
+KAT_FD void at_block_stride(
 	Size length, const Function& f, SerializationFactor serialization_factor = 1)
 {
 	Size pos = thread::block_stride_start_position(serialization_factor);
@@ -175,7 +175,7 @@ namespace block_to_grid {
  * different for threads of different blocks of course)
  */
 template <typename BinaryOp>
-__fd__ void accumulation_to_scalar(
+KAT_FD void accumulation_to_scalar(
 	typename BinaryOp::result_type*          accumulator,
 	typename BinaryOp::second_argument_type  block_value)
 {
@@ -194,10 +194,5 @@ __fd__ void accumulation_to_scalar(
 } // namespace block_to_grid
 } // namespace collaborative
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_SEQUENCE_OPS_GRID_CUH_

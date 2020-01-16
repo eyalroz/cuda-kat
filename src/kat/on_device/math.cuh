@@ -16,7 +16,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 #include <type_traits>
@@ -35,7 +35,7 @@ namespace kat {
  * @return the exponent l such than 2^l equals p
  */
 template <typename I>
-__fd__ unsigned log2_of_power_of_2(I p)
+KAT_FD unsigned log2_of_power_of_2(I p)
 {
 	static_assert(std::is_integral<I>::value, "Only supported for integers");
 	// Remember 0 is _not_ a power of 2.
@@ -50,7 +50,7 @@ __fd__ unsigned log2_of_power_of_2(I p)
  * @return The smallest multiple of divisor above dividend / divisor
  */
 template <typename T, typename S>
-__fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
+KAT_FD T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
 {
 	auto mask = divisor - 1; // Remember: 0 is _not_ a power of 2
 	auto log_2_of_divisor = log2_of_power_of_2(divisor);
@@ -61,7 +61,7 @@ __fd__ T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
 
 
 template <typename I, typename P>
-constexpr __fd__ I div_by_power_of_2(I dividend, P power_of_2)
+constexpr KAT_FD I div_by_power_of_2(I dividend, P power_of_2)
 {
 	return dividend >> log2_of_power_of_2(power_of_2);
 }
@@ -77,7 +77,7 @@ constexpr __fd__ I div_by_power_of_2(I dividend, P power_of_2)
  * @return the largest I value d such that d divides @p u and d divides @p v.
  */
 template <typename T>
-constexpr __fd__ T gcd(T u, T v)
+constexpr KAT_FD T gcd(T u, T v)
 {
 	static_assert(std::is_integral<I>::value, "Only supported for integers");
 	while (v != 0) {
@@ -100,7 +100,7 @@ constexpr __fd__ T gcd(T u, T v)
  * @return The highest I value which divides both @p u and @p v.
  */
 template <typename I>
-__fd__ I lcm(I u, I v)
+KAT_FD I lcm(I u, I v)
 {
 	static_assert(std::is_integral<I>::value, "Only supported for integers at the moment");
 	return (u / gcd(u,v)) * v;
@@ -109,7 +109,7 @@ __fd__ I lcm(I u, I v)
 namespace detail {
 
 
-template <typename I> __fd__ int count_leading_zeros(I x)
+template <typename I> KAT_FD int count_leading_zeros(I x)
 {
 	static_assert(std::is_integral<I>::value, "Only integral types are supported");
 	static_assert(sizeof(I) <= sizeof(long long), "Unexpectedly large type");
@@ -134,15 +134,11 @@ template <typename I> __fd__ int count_leading_zeros(I x)
  * @return floor(log2(x)), i.e. the least exponent l such than 2^l >= x
  */
 template <typename I>
-__fd__ unsigned log2(I x) {
+KAT_FD unsigned log2(I x) {
 	assert(x > 0);
 	return I{CHAR_BIT * sizeof(I) - I{1} } - detail::count_leading_zeros<I>(x);
 }
 
 } // namespace kat
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_MATH_CUH_

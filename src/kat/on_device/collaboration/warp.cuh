@@ -27,7 +27,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -53,7 +53,7 @@ namespace lane   = grid_info::lane;
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is non-zero for all threads
  */
-__fd__  bool all_lanes_satisfy(int condition)
+KAT_FD  bool all_lanes_satisfy(int condition)
 {
 	return builtins::warp::all_lanes_satisfy(condition);
 }
@@ -66,7 +66,7 @@ __fd__  bool all_lanes_satisfy(int condition)
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is zero for all threads
  */
-__fd__  bool no_lanes_satisfy(int condition)
+KAT_FD  bool no_lanes_satisfy(int condition)
 {
 	return all_lanes_satisfy(not condition);
 }
@@ -78,7 +78,7 @@ __fd__  bool no_lanes_satisfy(int condition)
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is non-zero for all threads
  */
-__fd__  bool all_lanes_agree_on(int condition)
+KAT_FD  bool all_lanes_agree_on(int condition)
 {
 	auto ballot_results = builtins::warp::ballot(condition);
 	return
@@ -95,7 +95,7 @@ __fd__  bool all_lanes_agree_on(int condition)
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is non-zero for at least one thread
  */
-__fd__  bool some_lanes_satisfy(int condition)
+KAT_FD  bool some_lanes_satisfy(int condition)
 {
 	return !no_lanes_satisfy(condition);
 }
@@ -106,7 +106,7 @@ __fd__  bool some_lanes_satisfy(int condition)
  * @param condition the condition value for each lane (true if non-zero)
  * @return the number of threads in the warp whose @p condition is true (non-zero)
  */
-__fd__ native_word_t num_lanes_satisfying(int condition)
+KAT_FD native_word_t num_lanes_satisfying(int condition)
 {
 	return builtins::population_count(builtins::warp::ballot(condition));
 }
@@ -118,7 +118,7 @@ __fd__ native_word_t num_lanes_satisfying(int condition)
  * @return the number of threads in the warp whose @p condition is the same value
  * as the calling lane
  */
-__fd__  native_word_t num_lanes_agreeing_on(int condition)
+KAT_FD  native_word_t num_lanes_agreeing_on(int condition)
 {
 	auto satisfying = num_lanes_satisfying(condition);
 	return condition ? satisfying : warp_size - satisfying;
@@ -130,7 +130,7 @@ __fd__  native_word_t num_lanes_agreeing_on(int condition)
  * @param condition A boolean value (passed as an integer
  * since that's what nVIDIA GPUs actually check with the HW instruction
  */
-__fd__  bool majority_vote(int condition)
+KAT_FD  bool majority_vote(int condition)
 {
 	return num_lanes_satisfying(condition) > (warp_size / 2);
 }
@@ -147,7 +147,7 @@ __fd__  bool majority_vote(int condition)
  * @return true if the lane this value provided had no matches among the values
  * provided by other lanes
  */
-template <typename T> __fd__ bool in_unique_lane_with(T value, lane_mask_t lane_mask = full_warp_mask)
+template <typename T> KAT_FD bool in_unique_lane_with(T value, lane_mask_t lane_mask = full_warp_mask)
 {
 	// Note: This assumes a lane's bit is always on in the result of matching_lanes(). The PTX
 	// reference implies that this is the case but is not explicit about it
@@ -167,25 +167,25 @@ template <typename T> __fd__ bool in_unique_lane_with(T value, lane_mask_t lane_
  *    take; although perhaps we should make it a native_word_t?
  */
 template <typename T>
-__fd__ T get_from_lane(T value, int source_lane)
+KAT_FD T get_from_lane(T value, int source_lane)
 {
 	return shuffle_arbitrary(value, source_lane);
 }
 
 template <typename T>
-__fd__ T get_from_first_lane(T value)
+KAT_FD T get_from_first_lane(T value)
 {
 	return get_from_lane(value, grid_info::warp::first_lane);
 }
 
 template <typename T>
-__fd__ T get_from_last_lane(T value)
+KAT_FD T get_from_last_lane(T value)
 {
 	return get_from_lane(value, grid_info::warp::last_lane);
 }
 
 template <typename Function>
-__fd__ typename std::result_of<Function()>::type have_a_single_lane_compute(
+KAT_FD typename std::result_of<Function()>::type have_a_single_lane_compute(
 	Function f, unsigned designated_computing_lane = grid_info::warp::first_lane)
 {
 	typename std::result_of<Function()>::type result;
@@ -194,13 +194,13 @@ __fd__ typename std::result_of<Function()>::type have_a_single_lane_compute(
 }
 
 template <typename Function>
-__fd__ typename std::result_of<Function()>::type have_first_lane_compute(Function f)
+KAT_FD typename std::result_of<Function()>::type have_first_lane_compute(Function f)
 {
 	return have_a_single_lane_compute<Function>(f, grid_info::warp::first_lane);
 }
 
 template <typename Function>
-__fd__ typename std::result_of<Function()>::type have_last_lane_compute(Function f)
+KAT_FD typename std::result_of<Function()>::type have_last_lane_compute(Function f)
 {
 	return have_a_single_lane_compute<Function>(f, grid_info::warp::last_lane);
 }
@@ -217,7 +217,7 @@ __fd__ typename std::result_of<Function()>::type have_last_lane_compute(Function
  * If no lane has non-zero condition, either warp_size or -1 is returned
  * (depending on the value of @tparam WarpSizeOnNone
  */
-__fd__ native_word_t first_lane_satisfying(int condition)
+KAT_FD native_word_t first_lane_satisfying(int condition)
 {
 	return non_builtins::count_trailing_zeros(builtins::warp::ballot(condition));
 }
@@ -232,7 +232,7 @@ __fd__ native_word_t first_lane_satisfying(int condition)
  * @param f The callable for warps to use each position in the sequence
  */
 template <typename Function, typename Size = unsigned>
-__fd__ void at_grid_stride(Size length, const Function& f)
+KAT_FD void at_grid_stride(Size length, const Function& f)
 {
 	auto num_warps_in_grid = grid_info::grid::num_warps();
 	for(// _not_ the global thread index! - one element per warp
@@ -251,7 +251,7 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 // TODO: Mark this unsafe
 #define once_per_warp if (grid_info::thread::is_first_in_warp())
 
-__fd__ unsigned active_lanes_mask()
+KAT_FD unsigned active_lanes_mask()
 {
 	return builtins::warp::ballot(1);
 		// the result will only have bits set for the lanes which are active;
@@ -259,7 +259,7 @@ __fd__ unsigned active_lanes_mask()
 		// to the ballot function
 }
 
-__fd__ unsigned active_lane_count()
+KAT_FD unsigned active_lane_count()
 {
 	return builtins::population_count(active_lanes_mask());
 }
@@ -267,7 +267,7 @@ __fd__ unsigned active_lane_count()
 namespace detail {
 
 template <bool PreferFirstLane = true>
-__fd__ unsigned select_leader_lane(unsigned active_lanes_mask)
+KAT_FD unsigned select_leader_lane(unsigned active_lanes_mask)
 {
 	// If clz returns k, that means that the k'th lane (zero-based) is active, and
 	// can be chosen as the leader
@@ -280,13 +280,13 @@ __fd__ unsigned select_leader_lane(unsigned active_lanes_mask)
 }
 
 template <bool PreferFirstLane = true>
-__fd__ bool am_leader_lane(unsigned active_lanes_mask)
+KAT_FD bool am_leader_lane(unsigned active_lanes_mask)
 {
 	return select_leader_lane<PreferFirstLane>(active_lanes_mask)
 		== grid_info::lane::index();
 }
 
-__fd__ bool lane_index_among_active_lanes(unsigned active_lanes_mask)
+KAT_FD bool lane_index_among_active_lanes(unsigned active_lanes_mask)
 {
 	unsigned preceding_lanes_mask =
 		(1 << ptx::special_registers::laneid()) - 1;
@@ -294,7 +294,7 @@ __fd__ bool lane_index_among_active_lanes(unsigned active_lanes_mask)
 }
 
 template <typename Function, bool PreferFirstLane = true>
-__fd__ typename std::result_of<Function()>::type have_a_single_active_lane_compute(
+KAT_FD typename std::result_of<Function()>::type have_a_single_active_lane_compute(
 	Function f, unsigned active_lanes_mask)
 {
 	return have_a_single_lane_compute(f, select_leader_lane<PreferFirstLane>(active_lanes_mask));
@@ -314,7 +314,7 @@ __fd__ typename std::result_of<Function()>::type have_a_single_active_lane_compu
  * then 0; the index of some active lane otherwise.
  */
 template <bool PreferFirstLane = true>
-__fd__ unsigned select_leader_lane()
+KAT_FD unsigned select_leader_lane()
 {
 	return detail::select_leader_lane<PreferFirstLane>(active_lanes_mask());
 }
@@ -329,19 +329,19 @@ __fd__ unsigned select_leader_lane()
  * @return 1 for exactly one of the active lanes in each warp, 0 for all others
  */
 template <bool PreferFirstLane = true>
-__fd__ bool am_leader_lane()
+KAT_FD bool am_leader_lane()
 {
 	return detail::am_leader_lane<PreferFirstLane>(active_lanes_mask());
 }
 
-__fd__ unsigned lane_index_among_active_lanes()
+KAT_FD unsigned lane_index_among_active_lanes()
 {
 	return detail::lane_index_among_active_lanes(active_lanes_mask());
 }
 
 
 template <typename Function, bool PreferFirstLane = true>
-__fd__ typename std::result_of<Function()>::type have_a_single_active_lane_compute(Function f)
+KAT_FD typename std::result_of<Function()>::type have_a_single_active_lane_compute(Function f)
 {
 	return detail::have_a_single_active_lane_compute<PreferFirstLane>(f, active_lanes_mask());
 }
@@ -361,7 +361,7 @@ __fd__ typename std::result_of<Function()>::type have_a_single_active_lane_compu
  * @todo extend this to other atomic operations
  */
 template <typename T>
-__fd__ T active_lanes_increment(T* counter)
+KAT_FD T active_lanes_increment(T* counter)
 {
 	auto lanes_mask = active_lanes_mask();
 	auto active_lane_count = builtins::population_count(lanes_mask);
@@ -413,7 +413,7 @@ struct search_result_t {
  * value is returned as the result.
  */
 template <typename T, bool AssumeNeedlesAreSorted = false>
-__fd__ search_result_t<T> multisearch(const T& lane_needle, const T& lane_hay_straw)
+KAT_FD search_result_t<T> multisearch(const T& lane_needle, const T& lane_hay_straw)
 {
 	search_result_t<T> result;
 
@@ -448,7 +448,7 @@ __fd__ search_result_t<T> multisearch(const T& lane_needle, const T& lane_hay_st
 
 
 template <typename Function, typename Size = unsigned>
-__fd__ void at_warp_stride(Size length, const Function& f)
+KAT_FD void at_warp_stride(Size length, const Function& f)
 {
 	for(// _not_ the global thread index! - one element per warp
 		promoted_size_t<Size> pos = grid_info::lane::index();
@@ -518,7 +518,7 @@ template <
 	detail::predicate_computation_length_slack_t PossibilityOfSlack = detail::may_have_arbitrary_slack
 		// set Index to something smaller than Size if you have a size that's
 		// something like 1 << sizeof(uint32_t), and then you have to use uint64_t as Size
-> __fd__ void compute_predicate_at_warp_stride(
+> KAT_FD void compute_predicate_at_warp_stride(
 	unsigned*         computed_predicate,
 	Predicate&        predicate,
 	Size              length)
@@ -620,7 +620,7 @@ namespace detail {
  * @note UNTESTED!
  */
 template <typename T>
-__fd__ native_word_t find_merge_position(const T& v)
+KAT_FD native_word_t find_merge_position(const T& v)
 {
 	// Notes:
 	// 1. The starting guess assumes the half-warps are "similar", so the
@@ -697,7 +697,7 @@ __fd__ native_word_t find_merge_position(const T& v)
  * @note Untested as of yet
  */
 template <typename T>
-__fd__ void merge_sorted(
+KAT_FD void merge_sorted(
 	const T* __restrict__ source_a,
 	const T* __restrict__ source_b,
 	T*       __restrict__ target
@@ -723,7 +723,7 @@ __fd__ void merge_sorted(
  * @note Untested as of yet
  */
 template <typename T>
-__fd__ T merge_sorted_half_warps(T lane_element)
+KAT_FD T merge_sorted_half_warps(T lane_element)
 {
 	auto merge_position = detail::find_merge_position(lane_element);
 	return get_from_lane(lane_element, merge_position);
@@ -750,7 +750,7 @@ namespace warp {
  * @param f The callable for warps to use each position in the sequence
  */
 template <typename Function, typename Size = unsigned>
-__fd__ void at_grid_stride(Size length, const Function& f)
+KAT_FD void at_grid_stride(Size length, const Function& f)
 {
 	auto num_warps_in_grid = grid_info::grid::num_warps();
 	for(// _not_ the global thread index! - one element per warp
@@ -768,10 +768,5 @@ __fd__ void at_grid_stride(Size length, const Function& f)
 } // namespace linear_grid
 
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_

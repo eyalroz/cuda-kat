@@ -21,34 +21,34 @@
 #include <limits>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
 namespace atomic {
 
-template <typename T>  __fd__ T add        (T* address, T val);
-template <typename T>  __fd__ T subtract   (T* address, T val);
-template <typename T>  __fd__ T exchange   (T* address, T val);
-template <typename T>  __fd__ T min        (T* address, T val);
-template <typename T>  __fd__ T max        (T* address, T val);
-template <typename T>  __fd__ T logical_and(T* address, T val);
-template <typename T>  __fd__ T logical_or (T* address, T val);
-template <typename T>  __fd__ T logical_not(T* address);
-template <typename T>  __fd__ T logical_xor(T* address, T val);
-template <typename T>  __fd__ T bitwise_or (T* address, T val);
-template <typename T>  __fd__ T bitwise_and(T* address, T val);
-template <typename T>  __fd__ T bitwise_xor(T* address, T val);
-template <typename T>  __fd__ T bitwise_not(T* address);
-template <typename T>  __fd__ T set_bit    (T* address, native_word_t bit_index);
-template <typename T>  __fd__ T unset_bit  (T* address, native_word_t bit_index);
+template <typename T>  KAT_FD T add        (T* address, T val);
+template <typename T>  KAT_FD T subtract   (T* address, T val);
+template <typename T>  KAT_FD T exchange   (T* address, T val);
+template <typename T>  KAT_FD T min        (T* address, T val);
+template <typename T>  KAT_FD T max        (T* address, T val);
+template <typename T>  KAT_FD T logical_and(T* address, T val);
+template <typename T>  KAT_FD T logical_or (T* address, T val);
+template <typename T>  KAT_FD T logical_not(T* address);
+template <typename T>  KAT_FD T logical_xor(T* address, T val);
+template <typename T>  KAT_FD T bitwise_or (T* address, T val);
+template <typename T>  KAT_FD T bitwise_and(T* address, T val);
+template <typename T>  KAT_FD T bitwise_xor(T* address, T val);
+template <typename T>  KAT_FD T bitwise_not(T* address);
+template <typename T>  KAT_FD T set_bit    (T* address, native_word_t bit_index);
+template <typename T>  KAT_FD T unset_bit  (T* address, native_word_t bit_index);
 /**
  * @brief Increment the value at @p address by 1 - but if it reaches or surpasses @p wraparound_value, set it to 0.
  *
  * @note repeated invocations of this function will cycle through the range of values 0... @p wraparound_values - 1; thus
  * as long as the existing value is within that range, this is a simple incrementation modulo @p wraparound_value.
  */
-template <typename T>  __fd__ T increment  (T* address, T modulus = std::numeric_limits<T>::max());
+template <typename T>  KAT_FD T increment  (T* address, T modulus = std::numeric_limits<T>::max());
 /**
  * @brief Decrement the value at @p address by 1 - but if it reaches 0, or surpasses @p wraparound_value, it is set
  * to @p wrarparound_value - 1.
@@ -57,11 +57,11 @@ template <typename T>  __fd__ T increment  (T* address, T modulus = std::numeric
  * @p wraparound_values - 1; thus as long as the existing value is within that range, this is a simple decrementation
  * modulo @p wraparound_value.
  */
-template <typename T>  __fd__ T decrement  (T* address, T modulus = std::numeric_limits<T>::max());
+template <typename T>  KAT_FD T decrement  (T* address, T modulus = std::numeric_limits<T>::max());
 
 
 // Note: We let this one take a const reference
-template <typename T>  __fd__ T compare_and_swap(
+template <typename T>  KAT_FD T compare_and_swap(
     T*       address,
     const T  compare,
     const T  val);
@@ -75,7 +75,7 @@ template <typename T>  __fd__ T compare_and_swap(
  * @return The new value which was stored in memory
  */
 template <typename UnaryFunction, typename T>
-__fd__ T apply_atomically(UnaryFunction f, T* address);
+KAT_FD T apply_atomically(UnaryFunction f, T* address);
 
 /**
  * Use atomic compare-and-swap to apply a binary function to two values,
@@ -85,7 +85,7 @@ __fd__ T apply_atomically(UnaryFunction f, T* address);
  * @return The new value which was stored in memory
  */
 template <typename Function, typename T, typename... Ts>
-__fd__ T apply_atomically(
+KAT_FD T apply_atomically(
 	Function                f,
 	T*       __restrict__   address,
 	const Ts...             xs);
@@ -94,10 +94,6 @@ __fd__ T apply_atomically(
 } // namespace atomic
 } // namespace kat
 
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 #include "detail/atomics.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_ATOMICS_CUH_

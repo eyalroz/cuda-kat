@@ -20,7 +20,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -346,9 +346,6 @@ char *strrstr(const char *haystack, const char *needle)
 } // namespace kat
 
 
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
+#include <kat/detail/execution_space_specifiers.hpp>
 
 #endif // CUDAT_KAT_ON_DEVICE_C_STANDARD_LIBRARY_EQUIVALENTS_STRING_H_

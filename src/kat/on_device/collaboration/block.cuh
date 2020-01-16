@@ -21,7 +21,7 @@
 #include <type_traits>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -43,9 +43,9 @@ namespace lane   = grid_info::lane;
 
 /*
  * TODO: Implement
- * __fd__  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
- * __fd__  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
- * __fd__  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
  *
  * at the block level
  *
@@ -60,7 +60,7 @@ namespace lane   = grid_info::lane;
  * @param f The callable to execute for each element of the sequence.
  */
 template <typename Function, typename Size = size_t>
-__fd__ void at_block_stride(Size length, const Function& f)
+KAT_FD void at_block_stride(Size length, const Function& f)
 {
 	auto block_length = block::length();
 	#pragma unroll
@@ -85,7 +85,7 @@ __fd__ void at_block_stride(Size length, const Function& f)
  * @param writing_lane_index which lane in each warp should perform write operations
  */
 template <typename T, bool Synchronize = true>
-__fd__ void share_warp_datum_with_whole_block(
+KAT_FD void share_warp_datum_with_whole_block(
 	const T&         datum,
 	T* __restrict__  where_to_make_available,
 	unsigned         writing_lane_index = 0)
@@ -96,7 +96,7 @@ __fd__ void share_warp_datum_with_whole_block(
 	if (Synchronize) __syncthreads();
 }
 
-__fd__ void barrier() { __syncthreads(); }
+KAT_FD void barrier() { __syncthreads(); }
 
 /**
  * @brief Execute some code exactly once per block of threads
@@ -118,7 +118,7 @@ __fd__ void barrier() { __syncthreads(); }
  * the relevant value
  */
 template <typename T>
-__fd__ T get_from_thread(const T& value, unsigned source_thread_index)
+KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
 {
 	__shared__ static T tmp;
 	if (thread::index_in_block() == source_thread_index) {
@@ -136,7 +136,7 @@ __fd__ T get_from_thread(const T& value, unsigned source_thread_index)
  * @note uses shared memory for "broadcasting" the value
  */
 template <typename T>
-__fd__ T get_from_first_thread(const T& value)
+KAT_FD T get_from_first_thread(const T& value)
 {
 	return get_from_thread(value, 0);
 }
@@ -163,9 +163,9 @@ namespace lane   = grid_info::lane;
 
 /*
  * TODO: Implement
- * __fd__  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
- * __fd__  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
- * __fd__  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
  *
  * at the block level
  *
@@ -184,7 +184,7 @@ namespace lane   = grid_info::lane;
  * @param writing_lane_index which lane in each warp should perform write operations
  */
 template <typename T, bool Synchronize = true>
-__fd__ void share_warp_datum_with_whole_block(
+KAT_FD void share_warp_datum_with_whole_block(
 	const T& datum,
 	T* __restrict__ where_to_make_available,
 	unsigned writing_lane_index = 0)
@@ -195,7 +195,7 @@ __fd__ void share_warp_datum_with_whole_block(
 	if (Synchronize) __syncthreads();
 }
 
-__fd__ void barrier() { __syncthreads(); }
+KAT_FD void barrier() { __syncthreads(); }
 
 
 /**
@@ -207,7 +207,7 @@ __fd__ void barrier() { __syncthreads(); }
  * the relevant value
  */
 template <typename T>
-__fd__ T get_from_thread(const T& value, unsigned source_thread_index)
+KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
 {
 	__shared__ static T tmp;
 	if (thread::index_in_block() == source_thread_index) {
@@ -225,7 +225,7 @@ __fd__ T get_from_thread(const T& value, unsigned source_thread_index)
  * @note uses shared memory for "broadcasting" the value
  */
 template <typename T>
-__fd__ T get_from_first_thread(const T& value)
+KAT_FD T get_from_first_thread(const T& value)
 {
 	return get_from_thread(value, 0);
 }
@@ -233,10 +233,5 @@ __fd__ T get_from_first_thread(const T& value)
 } // namespace block
 } // namespace collaborative
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // BLOCK_LEVEL_PRIMITIVES_CUH_

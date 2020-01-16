@@ -12,7 +12,7 @@ constexpr const auto block_size      {  2 };
 
 constexpr const std::size_t stringstream_buffer_size { 50 };
 
-__device__ kat::stringstream& operator<<(kat::stringstream& os, const util::constexpr_string& arg)
+KAT_DEV kat::stringstream& operator<<(kat::stringstream& os, const util::constexpr_string& arg)
 {
 	return os << strf::range<const char*>(arg.begin(), arg.end());
 }
@@ -254,7 +254,5 @@ TEST_SUITE("printing") {
 		cuda::outstanding_error::ensure_none();
 		device.synchronize();
 	}
-
-#include <kat/undefine_specifiers.hpp>
 
 } // TEST_SUITE("printing")

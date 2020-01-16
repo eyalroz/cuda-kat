@@ -22,7 +22,7 @@ namespace special_registers {
 
 
 #define DEFINE_SPECIAL_REGISTER_GETTER(special_register_name, ptx_value_type) \
-__forceinline__ __device__ CPP_TYPE_BY_PTX_TYPE(ptx_value_type) special_register_name() \
+KAT_FD CPP_TYPE_BY_PTX_TYPE(ptx_value_type) special_register_name() \
 { \
 	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) ret;  \
 	asm volatile ("mov." PTX_STRINGIFY(ptx_value_type) "%0, %" PTX_STRINGIFY(special_register_name) ";" : "=" SIZE_CONSTRAINT(ptx_value_type) (ret)); \

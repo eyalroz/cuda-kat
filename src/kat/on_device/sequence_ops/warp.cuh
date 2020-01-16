@@ -33,7 +33,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -48,21 +48,21 @@ struct plus {
 	using second_argument_type = RHS;
 	using result_type = Result;
 
-	__fhd__ Result operator() (const LHS& x, const RHS& y) const noexcept { return x + y; }
+	KAT_FHD Result operator() (const LHS& x, const RHS& y) const noexcept { return x + y; }
 	struct accumulator {
-		__fhd__ Result operator()(
+		KAT_FHD Result operator()(
 			typename std::enable_if<std::is_same<LHS, RHS>::value, Result>::type& x,
 			const RHS& y) const noexcept { return x += y; }
 		struct atomic {
 #ifdef __CUDA_ARCH__
-			__fd__ Result operator()(
+			KAT_FD Result operator()(
 				typename std::enable_if<std::is_same<LHS,RHS>::value, Result>::type& x,
 				const RHS& y) const noexcept { return kat::atomic::add(&x,y); }
 #endif // __CUDA_ARCH__
 		};
-		__fhd__ static Result neutral_value() noexcept { return 0; };
+		KAT_FHD static Result neutral_value() noexcept { return 0; };
 	};
-	__fhd__ static Result neutral_value() noexcept { return 0; };
+	KAT_FHD static Result neutral_value() noexcept { return 0; };
 };
 
 } // namespace detail
@@ -76,7 +76,7 @@ struct plus {
  * bigger one.
  */
 template <typename ReductionOp>
-__fd__ typename ReductionOp::result_type reduce(typename ReductionOp::first_argument_type value)
+KAT_FD typename ReductionOp::result_type reduce(typename ReductionOp::first_argument_type value)
 {
 	static_assert(std::is_same<
 		typename ReductionOp::first_argument_type,
@@ -100,7 +100,7 @@ __fd__ typename ReductionOp::result_type reduce(typename ReductionOp::first_argu
 }
 
 template <typename Datum>
-__fd__ Datum sum(Datum value)
+KAT_FD Datum sum(Datum value)
 {
 	return reduce<detail::plus<Datum>>(value);
 }
@@ -118,7 +118,7 @@ template <
 	typename ReductionOp,
 	typename InputDatum,
 	inclusivity_t Inclusivity = inclusivity_t::Inclusive>
-__fd__ typename ReductionOp::result_type scan(InputDatum value)
+KAT_FD typename ReductionOp::result_type scan(InputDatum value)
 {
 	using result_type = typename ReductionOp::result_type;
 	ReductionOp op;
@@ -146,13 +146,13 @@ __fd__ typename ReductionOp::result_type scan(InputDatum value)
 // TODO: Need to implement a scan-and-reduce warp primitive
 
 template <typename T, inclusivity_t Inclusivity = inclusivity_t::Inclusive, typename Result = T>
-__fd__ T prefix_sum(T value)
+KAT_FD T prefix_sum(T value)
 {
 	return scan<detail::plus<Result>, T, Inclusivity>(value);
 }
 
 template <typename T, typename Result = T>
-__fd__ T exclusive_prefix_sum(T value)
+KAT_FD T exclusive_prefix_sum(T value)
 {
 	return prefix_sum<T, inclusivity_t::Exclusive, Result>(value);
 }
@@ -168,7 +168,7 @@ __fd__ T exclusive_prefix_sum(T value)
  * source
  */
 template <typename T, typename U, typename Size>
-__fd__ void cast_and_copy_n(
+KAT_FD void cast_and_copy_n(
 	T*        __restrict__  target,
 	const U*  __restrict__  source,
 	Size                    length)
@@ -183,7 +183,7 @@ __fd__ void cast_and_copy_n(
 }
 
 template <typename T, typename U>
-__fd__ void cast_and_copy(
+KAT_FD void cast_and_copy(
 	T*        __restrict__  target,
 	const U*  __restrict__  source_start,
 	const U*  __restrict__  source_end)
@@ -193,7 +193,7 @@ __fd__ void cast_and_copy(
 }
 /*
 template <typename T>
-__fd__ void single_write(T* __restrict__  target, T&& x)
+KAT_FD void single_write(T* __restrict__  target, T&& x)
 {
 	target[lane::index()] = std::forward(x);
 }
@@ -210,7 +210,7 @@ namespace detail {
  * @param length
  */
 template <typename T, typename Size>
-__fd__ void naive_copy(
+KAT_FD void naive_copy(
 	T*        __restrict__  target,
 	const T*  __restrict__  source,
 	Size                    length)
@@ -222,7 +222,7 @@ __fd__ void naive_copy(
 	}
 }
 
-template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
+template <typename T> constexpr KAT_FHD  T clear_lower_bits(T x, unsigned k)
 {
 	return x & ~((1 << k) - 1);
 }
@@ -253,7 +253,7 @@ template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
  * @param[in]  length  number of elements (of type T) to copy
  */
 template <typename T, typename Size, bool MayHaveSlack = true>
-__fd__ void copy_n(
+KAT_FD void copy_n(
 	T*        __restrict__  target,
 	const T*  __restrict__  source,
 	Size                    length)
@@ -309,7 +309,7 @@ __fd__ void copy_n(
 }
 
 template <typename T, bool MayHaveSlack = true>
-__fd__ void copy(
+KAT_FD void copy(
 	const T*  __restrict__  source_start,
 	const T*  __restrict__  source_end,
 	T*        __restrict__  target_start)
@@ -321,7 +321,7 @@ __fd__ void copy(
 // TODO: Check whether writing this with a forward iterator and std::advance
 // yields the same PTX code (in which case we'll prefer that)
 template <typename RandomAccessIterator, typename Size, typename T>
-inline __device__ void fill_n(RandomAccessIterator start, Size count, const T& value)
+inline KAT_DEV void fill_n(RandomAccessIterator start, Size count, const T& value)
 {
 	T tmp = value;
 	for(promoted_size_t<Size> index = lane::index();
@@ -333,7 +333,7 @@ inline __device__ void fill_n(RandomAccessIterator start, Size count, const T& v
 }
 
 template <typename ForwardIterator, typename T>
-inline __device__ void fill(ForwardIterator start, ForwardIterator end, const T& value)
+inline KAT_DEV void fill(ForwardIterator start, ForwardIterator end, const T& value)
 {
     const T tmp = value;
 	auto iter = start + lane::index();
@@ -348,7 +348,7 @@ inline __device__ void fill(ForwardIterator start, ForwardIterator end, const T&
  * of values of any type
  */
 template <typename T, typename I, typename Size, typename U = T>
-__fd__ void lookup(
+KAT_FD void lookup(
 	T*       __restrict__  target,
 	const U* __restrict__  lookup_table,
 	const I* __restrict__  indices,
@@ -367,7 +367,7 @@ __fd__ void lookup(
  */
 
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
+KAT_FD void elementwise_accumulate(
 	D*       __restrict__  destination,
 	const S* __restrict__  source,
 	Size                   length)
@@ -387,7 +387,7 @@ __fd__ void elementwise_accumulate(
  * you'd better use an atomic accumulator op...
  */
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
+KAT_FD void elementwise_accumulate(
 	D*       __restrict__  destination,
 	const S&               source_element,
 	Size                   length)
@@ -401,10 +401,5 @@ __fd__ void elementwise_accumulate(
 } // namespace warp
 } // namespace collaborative
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_

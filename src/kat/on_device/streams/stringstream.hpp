@@ -20,7 +20,7 @@
 // #include <cstdarg>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -28,7 +28,7 @@ namespace kat {
 namespace detail {
 
 template <typename T>
-__device__ T* safe_malloc(std::size_t size)
+KAT_DEV T* safe_malloc(std::size_t size)
 {
 	auto p = malloc(size);
 	if (p == nullptr) {
@@ -97,30 +97,30 @@ public:
 
 	STRF_HD void recycle() override;
 
-	__device__ void clear()
+	KAT_DEV void clear()
 	{
 		if (buffer != nullptr) {
 			*pos() = '\0';
 		}
 	}
 
-	__device__ void flush() { clear(); }
+	KAT_DEV void flush() { clear(); }
 
 	// should be able to produce an std-string-like proxy supporting a c_str() method, rather
 	// than providing a c_str() directly.
 
-	__device__ const char* c_str()
+	KAT_DEV const char* c_str()
 	{
 		flush();
 		return buffer;
 	}
 
-	__device__ pos_type tellp() const { return pos() - buffer; }
-	__device__ bool empty() const { return tellp() == 0; }
+	KAT_DEV pos_type tellp() const { return pos() - buffer; }
+	KAT_DEV bool empty() const { return tellp() == 0; }
 		// std::stringstream's don't have this
-	__device__ stringstream& seekp(pos_type pos) { set_pos(buffer + pos); return *this; }
+	KAT_DEV stringstream& seekp(pos_type pos) { set_pos(buffer + pos); return *this; }
 
-	__device__ std::size_t capacity() const { return buffer_size; } // perhaps there's something else we can use instead?
+	KAT_DEV std::size_t capacity() const { return buffer_size; } // perhaps there's something else we can use instead?
 
 	// TO implement (maybe):
 	//
@@ -176,7 +176,7 @@ STRF_HD stringstream::stringstream(std::size_t initial_buffer_size)
 {
 }
 
-__device__ void stringstream::recycle()
+KAT_DEV void stringstream::recycle()
 {
 	// printf("recycle()! ... from size buffer_size =  %llu" , buffer_size);
 	std::size_t used_size = (buffer_size == 0) ? 0 : (this->pos() - buffer);
@@ -197,7 +197,7 @@ __device__ void stringstream::recycle()
 
 
 template <typename T>
-__device__  stringstream& operator<<(stringstream& out, const T& arg)
+KAT_DEV  stringstream& operator<<(stringstream& out, const T& arg)
 {
 	if (out.capacity() == 0) {
 		// We should not need to do the following. However, for some reason, make_printer(...).print_to(out)
@@ -234,10 +234,5 @@ __device__  stringstream& operator<<(stringstream& out, const T& arg)
 }
 
 } // namespace kat
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
-
 #endif // CUDA_KAT_ON_DEVICE_STRINGSTREAM_CUH_
 

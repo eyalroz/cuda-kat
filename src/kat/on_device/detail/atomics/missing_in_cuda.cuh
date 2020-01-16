@@ -46,7 +46,7 @@ static_assert(sizeof (unsigned long int) == sizeof(unsigned long long int), "Une
 // doesn't mess this code's correctness up somehow.
 
 #define CUDA_KAT_DEFINE_MISSING_ATOMIC(arg_type, op) \
-__forceinline__ __device__ arg_type atomic ## op(arg_type *address, arg_type val) \
+KAT_FD arg_type atomic ## op(arg_type *address, arg_type val) \
 { \
 	return ::atomicAdd(reinterpret_cast<unsigned long long int*>(address), reinterpret_cast<arg_type&>(val)); \
 }

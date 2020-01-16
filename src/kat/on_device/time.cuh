@@ -10,7 +10,7 @@
 #include <type_traits>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -47,10 +47,10 @@ using sleep_unit_t = typename detail::sleep_unit<Resolution>::type;
  *
  */
 template <sleep_resolution Resolution = sleep_resolution::clock_cycles>
-__device__ void sleep(sleep_unit_t<Resolution> num_cycles);
+KAT_DEV void sleep(sleep_unit_t<Resolution> num_cycles);
 
 template<>
-__device__ void sleep<sleep_resolution::clock_cycles>(
+KAT_DEV void sleep<sleep_resolution::clock_cycles>(
 	sleep_unit_t<sleep_resolution::clock_cycles> num_cycles)
 {
 	// The clock64() function returns an SM-specific clock ticks value,
@@ -68,7 +68,7 @@ __device__ void sleep<sleep_resolution::clock_cycles>(
 #if __CUDA_ARCH__ >= 700
 
 template<>
-__device__ void sleep<sleep_resolution::nanoseconds>(
+KAT_DEV void sleep<sleep_resolution::nanoseconds>(
 	sleep_unit_t<sleep_resolution::nanoseconds> num_cycles)
 {
 	__nanosleep(unsigned int ns);
@@ -77,10 +77,5 @@ __device__ void sleep<sleep_resolution::nanoseconds>(
 #endif // __CUDA_ARCH__ >= 700
 
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_TIME_CUH_

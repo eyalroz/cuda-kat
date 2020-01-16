@@ -13,7 +13,8 @@
 
 // TODO: Also test behavior with warps with some inactive/exited lanes
 
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
+
 
 constexpr const auto num_grid_blocks {   2 }; // wanted to make sure I sature a GPU's SM's
 
@@ -408,7 +409,5 @@ compare_and_swap
 
 
  */
-
-#include <kat/undefine_specifiers.hpp>
 
 } // TEST_SUITE("atomics")

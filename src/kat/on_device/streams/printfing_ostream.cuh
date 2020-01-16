@@ -13,7 +13,7 @@
 #include <kat/on_device/grid_info.cuh>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -24,7 +24,7 @@ using prefix_generator_type = void (*)(kat::stringstream&);
 	// TODO: Make it into a function with an std-string-like outputm, when we
 	// have an std-string like class.
 
-__device__ auto prefix(prefix_generator_type gen);
+KAT_DEV auto prefix(prefix_generator_type gen);
 
 }
 
@@ -36,13 +36,13 @@ class printfing_ostream
 public:
 	enum class resolution { thread, warp, block, grid };
 
-	__device__ printfing_ostream(std::size_t initial_buffer_size = cout_initial_buffer_size) : main_buffer(initial_buffer_size) { }
+	KAT_DEV printfing_ostream(std::size_t initial_buffer_size = cout_initial_buffer_size) : main_buffer(initial_buffer_size) { }
 	STRF_HD printfing_ostream(printfing_ostream&& other) : main_buffer(other.main_buffer) { }
 	STRF_HD printfing_ostream(const printfing_ostream& other) : main_buffer(other.main_buffer) { }
     STRF_HD ~printfing_ostream();
 
     // Note: You can also use strf::flush if that exists
-	__device__ void flush()
+	KAT_DEV void flush()
 	{
 		if (not newline_on_flush and main_buffer.tellp() == 0) {
 			// Note: Returning even though the string here might end up being
@@ -68,7 +68,7 @@ public:
 	}
 
 protected:
-	static bool __device__ should_act_for_resolution(resolution r) {
+	static bool KAT_DEV should_act_for_resolution(resolution r) {
 		// TODO: It might be a better idea to check which threads in the warp/block are still active
 		// rather than assuming the first one is.
 		switch(r) {
@@ -82,7 +82,7 @@ protected:
 
 public:
 	template <typename T>
-	__device__ printfing_ostream& operator<<(const T& arg)
+	KAT_DEV printfing_ostream& operator<<(const T& arg)
 	{
 		if (not should_act_for_resolution(printing_resolution)) { return *this; }
 		strf::print_preview<false, false> no_preview;
@@ -97,34 +97,34 @@ public:
 	//
 	using manipulator = kat::printfing_ostream& ( kat::printfing_ostream& );
 
-	__device__ printfing_ostream& no_prefix()
+	KAT_DEV printfing_ostream& no_prefix()
 	{
 		use_prefix = false;
 		prefix_generator = nullptr;
 		return *this;
 	}
 
-	__device__ printfing_ostream& set_prefix_generator(manipulators::prefix_generator_type gen)
+	KAT_DEV printfing_ostream& set_prefix_generator(manipulators::prefix_generator_type gen)
 	{
 		use_prefix = true;
 		prefix_generator = gen;
 		return *this;
 	}
 
-	__device__ printfing_ostream& no_newline_on_flush()
+	KAT_DEV printfing_ostream& no_newline_on_flush()
 	{
 		newline_on_flush = false;
 		return *this;
 	}
 
-	__device__ printfing_ostream& append_newline_on_flush()
+	KAT_DEV printfing_ostream& append_newline_on_flush()
 	{
 		newline_on_flush = true;
 		return *this;
 	}
 
 	// Also clears the prefix - as that's assumed to have been resolution-related
-	__device__ printfing_ostream& set_resolution(resolution new_resolution)
+	KAT_DEV printfing_ostream& set_resolution(resolution new_resolution)
 	{
 		main_buffer.clear();
 		no_prefix();
@@ -159,11 +159,11 @@ protected:
 
 
 namespace manipulators {
-__fd__ kat::printfing_ostream& flush( kat::printfing_ostream& os ) { os.flush(); return os; }
-__fd__ kat::printfing_ostream& endl( kat::printfing_ostream& os ) { os << '\n'; os.flush(); return os; }
-__fd__ kat::printfing_ostream& no_prefix( kat::printfing_ostream& os ) { return os.no_prefix(); }
-__fd__ kat::printfing_ostream& no_newline_on_flush( kat::printfing_ostream& os ) { return os.no_newline_on_flush(); }
-__fd__ kat::printfing_ostream& newline_on_flush( kat::printfing_ostream& os ) { return os.append_newline_on_flush(); }
+KAT_FD kat::printfing_ostream& flush( kat::printfing_ostream& os ) { os.flush(); return os; }
+KAT_FD kat::printfing_ostream& endl( kat::printfing_ostream& os ) { os << '\n'; os.flush(); return os; }
+KAT_FD kat::printfing_ostream& no_prefix( kat::printfing_ostream& os ) { return os.no_prefix(); }
+KAT_FD kat::printfing_ostream& no_newline_on_flush( kat::printfing_ostream& os ) { return os.no_newline_on_flush(); }
+KAT_FD kat::printfing_ostream& newline_on_flush( kat::printfing_ostream& os ) { return os.append_newline_on_flush(); }
 
 } // manipulators
 
@@ -182,14 +182,14 @@ STRF_HD printfing_ostream::~printfing_ostream()
 #endif
 
 template <>
-__device__ printfing_ostream& printfing_ostream::operator<< <printfing_ostream::manipulator>(
+KAT_DEV printfing_ostream& printfing_ostream::operator<< <printfing_ostream::manipulator>(
 	printfing_ostream::manipulator& manip)
 {
 	return manip(*this);
 }
 
 namespace manipulators {
-__device__ auto prefix(prefix_generator_type gen) {
+KAT_DEV auto prefix(prefix_generator_type gen) {
 	return [gen](kat::printfing_ostream& os) { return os.set_prefix_generator(gen); };
 }
 } // namespace manipulators
@@ -203,7 +203,7 @@ namespace manipulators {
 using prefix_setting_manipulator_type = std::result_of< decltype(&prefix)(prefix_generator_type) >::type;
 } // namespace manipulators
 
-__device__ printfing_ostream& operator<< (printfing_ostream& os, manipulators::prefix_setting_manipulator_type manip)
+KAT_DEV printfing_ostream& operator<< (printfing_ostream& os, manipulators::prefix_setting_manipulator_type manip)
 {
 	// std::basic_ostream<manipulators::prefix_setting_manipulator_type> x;
 	manip(os);
@@ -212,7 +212,7 @@ __device__ printfing_ostream& operator<< (printfing_ostream& os, manipulators::p
 #endif
 
 namespace manipulators {
-__device__ auto resolution(printfing_ostream::resolution new_resolution) {
+KAT_DEV auto resolution(printfing_ostream::resolution new_resolution) {
 	return [new_resolution](kat::printfing_ostream& os) { return os.set_resolution(new_resolution); };
 }
 } // namespace manipulators
@@ -222,7 +222,7 @@ namespace manipulators {
 using resolution_setting_manipulator_type = std::result_of< decltype(&resolution)(printfing_ostream::resolution) >::type;
 } // namespace manipulators
 
-__device__ printfing_ostream& operator<< (printfing_ostream& os, manipulators::resolution_setting_manipulator_type manip)
+KAT_DEV printfing_ostream& operator<< (printfing_ostream& os, manipulators::resolution_setting_manipulator_type manip)
 {
 	manip(os);
 	return os;

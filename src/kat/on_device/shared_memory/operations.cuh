@@ -15,7 +15,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -39,7 +39,7 @@ using kat::shared_memory::dynamic::size;
  * @param length the number of T elements to set to @p value
  */
 template <typename T>
-__fd__ void fill(
+KAT_FD void fill(
 	const T&               value,
 	shared_memory::size_t  length)
 {
@@ -60,7 +60,7 @@ __fd__ void fill(
  * passing a length yourself.
  */
 template <typename T>
-__fd__ void fill(const T& value)
+KAT_FD void fill(const T& value)
 {
 	auto length = shared_memory::dynamic::size<T>();
 	return fill(value, length);
@@ -74,7 +74,7 @@ __fd__ void fill(const T& value)
  * @param length the number of T elements to set to zero
  */
 template <typename T>
-__fd__ void zero(kat::shared_memory::size_t length)
+KAT_FD void zero(kat::shared_memory::size_t length)
 {
 	return fill(T{0}, length);
 }
@@ -85,7 +85,7 @@ __fd__ void zero(kat::shared_memory::size_t length)
  * @tparam the element type which the block's shared memory is presumed to have
  */
 template <typename T>
-__fd__ void zero()
+KAT_FD void zero()
 {
 	auto length = shared_memory::dynamic::size<T>();
 	return zero(length);
@@ -110,7 +110,7 @@ __fd__ void zero()
  * into the shared memory; use
  */
 template <typename T>
-__fd__ T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length)
+KAT_FD T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length)
 {
 	T* __restrict__ data_in_shared_mem = shared_memory::dynamic::proxy<T>();
 	kat::linear_grid::collaborative::block::copy(data_in_shared_mem, source, length);
@@ -136,7 +136,7 @@ namespace dynamic {
  * @note Not implemented yet - need non-linear-grid variants of some of the block primtives.
  */
 template <typename T>
-__fd__ void fill(
+KAT_FD void fill(
 	const T&               value,
 	shared_memory::size_t  length);
 // TODO: Uncomment when the non-linear-grid block primitive is available
@@ -159,7 +159,7 @@ __fd__ void fill(
  * passing a length yourself.
  */
 template <typename T>
-__fd__ void fill(const T& value)
+KAT_FD void fill(const T& value)
 {
 	auto length = shared_memory::dynamic::size<T>();
 	return fill(value, length);
@@ -173,7 +173,7 @@ __fd__ void fill(const T& value)
  * @param length the number of T elements to set to zero
  */
 template <typename T>
-__fd__ void zero(kat::shared_memory::size_t length)
+KAT_FD void zero(kat::shared_memory::size_t length)
 {
 	return fill(T{0}, length);
 }
@@ -184,7 +184,7 @@ __fd__ void zero(kat::shared_memory::size_t length)
  * @tparam the element type which the block's shared memory is presumed to have
  */
 template <typename T>
-__fd__ void zero()
+KAT_FD void zero()
 {
 	auto length = shared_memory::dynamic::size<T>();
 	return zero(length);
@@ -211,7 +211,7 @@ __fd__ void zero()
  * some of the block primitives.
  */
 template <typename T>
-__fd__ T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length);
+KAT_FD T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length);
 // TODO: Uncomment when the non-linear-grid block primitive is available
 //{
 //	T* __restrict__ data_in_shared_mem = shared_memory::dynamic::proxy<T>();
@@ -223,12 +223,5 @@ __fd__ T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t le
 } // namespace shared_memory
 
 } // namespace kat
-
-
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_SHARED_MEMORY_OPS_CUH

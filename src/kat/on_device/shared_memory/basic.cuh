@@ -14,7 +14,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -30,7 +30,7 @@ using size_t = unsigned; // Should we make it signed like ssize_t ?
  * @note requires special register access which is not so cheap.
  *
  */
-__fd__ size_t size() {
+KAT_FD size_t size() {
 	return ptx::special_registers::total_smem_size();
 }
 
@@ -42,7 +42,7 @@ namespace static_ {
  *
  * @note requires special register access which is not so cheap.
  */
-__fd__ size_t size() {
+KAT_FD size_t size() {
 	return
 		ptx::special_registers::total_smem_size() -
 		ptx::special_registers::dynamic_smem_size();
@@ -60,7 +60,7 @@ namespace dynamic {
  * @note requires special register access which is not so cheap.
  */
 template <typename T = unsigned char>
-__fd__ size_t size() {
+KAT_FD size_t size() {
 	return ptx::special_registers::dynamic_smem_size() / sizeof(T);
 }
 
@@ -83,7 +83,7 @@ __fd__ size_t size() {
  * @note see also https://stackoverflow.com/questions/27570552/
  */
 template <typename T>
-__device__ T* proxy()
+KAT_DEV T* proxy()
 {
 	// TODO: Do we need this alignment? Probably not
 	extern __shared__ __align__(1024) unsigned char memory[];
@@ -121,7 +121,7 @@ namespace warp_specific {
  * @return Address of the first warp-specific element in shared memory
  */
 template <typename T>
-__fd__ T* contiguous(unsigned num_elements_per_warp, offset_t base_offset = 0)
+KAT_FD T* contiguous(unsigned num_elements_per_warp, offset_t base_offset = 0)
 {
 	return proxy<T>() + base_offset +
 		num_elements_per_warp * linear_grid::grid_info::warp::index_in_block();
@@ -142,7 +142,7 @@ __fd__ T* contiguous(unsigned num_elements_per_warp, offset_t base_offset = 0)
  * @return Address of the first warp-specific element in shared memory
  */
 template <typename T>
-__fd__ T* strided(offset_t base_offset = 0)
+KAT_FD T* strided(offset_t base_offset = 0)
 {
 	return proxy<T>() + base_offset + linear_grid::grid_info::warp::index_in_block();
 }
@@ -152,10 +152,5 @@ __fd__ T* strided(offset_t base_offset = 0)
 } // namespace dynamic
 } // namespace shared_memory
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_SHARED_MEMORY_BASIC_CUH_

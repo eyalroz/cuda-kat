@@ -24,7 +24,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -37,9 +37,9 @@ namespace block {
 
 /*
  * TODO: Implement
- * __fd__  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
- * __fd__  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
- * __fd__  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
  *
  * at the block level
  *
@@ -50,7 +50,7 @@ namespace block {
 // TODO: Check whether writing this with a forward iterator and std::advance
 // yields the same PTX code (in which case we'll prefer that)
 template <typename RandomAccessIterator, typename Size, typename T>
-__fd__ void fill_n(RandomAccessIterator start, Size count, T value)
+KAT_FD void fill_n(RandomAccessIterator start, Size count, T value)
 {
 	auto f = [=](promoted_size_t<Size> pos) {
 		start[pos] = value;
@@ -59,20 +59,20 @@ __fd__ void fill_n(RandomAccessIterator start, Size count, T value)
 }
 
 template <typename RandomAccessIterator, typename T>
-__fd__ void fill(RandomAccessIterator start, RandomAccessIterator end, const T& value)
+KAT_FD void fill(RandomAccessIterator start, RandomAccessIterator end, const T& value)
 {
     auto count = end - start;
     return fill_n(start, count, value);
 }
 
 template <typename RandomAccessIterator, typename Size>
-__fd__ void memzero_n(RandomAccessIterator start, Size count)
+KAT_FD void memzero_n(RandomAccessIterator start, Size count)
 {
     return fill_n(start, count, 0);
 }
 
 template <typename RandomAccessIterator, typename Size>
-__fd__ void memzero(RandomAccessIterator start, RandomAccessIterator end)
+KAT_FD void memzero(RandomAccessIterator start, RandomAccessIterator end)
 {
 	auto count = end - start;
     return fill_n(start, count, 0);
@@ -88,7 +88,7 @@ __fd__ void memzero(RandomAccessIterator start, RandomAccessIterator end)
  * source
  */
 template <typename T, typename S, typename UnaryOperation, typename Size>
-__fd__ void transform_n(
+KAT_FD void transform_n(
 	const S*  __restrict__  source,
 	T*        __restrict__  target,
 	Size                    length,
@@ -104,7 +104,7 @@ __fd__ void transform_n(
  * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
  */
 template <typename S, typename T, typename UnaryOperation, typename Size>
-__fd__ void transform(
+KAT_FD void transform(
 	const S*  __restrict__  source_start,
 	const S*  __restrict__  source_end,
 	T*        __restrict__  target,
@@ -125,7 +125,7 @@ __fd__ void transform(
  * source
  */
 template <typename S, typename T, typename Size>
-__fd__ void cast_and_copy_n(
+KAT_FD void cast_and_copy_n(
 	const S*  __restrict__  source,
 	T*        __restrict__  target,
 	Size                    length)
@@ -135,7 +135,7 @@ __fd__ void cast_and_copy_n(
 }
 
 template <typename S, typename T, typename Size>
-__fd__ void cast_and_copy_n(
+KAT_FD void cast_and_copy_n(
 	const S*  __restrict__  source_start,
 	const S*  __restrict__  source_end,
 	T*        __restrict__  target)
@@ -153,7 +153,7 @@ __fd__ void cast_and_copy_n(
  * @param length number of elements at @p source to copy
  */
 template <typename T, typename Size>
-__fd__ void copy_n(
+KAT_FD void copy_n(
 	const T*  __restrict__  source,
 	T*        __restrict__  target,
 	Size                    length)
@@ -174,7 +174,7 @@ __fd__ void copy_n(
  * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
  */
 template <typename T>
-__fd__ void copy(
+KAT_FD void copy(
 	const T*  __restrict__  source_start,
 	const T*  __restrict__  source_end,
 	T*        __restrict__  target)
@@ -190,7 +190,7 @@ __fd__ void copy(
  * of values of any type
  */
 template <typename T, typename I, typename Size, typename U = T>
-__fd__ void lookup(
+KAT_FD void lookup(
 	T*       __restrict__  target,
 	const U* __restrict__  lookup_table,
 	const I* __restrict__  indices,
@@ -223,7 +223,7 @@ template<
 	typename ReductionOp,
 	typename InputDatum,
 	bool AllThreadsObtainResult = false>
-__device__ typename ReductionOp::result_type reduce(InputDatum value)
+KAT_DEV typename ReductionOp::result_type reduce(InputDatum value)
 {
 	using result_type = typename ReductionOp::result_type;
 	ReductionOp op;
@@ -267,7 +267,7 @@ template<
 	typename ReductionOp,
 	typename InputDatum,
 	bool Inclusivity = inclusivity_t::Inclusive>
- __device__ typename ReductionOp::result_type scan(
+ KAT_DEV typename ReductionOp::result_type scan(
 	 typename ReductionOp::result_type* __restrict__ scratch, // must have warp_size element allocated
 	 InputDatum value)
 {
@@ -340,7 +340,7 @@ template<
 	typename ReductionOp,
 	typename InputDatum,
 	bool Inclusivity = inclusivity_t::Inclusive>
- __device__ void scan_and_reduce(
+ KAT_DEV void scan_and_reduce(
 	 typename ReductionOp::result_type* __restrict__ scratch, // must have warp_size element allocated
 	 InputDatum                                      value,
 	 typename ReductionOp::result_type&              scan_result,
@@ -439,7 +439,7 @@ template<
  *
  */
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
+KAT_FD void elementwise_accumulate(
 	D*       __restrict__  destination,
 	const S* __restrict__  source,
 	Size                   length)
@@ -451,7 +451,7 @@ __fd__ void elementwise_accumulate(
 }
 
 template <typename Operation, typename Size, typename ResultDatum, typename... Args>
-__fd__ void elementwise_apply(
+KAT_FD void elementwise_apply(
 	ResultDatum*     __restrict__  results,
 	Size                           length,
 	Operation                      op,
@@ -468,10 +468,5 @@ __fd__ void elementwise_apply(
 } // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_

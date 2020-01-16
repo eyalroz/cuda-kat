@@ -12,7 +12,7 @@
 #include <cuda_runtime_api.h>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -75,7 +75,7 @@ enum : lane_mask_t {
 template <typename T>
 constexpr std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
 
-//constexpr __fhd__ bool operator==(const dim3& lhs, const dim3& rhs)
+//constexpr KAT_FHD bool operator==(const dim3& lhs, const dim3& rhs)
 //{
 //	return lhs.x == rhs.x and lhs.y == rhs.y and lhs.z == rhs.z;
 //}
@@ -101,7 +101,7 @@ namespace detail {
  * @return the reinterpreted value
  *
 template <typename ToInterpret, typename Interpreted>
-__fd__  Interpreted reinterpret(
+KAT_FD  Interpreted reinterpret(
 	typename std::enable_if<
 		!std::is_same<
 			typename std::decay<ToInterpret>::type, // I actually just don't want references here
@@ -111,14 +111,14 @@ __fd__  Interpreted reinterpret(
 	return x;
 }
 
-template<> __fd__ double reinterpret<long long int, double>(long long int x) { return __longlong_as_double(x); }
-template<> __fd__ long long int reinterpret<double, long long int>(double x) { return __double_as_longlong(x); }
+template<> KAT_FD double reinterpret<long long int, double>(long long int x) { return __longlong_as_double(x); }
+template<> KAT_FD long long int reinterpret<double, long long int>(double x) { return __double_as_longlong(x); }
 
-template<> __fd__ double reinterpret<unsigned long long int, double>(unsigned long long int x) { return __longlong_as_double(x); }
-template<> __fd__ unsigned long long int reinterpret<double, unsigned long long int>(double x) { return __double_as_longlong(x); }
+template<> KAT_FD double reinterpret<unsigned long long int, double>(unsigned long long int x) { return __longlong_as_double(x); }
+template<> KAT_FD unsigned long long int reinterpret<double, unsigned long long int>(double x) { return __double_as_longlong(x); }
 
-template<> __fd__ float reinterpret<int, float>(int x) { return __int_as_float(x); }
-template<> __fd__ int reinterpret<float, int>(float x) { return __float_as_int(x); }
+template<> KAT_FD float reinterpret<int, float>(int x) { return __int_as_float(x); }
+template<> KAT_FD int reinterpret<float, int>(float x) { return __float_as_int(x); }
 
 } // namespace detail
 */
@@ -129,16 +129,11 @@ template<> __fd__ int reinterpret<float, int>(float x) { return __float_as_int(x
  * @todo Would it be better to return a reference?
  */
 template<typename Interpreted, typename Original>
-__fhd__ Interpreted reinterpret(Original& x)
+KAT_FHD Interpreted reinterpret(Original& x)
 {
 	return reinterpret_cast<Interpreted&>(x);
 }
 
 } // namespace kat
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
-
 
 #endif // CUDA_KAT_ON_DEVICE_COMMON_CUH_

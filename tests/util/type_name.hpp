@@ -15,13 +15,13 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace util {
 
 template <class T>
-CONSTEXPR14_TN __hd__ constexpr_string type_name()
+CONSTEXPR14_TN KAT_HD constexpr_string type_name()
 {
 #ifdef __clang__
     constexpr_string p = __PRETTY_FUNCTION__;
@@ -50,13 +50,13 @@ CONSTEXPR14_TN __hd__ constexpr_string type_name()
 }
 
 /*template <class T>
-CONSTEXPR14_TN __fhd__ constexpr_string type_name(T&&)
+CONSTEXPR14_TN KAT_FHD constexpr_string type_name(T&&)
 {
 	return type_name<T>();
 }
 
 template <class T>
-CONSTEXPR14_TN __fhd__ constexpr_string type_name(const T&)
+CONSTEXPR14_TN KAT_FHD constexpr_string type_name(const T&)
 {
 	return type_name<T>();
 }*/
@@ -162,9 +162,6 @@ inline std::string discard_template_parameters(const std::string& type_name)
 
 } /* namespace util */
 
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
+#include <kat/detail/execution_space_specifiers.hpp>
 
 #endif /* UTIL_TYPE_NAME_HPP_ */

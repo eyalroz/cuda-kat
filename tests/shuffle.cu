@@ -8,19 +8,20 @@
 
 // TODO: Also test behavior with warps with some inactive/exited lanes
 
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
+
 
 namespace kernels {
 
 template <typename T, std::size_t N>
-__fhd__  kat::array<T, N>& operator++(::kat::array<T, N>& x)
+KAT_FHD  kat::array<T, N>& operator++(::kat::array<T, N>& x)
 {
 	for(auto& e : x) { e++; }
 	return x;
 }
 
 template <typename T, std::size_t N>
-__fhd__ kat::array<T, N> operator++(::kat::array<T, N>& x, int)
+KAT_FHD kat::array<T, N> operator++(::kat::array<T, N>& x, int)
 {
 	kat::array<T, N> copy;
 	for(auto& e : x) { e++; }
@@ -310,7 +311,5 @@ TEST_CASE_TEMPLATE("xor", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZ
 		}
 	}
 }
-
-#include <kat/undefine_specifiers.hpp>
 
 } // TEST_SUITE("shuffle")

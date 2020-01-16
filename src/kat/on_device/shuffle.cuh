@@ -17,7 +17,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -36,7 +36,7 @@ namespace kat {
  * @param source_lane The lane whose value the current lane wants to get
  * @return the @p t value of @p source_lane
  */
-template<typename T> __fd__ T shuffle_arbitrary(const T& t, int source_lane);
+template<typename T> KAT_FD T shuffle_arbitrary(const T& t, int source_lane);
 
 /**
  * @param t Each lane shares own value, which a lane with a higher index
@@ -47,7 +47,7 @@ template<typename T> __fd__ T shuffle_arbitrary(const T& t, int source_lane);
  * lane's; a lane with a high index, above warp_size - @p delta, has its own @p t
  * returned unchanged.
  */
-template<typename T> __fd__ T shuffle_down(const T& t, unsigned int delta);
+template<typename T> KAT_FD T shuffle_down(const T& t, unsigned int delta);
 
 /**
  * @tparam T the type of datum to be shared with other lane(s); may be of
@@ -62,7 +62,7 @@ template<typename T> __fd__ T shuffle_down(const T& t, unsigned int delta);
  * lane's; a lane with a low index, under @p delta, has its own @p t returned
  * unchanged.
  */
-template<typename T> __fd__ T shuffle_up(const T& t, unsigned int delta);
+template<typename T> KAT_FD T shuffle_up(const T& t, unsigned int delta);
 
 /**
  * @brief Have pairs of lanes exchange a value, with the pairing performed
@@ -76,14 +76,10 @@ template<typename T> __fd__ T shuffle_up(const T& t, unsigned int delta);
  * is paired with the lane with index i ^ mask.
  * @return The @p t value of the paired lane
  */
-template<typename T> __fd__ T shuffle_xor(const T& t, int mask);
+template<typename T> KAT_FD T shuffle_xor(const T& t, int mask);
 
 } // namespace kat
 
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 #include "detail/shuffle.cuh"
 
 #endif // CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_CUH_

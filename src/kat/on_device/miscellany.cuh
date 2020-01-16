@@ -15,7 +15,7 @@
 #include <cassert>
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -29,7 +29,7 @@ namespace kat {
  * them in its own internal figuring.
  */
 template <typename T>
-__fd__  void swap(T& x, T& y)  {
+KAT_FD  void swap(T& x, T& y)  {
    T _x = x;
    T _y = y;
    x = _y;
@@ -59,7 +59,7 @@ __fd__  void swap(T& x, T& y)  {
  * @return the destination pointer
  */
 template <typename T>
-__fd__ T* copy(
+KAT_FD T* copy(
 	T*        __restrict__  destination,
 	const T*  __restrict__  source,
 	size_t                  num_elements_to_copy)
@@ -77,17 +77,12 @@ __fd__ T* copy(
 }
 
 template <typename I>
-constexpr __fhd__ I num_warp_sizes_to_cover(I x)
+constexpr KAT_FHD I num_warp_sizes_to_cover(I x)
 {
     enum : I { log_Warp_size = 5 };
     return (x >> log_warp_size) + ((x & (warp_size-1)) > 0);
 }
 
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_MISCELLANY_CUH_

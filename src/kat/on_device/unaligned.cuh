@@ -19,7 +19,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -38,7 +38,7 @@ namespace kat {
  * the last relevant byte of data
  */
 //template <typename T>
-//__fd__ T read_unaligned(const T* __restrict__ ptr);
+//KAT_FD T read_unaligned(const T* __restrict__ ptr);
 
 
 /**
@@ -53,11 +53,11 @@ namespace kat {
  * @note this is an unsafe variant, which may read past the end
  * of an array
  */template <typename T>
-__fd__ T read_unaligned_unsafe(const T* __restrict__ ptr);
+KAT_FD T read_unaligned_unsafe(const T* __restrict__ ptr);
 
 
  template <>
-__fd__ uint32_t read_unaligned_unsafe<uint32_t>(const uint32_t* __restrict__ ptr)
+KAT_FD uint32_t read_unaligned_unsafe<uint32_t>(const uint32_t* __restrict__ ptr)
 {
 	/*
 	 * So here's what the memory looks like:
@@ -90,7 +90,7 @@ __fd__ uint32_t read_unaligned_unsafe<uint32_t>(const uint32_t* __restrict__ ptr
 // From here on - untested!
 
 template <>
-__fd__ uint64_t read_unaligned_unsafe<uint64_t>(const uint64_t* __restrict__ ptr)
+KAT_FD uint64_t read_unaligned_unsafe<uint64_t>(const uint64_t* __restrict__ ptr)
 {
 	auto aligned_word_ptr = reinterpret_cast<const uint32_t *>(cuda::align_down<uint64_t>(ptr));
 	uint32_t aligned_native_words[3] =
@@ -112,7 +112,7 @@ __fd__ uint64_t read_unaligned_unsafe<uint64_t>(const uint64_t* __restrict__ ptr
  * @return the T value at @p ptr, within an R value
  */
 template <typename T>
-__fd__ T read_unaligned_unsafe(const T* __restrict__ ptr)
+KAT_FD T read_unaligned_unsafe(const T* __restrict__ ptr)
 {
 	static_assert(sizeof(T) <= 8, "Unsupported size");
 	static_assert(std::is_trivial<T>::value,
@@ -187,12 +187,12 @@ __fd__ T read_unaligned_unsafe(const T* __restrict__ ptr)
 	}
 }
 
-__fd__ uint8_t read_unaligned_unsafe(const uint8_t* __restrict__ ptr)
+KAT_FD uint8_t read_unaligned_unsafe(const uint8_t* __restrict__ ptr)
 {
 	return *ptr;
 }
 
-__fd__ uint16_t read_unaligned_unsafe(const uint16_t* __restrict__ ptr)
+KAT_FD uint16_t read_unaligned_unsafe(const uint16_t* __restrict__ ptr)
 {
 	auto byte_ptr = reinterpret_cast<const uint8_t*>(ptr);
 	return
@@ -200,24 +200,24 @@ __fd__ uint16_t read_unaligned_unsafe(const uint16_t* __restrict__ ptr)
 		((uint16_t) byte_ptr[1]) << cuda::bits_per_byte;
 }
 
-__fd__ uint8_t read_unaligned(const uint8_t* __restrict__ ptr)
+KAT_FD uint8_t read_unaligned(const uint8_t* __restrict__ ptr)
 {
 	return *ptr;
 }
 
-__fd__ uint16_t read_unaligned(const uint16_t* __restrict__ ptr)
+KAT_FD uint16_t read_unaligned(const uint16_t* __restrict__ ptr)
 {
 	return cuda::is_aligned(ptr) ? *ptr : read_unaligned_unsafe<uint16_t>(ptr);
 }
 
-__fd__ uint32_t read_unaligned(const uint32_t* __restrict__ ptr)
+KAT_FD uint32_t read_unaligned(const uint32_t* __restrict__ ptr)
 {
 	return cuda::is_aligned(ptr) ? *ptr : read_unaligned_unsafe<uint32_t>(ptr);
 }
 
 /*
 template <typename T, std::enable_if<sizeof(T), sizeof(uint32_t)>::type = 0>
-__fd__ T read_unaligned<T>(const T* __restrict__ ptr)
+KAT_FD T read_unaligned<T>(const T* __restrict__ ptr)
 {
 	auto reinterpreted_ptr = reinterpret_cast<const uint32_t *>(ptr);
 	auto v =
@@ -226,14 +226,14 @@ __fd__ T read_unaligned<T>(const T* __restrict__ ptr)
 }
 */
 
-__fd__ uint64_t read_unaligned(const uint64_t* __restrict__ ptr)
+KAT_FD uint64_t read_unaligned(const uint64_t* __restrict__ ptr)
 {
 	return cuda::is_aligned(ptr) ? *ptr : read_unaligned_unsafe<uint64_t>(ptr);
 }
 
 /*
 template <typename T>
-__fd__ T read_unaligned(const T* __restrict__ ptr)
+KAT_FD T read_unaligned(const T* __restrict__ ptr)
 {
 	static_assert(sizeof(T) <= 8, "Unsupported size");
 
@@ -268,11 +268,5 @@ __fd__ T read_unaligned(const T* __restrict__ ptr)
 */
 
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
-
 
 #endif // CUDA_KAT_ON_DEVICE_UNALIGNED_CUH_

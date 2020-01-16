@@ -1,15 +1,12 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 // #include "common.cuh"
-// #include <kat/on_device/printing.cuh>
 //#include "util/prettyprint.hpp"
 #include "util/type_name.hpp"
 //#include "util/random.hpp"
 //#include "util/miscellany.cuh"
 //#include "util/macro.h"
-//#include <kat/on_device/sstream/sostream.cuh>
 #include <kat/on_device/collaboration/block.cuh>
 #include <kat/on_device/time.cuh>
-#include <kat/on_device/printing.cuh>
 
 #include <doctest.h>
 #include <cuda/api_wrappers.hpp>
