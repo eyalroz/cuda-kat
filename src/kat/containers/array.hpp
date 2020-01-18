@@ -1,9 +1,12 @@
 /**
  * @file kat/containers/array.hpp
  *
- * @brief Contains @ref kat::array, A adaptation of @ref std::array,
- * usable both on the host and on the GPU-device side.
+ * @brief This file implements `kat::array`, an equivalent of C++11's
+ * `std::array` which may be used both in host-side and CUDA-device-side
+ * code, along with some supporting functions and overloaded operators
+ * for that class.
  */
+
 // Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 // Copyright (C) 2017, 2019 Eyal Rozenberg <eyalroz@technion.ac.il>
 //
@@ -22,7 +25,7 @@
 // use macros or inline functions from this file, or you compile this file
 // and link it with other files to produce an executable, this file does
 // not by itself cause the resulting executable to be covered by the GNU
-// General Public License.  This exception does not however invalidate any
+// General Public License. This exception does not however invalidate any
 // other reasons why the executable file might be covered by the GNU
 // General Public License.
 //
