@@ -16,7 +16,7 @@ include(DocTest)
 ################
 
 find_package(CUDA 8.0 REQUIRED)
-find_package(cuda-api-wrappers REQUIRED)
+find_package(cuda-api-wrappers 0.3.0 REQUIRED)
 find_package(cuda-nvtx REQUIRED) # Actually, it's sort-of required by cuda-api-wrappers
 
 include(CMakeDependentOption)
@@ -42,10 +42,6 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRA
 #        WILL_FAIL TRUE # We expect this test to fail
 #)
 
-# TODO: We are currently extremely hacky about the libraries and include dependencies of the tests;
-# that definitely needs to be improved. In particular, we should just depend on cuda-api-wrappers which
-# should pull in everything else.
-
 # TODO 2: We're using an extra object target for each test to ensure compilation of .ptx files (the _obj
 # targets). We should try to avoid those.
 
@@ -67,9 +63,9 @@ endif()
 foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
-	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cudart ${CUDA_API_WRAPPERS_LIB} doctest  ${CUDA_LIBRARIES} test_utils)
+	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cuda-api-wrappers::cuda-api-wrappers doctest  ${CUDA_LIBRARIES} test_utils)
 	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
-	target_include_directories(${TEST_TARGET} PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR} ${PROJECT_SOURCE_DIR}/src)
+	target_include_directories(${TEST_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 	set_target_properties(
 		${TEST_TARGET}

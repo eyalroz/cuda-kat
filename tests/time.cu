@@ -96,7 +96,7 @@ TEST_SUITE("time") {
 
 		device.synchronize();
 
-		for(cuda::grid_block_dimension_t block_id = 0; block_id < num_grid_blocks; block_id++) {
+		for(cuda::grid::block_dimension_t block_id = 0; block_id < num_grid_blocks; block_id++) {
 
 			std::vector<kat::clock_value_t> block_times_before_sleep {
 				host_times_before_sleep.get() + block_id * block_size,
@@ -112,7 +112,7 @@ TEST_SUITE("time") {
 //				<< (resolution == kat::sleep_resolution::nanoseconds ? "nanoseconds" : "")
 //				<< std::endl;
 
-			for(cuda::grid_dimension_t thread_index = 0; thread_index < block_size; ++thread_index) {
+			for(cuda::grid::dimension_t thread_index = 0; thread_index < block_size; ++thread_index) {
 				CHECK(block_times_before_sleep[thread_index] < block_times_after_sleep[thread_index]);
 //				std::cout
 //					<< "Block " << std::setw(4) << block_id << ", Thread " << std::setw(4) << thread_index << ": "
