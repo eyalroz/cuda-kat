@@ -52,15 +52,15 @@ constexpr KAT_FHD I ipow(I base, unsigned exponent) noexcept
 }
 
 template <typename I, typename I2>
-constexpr KAT_FHD I div_rounding_up(I x, const I2 modulus) noexcept
+constexpr KAT_FHD I div_rounding_up(I dividend, const I2 divisor) noexcept
 {
-	return (x / modulus) + !!(x % modulus);
+	return (dividend / divisor) + !!(dividend % divisor);
 }
 
 template <typename I, typename I2>
-constexpr KAT_FHD I round_down(const I x, const I2 modulus) noexcept
+constexpr KAT_FHD I round_down(const I dividend, const I2 divisor) noexcept
 {
-	return x - (x % modulus);
+	return dividend - (dividend % divisor);
 }
 
 template <typename I, typename I2 = I>
