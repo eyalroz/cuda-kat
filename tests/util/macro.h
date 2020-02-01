@@ -41,19 +41,22 @@
 #define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
 #endif /* COUNTER */
 
+#define COUNT_THIS_LINE static_assert(__COUNTER__ + 1, "");
+#define START_COUNTING_LINES(count_name) enum { EXPAND_THEN_CONCATENATE(count_name,_start) = __COUNTER__ };
+#define FINISH_COUNTING_LINES(count_name) enum { count_name = __COUNTER__ - EXPAND_THEN_CONCATENATE(count_name,_start) - 1 };
 
 
-/**
- * This macro expands into a different identifier in every expansion.
- * Note that you _can_ clash with an invocation of UNIQUE_IDENTIFIER
- * by manually using the same identifier elsewhere; or by carefully
- * choosing another prefix etc.
- */
-#ifdef __COUNTER__
-#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __COUNTER__)
-#else
-#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
-#endif /* COUNTER */
+///**
+// * This macro expands into a different identifier in every expansion.
+// * Note that you _can_ clash with an invocation of UNIQUE_IDENTIFIER
+// * by manually using the same identifier elsewhere; or by carefully
+// * choosing another prefix etc.
+// */
+//#ifdef __COUNTER__
+//#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __COUNTER__)
+//#else
+//#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
+//#endif /* COUNTER */
 
 
 /**

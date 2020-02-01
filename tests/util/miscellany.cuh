@@ -1,6 +1,8 @@
 #ifndef CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 #define CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 
+#include <cuda/api/types.hpp>
+
 #include <algorithm>
 #include <climits>
 #include <type_traits>
@@ -65,7 +67,40 @@ template<> struct promoted_for_streaming<unsigned char> { using type = unsigned 
 template <typename ToBeStreamed>
 typename detail::promoted_for_streaming<ToBeStreamed>::type promote_for_streaming(const ToBeStreamed& tbs)
 {
-        return static_cast<typename detail::promoted_for_streaming<ToBeStreamed>::type>(tbs);
+	return static_cast<typename detail::promoted_for_streaming<ToBeStreamed>::type>(tbs);
 }
+
+inline const char* ordinal_suffix(int n)
+{
+	static const char suffixes [4][5] = {"th", "st", "nd", "rd"};
+	auto ord = n % 100;
+	if (ord / 10 == 1) { ord = 0; }
+	ord = ord % 10;
+	return suffixes[ord > 3 ? 0 : ord];
+}
+
+// cuda-api-wrappers-related utilities
+
+template <typename N = int>
+inline std::string xth(N n) { return std::to_string(n) + ordinal_suffix(n); }
+
+inline cuda::launch_configuration_t single_thread_launch_config()
+{
+	return { cuda::grid::dimensions_t::point(), cuda::grid::dimensions_t::point() };
+}
+
+
+std::ostream& operator<<(std::ostream& os, cuda::grid::dimensions_t dims)
+{
+	return os << '(' << dims.x << "," << dims.y << "," << dims.z << ')';
+}
+
+std::ostream& operator<<(std::ostream& os, cuda::launch_configuration_t lc)
+{
+	return os
+		<< "grid x block dimensions = " << lc.grid_dimensions << " x " << lc.block_dimensions << ", "
+		<< lc.dynamic_shared_memory_size << " bytes dynamic shared memory" << '\n';
+}
+
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
