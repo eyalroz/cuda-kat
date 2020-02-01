@@ -14,6 +14,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
 project(cuda-kat
 	DESCRIPTION "CUDA kernel author's tools"
+	VERSION 0.1.0
 	HOMEPAGE_URL "https://github.com/eyalroz/cuda-kat"
 	LANGUAGES CXX CUDA)
 
@@ -92,16 +93,27 @@ install(
 )
 
 install(
-	DIRECTORY src
+	DIRECTORY src/kat
 	DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 	FILES_MATCHING REGEX "\\.(h|hpp|cuh)$"
 )
 
 install(
 	EXPORT cuda-kat_export
-	DESTINATION "share/cmake/cuda-kat"
+	DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cuda-kat"
 	NAMESPACE "cuda-kat::"
-	# In this CMake config file no dependencies are considered. But since we
-	# do not use any `find_package` call here this approach is sufficient.
 	FILE cuda-kat-config.cmake
+)
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+	"cuda-kat-config-version.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY SameMinorVersion
+)
+
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/cuda-kat-config-version.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cuda-kat"
 )
