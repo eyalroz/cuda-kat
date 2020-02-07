@@ -60,16 +60,16 @@ constexpr KAT_FHD address_t misalignment_extent(address_t address) noexcept
  * @return the minimum number of bytes which, if deducted from ptr, produces
  * a T-aligned pointer
  */
-template <typename T>
-constexpr KAT_FHD address_t misalignment_extent(const T* ptr) noexcept
+template <typename T, typename U = T>
+constexpr KAT_FHD address_t misalignment_extent(const U* ptr) noexcept
 {
 	return misalignment_extent<T>(address_as_number(ptr));
 }
 
-template <typename T>
-constexpr KAT_FHD bool is_aligned(const T* ptr) noexcept
+template <typename T, typename U = T>
+constexpr KAT_FHD bool is_aligned(const U* ptr) noexcept
 {
-	return misalignment_extent(ptr) == 0;
+	return misalignment_extent<T>(reinterpret_cast<const T*>(ptr)) == 0;
 }
 
 template <typename T>
@@ -84,6 +84,12 @@ constexpr KAT_FHD address_t align_down(address_t address) noexcept
 	return (address - misalignment_extent<T>(address));
 }
 
+template <typename T>
+constexpr KAT_FHD address_t align_up(address_t address) noexcept
+{
+	return address + is_aligned<T>(address) ? 0 : misalignment_extent<T>(address);
+}
+
 /**
  * @tparam T a type whose size is a power of 2 (and thus has natural alignment)
  * @param A possibly-unaligned pointer
@@ -95,14 +101,28 @@ KAT_FHD AlignBy* align_down(T* ptr) noexcept
 	// Note: The compiler _should_ optimize out the inefficiency of using
 	// misalignment_extent rather than just applying a mask once.
 	address_t address = address_as_number(ptr);
-	auto aligned_down_addr = align_down<AlignBy>(address);
-	return (AlignBy*) address_as_pointer<AlignBy*>(aligned_down_addr);
+	auto aligned_addr = align_down<AlignBy>(address);
+	return (AlignBy*) address_as_pointer<AlignBy*>(aligned_addr);
+}
+
+template <typename AlignBy, typename T>
+KAT_FHD AlignBy* align_up(T* ptr) noexcept
+{
+	address_t address = address_as_number(ptr);
+	auto aligned_addr = align_up<AlignBy>(address);
+	return (AlignBy*) address_as_pointer<AlignBy*>(aligned_addr);
 }
 
 template <typename T>
 KAT_FHD T* align_down(T* ptr) noexcept
 {
 	return const_cast<T*>(align_down<T>(reinterpret_cast<const T*>(ptr)));
+}
+
+template <typename T>
+KAT_FHD T* align_up(T* ptr) noexcept
+{
+	return const_cast<T*>(align_up<T>(reinterpret_cast<const T*>(ptr)));
 }
 
 
