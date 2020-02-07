@@ -140,9 +140,30 @@ TEST_CASE_TEMPLATE("test swap", T, int8_t, int16_t, int32_t, uint32_t, int64_t, 
 
 }
 
-//TEST_CASE_TEMPLATE("test num_warps_to_cover", I, uint8_t, uint16_t, uint32_t, uint64_t )
-//{
-//
-//}
+TEST_CASE_TEMPLATE("test num_warps_to_cover", I, int8_t, int16_t, int32_t, uint32_t, int64_t )
+{
+	using std::size_t;
+	auto irrelevant = [](size_t x) { return x > std::numeric_limits<I>::max(); };
+	using kat::num_warp_sizes_to_cover;
+	size_t num;
+
+	num =    0; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  0); }
+	num =    1; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  1); }
+	num =    2; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  1); }
+	num =    3; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  1); }
+	num =   31; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  1); }
+	num =   32; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  1); }
+	num =   33; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) ==  2); }
+	num = 1023; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == 32); }
+	num = 1024; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == 32); }
+	num = 1025; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == 33); }
+
+	num = (size_t{1} << 31) - 1; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == size_t{1} << 26);       }
+	num =  size_t{1} << 31     ; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == size_t{1} << 26);       }
+	num = (size_t{1} << 31) + 1; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == (size_t{1} << 26) + 1); }
+	num = (size_t{1} << 32) - 1; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == size_t{1} << 27);       }
+	num =  size_t{1} << 32     ; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == size_t{1} << 27);       }
+	num = (size_t{1} << 32) + 1; if (not irrelevant(num)) { CHECK(num_warp_sizes_to_cover<I>(num) == (size_t{1} << 27) + 1); }
+}
 
 } // TEST_SUITE("miscellany")
