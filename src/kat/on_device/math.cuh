@@ -54,7 +54,7 @@ KAT_FD T div_by_power_of_2_rounding_up(const T& dividend, const S& divisor)
 {
 	auto mask = divisor - 1; // Remember: 0 is _not_ a power of 2
 	auto log_2_of_divisor = log2_of_power_of_2(divisor);
-	auto correction_for_rounding_up = ((dividend & mask) + mask) >> log_2_of_divisor;
+	auto correction_for_rounding_up = (dividend & mask != 0);
 
 	return (dividend >> log_2_of_divisor) + correction_for_rounding_up;
 }

@@ -76,11 +76,25 @@ KAT_FD T* copy(
 	return destination;
 }
 
+/**
+ * @brief Return the number of full warps in a linear grid
+ * which would, overall, contain at least a given number of threads.
+ *
+ * @note This comes in handy more times than you must expect even in device-side code.
+ *
+ * @note the reason this function is defined directly rather than using
+ * the functions in math or constexpr_math is that bit-counting is
+ * either slow in run-time on the GPUwhen you use the constexpr way of
+ * doing it, or not constexpr if you use the GPU-side population count
+ * instruction.
+ */
 template <typename I>
-constexpr KAT_FHD I num_warp_sizes_to_cover(I x)
+constexpr KAT_FHD I num_warp_sizes_to_cover(I number_of_threads)
 {
-    enum : I { log_Warp_size = 5 };
-    return (x >> log_warp_size) + ((x & (warp_size-1)) > 0);
+	static_assert(std::is_integral<I>::value, "Number of threads specified using a non-integral type");
+	enum : I { mask = (warp_size - 1) };
+	enum : I { log_warp_size = 5 } ;
+	return (number_of_threads >> log_warp_size) + ((number_of_threads & mask) != 0);
 }
 
 } // namespace kat

@@ -167,9 +167,6 @@ constexpr KAT_FHD bool power_of_2_divides(I power_of_2_divisor, I dividend) noex
 template <typename I>
 constexpr KAT_FHD bool is_divisible_by_power_of_2(I dividend, I power_of_2_divisor) noexcept
 {
-#if __cplusplus >= 201402L
-    assert(is_power_of_2(power_of_2_divisor));
-#endif
 	return power_of_2_divides(power_of_2_divisor, dividend);
 }
 
