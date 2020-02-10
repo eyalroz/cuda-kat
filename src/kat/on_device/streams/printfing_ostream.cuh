@@ -231,6 +231,7 @@ KAT_DEV printfing_ostream& operator<< (printfing_ostream& os, manipulators::reso
 
 
 using manipulators::flush;
+using manipulators::endl;
 
 } // namespace kat
 

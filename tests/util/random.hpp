@@ -16,6 +16,7 @@
 #include <random>
 #include <algorithm>
 #include <iterator>
+#include <type_traits>
 
 namespace util {
 
@@ -27,6 +28,14 @@ extern std::default_random_engine engine;
 
 using result_t = decltype(engine)::result_type;
 using seed_t   = result_t;
+
+template <typename T>
+using uniform_distribution = std::conditional_t<
+	std::is_floating_point<T>::value,
+	std::uniform_real_distribution<T>,
+	std::uniform_int_distribution<T>
+>;
+
 
 
 /*
@@ -103,6 +112,16 @@ constexpr inline void insertion_generate_n(
 	for(size_t i = 0; i < count; i++) {
 		*(inserter++) = sample_from(distribution, engine);
 	}
+}
+
+template <typename Inserter, typename Size, typename Distribution, typename Engine = std::default_random_engine>
+constexpr inline void insertion_generate_n(
+	Inserter inserter,
+	Size count,
+	Distribution&& distribution,
+	Engine& engine = util::random::engine)
+{
+	insertion_generate_n(inserter, count, distribution, engine);
 }
 
 
