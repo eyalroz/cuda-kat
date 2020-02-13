@@ -6,6 +6,7 @@
 #include "util/random.hpp"
 #include "util/miscellany.cuh"
 #include "util/macro.h"
+#include "util/printing.hpp"
 
 
 #include <doctest.h>

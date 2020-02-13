@@ -7,6 +7,7 @@
 #include <climits>
 #include <type_traits>
 #include <iterator>
+#include <utility>
 
 template <typename I>
 I round_up(I x, I quantum) { return (x % quantum) ? (x + (quantum - (x % quantum))) : x; }
@@ -47,60 +48,42 @@ struct is_iterator<T, typename std::enable_if<!std::is_same<typename std::iterat
    static constexpr bool value = true;
 };
 
-
-
-namespace detail {
-template <typename ToBeStreamed>
-struct promoted_for_streaming { using type = ToBeStreamed; };
-template<> struct promoted_for_streaming<char>{ using type = short; };
-template<> struct promoted_for_streaming<signed char>{ using type = signed short; };
-template<> struct promoted_for_streaming<unsigned char> { using type = unsigned short; };
-
-} // namespace detail
-/*
- * The following structs are used for streaming data to iostreams streams.
- * They have a tendency to try to outsmart you, e.g. w.r.t. char or unsigned
- *  char data - they assume you're really passing ISO-8859-1 code points
- *  rather than integral values, and will print accordingly. Using this
- *  generic promoter, you van avoid that.
+/**
+ * Use these next few types to make assertions regarding each member
+ * of a template parameter pack, e.g.
+ *
+ *  static_assert(all_true<(Numbers == 0 || Numbers == 1)...>::value, "");
+ *
  */
-template <typename ToBeStreamed>
-typename detail::promoted_for_streaming<ToBeStreamed>::type promote_for_streaming(const ToBeStreamed& tbs)
-{
-	return static_cast<typename detail::promoted_for_streaming<ToBeStreamed>::type>(tbs);
+template<bool...> struct bool_pack;
+template<bool... bs>
+using all_true = std::is_same<bool_pack<bs..., true>, bool_pack<true, bs...>>;
+
+template <typename T>
+constexpr std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
+template <typename T>
+constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
+
+
+/**
+* Divides the left-hand-side by the right-hand-side, rounding up
+* to an integral multiple of the right-hand-side, e.g. (9,5) -> 2 , (10,5) -> 2, (11,5) -> 3.
+*
+* @param dividend the number to divide
+* @param divisor the number of by which to divide
+* @return The least integer multiple of {@link divisor} which is greater-or-equal to
+* the non-integral division dividend/divisor.
+*
+* @note sensitive to overflow, i.e. if dividend > std::numeric_limits<S>::max() - divisor,
+* the result will be incorrect
+*/
+template <typename S, typename T>
+constexpr inline S div_rounding_up(const S& dividend, const T& divisor) {
+	return (dividend + divisor - 1) / divisor;
+/*
+	std::div_t div_result = std::div(dividend, divisor);
+	return div_result.quot + !(!div_result.rem);
+*/
 }
-
-inline const char* ordinal_suffix(int n)
-{
-	static const char suffixes [4][5] = {"th", "st", "nd", "rd"};
-	auto ord = n % 100;
-	if (ord / 10 == 1) { ord = 0; }
-	ord = ord % 10;
-	return suffixes[ord > 3 ? 0 : ord];
-}
-
-// cuda-api-wrappers-related utilities
-
-template <typename N = int>
-inline std::string xth(N n) { return std::to_string(n) + ordinal_suffix(n); }
-
-inline cuda::launch_configuration_t single_thread_launch_config()
-{
-	return { cuda::grid::dimensions_t::point(), cuda::grid::dimensions_t::point() };
-}
-
-
-std::ostream& operator<<(std::ostream& os, cuda::grid::dimensions_t dims)
-{
-	return os << '(' << dims.x << "," << dims.y << "," << dims.z << ')';
-}
-
-std::ostream& operator<<(std::ostream& os, cuda::launch_configuration_t lc)
-{
-	return os
-		<< "grid x block dimensions = " << lc.grid_dimensions << " x " << lc.block_dimensions << ", "
-		<< lc.dynamic_shared_memory_size << " bytes dynamic shared memory" << '\n';
-}
-
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
