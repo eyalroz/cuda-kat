@@ -167,8 +167,7 @@ KAT_FD bool is_uniform_across_lanes (T value, lane_mask_t lane_mask)
 template <typename T>
 KAT_FD bool is_uniform_across_warp(T value) { return is_uniform_across_lanes<T>(full_warp_mask, value); }
 
-template <typename T> KAT_FD lane_mask_t matching_lanes(lane_mask_t lanes, T value) { return __match_any_sync(lanes, value); }
-template <typename T> KAT_FD lane_mask_t matching_lanes(T value) { return __match_any_sync(full_warp_mask, value); }
+template <typename T> KAT_FD lane_mask_t matching_lanes(T value, lane_mask_t lanes) { return __match_any_sync(lanes, value); }
 #endif
 
 
@@ -179,15 +178,6 @@ KAT_FD lane_mask_t preceding_and_self()  { return ptx::special_registers::lanema
 KAT_FD lane_mask_t self()                { return ptx::special_registers::lanemask_eq(); }
 KAT_FD lane_mask_t succeeding_and_self() { return ptx::special_registers::lanemask_ge(); }
 KAT_FD lane_mask_t succeeding()          { return ptx::special_registers::lanemask_gt(); }
-
-#if (__CUDACC_VER_MAJOR__ >= 9)
-template <typename T>
-KAT_FD lane_mask_t lanes_matching_values(T value, lane_mask_t lane_mask)
-{
-	return __match_any_sync(lane_mask, value);
-}
-#endif // __CUDACC_VER_MAJOR__ >= 9
-
 
 } // namespace mask_of_lanes
 

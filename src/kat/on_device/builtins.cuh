@@ -172,12 +172,12 @@ namespace warp {
 #if (__CUDACC_VER_MAJOR__ >= 9)
 KAT_FD lane_mask_t ballot            (int condition, lane_mask_t lane_mask = full_warp_mask);
 KAT_FD int         all_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
-KAT_FD int         some_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask);
+KAT_FD int         any_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
 KAT_FD int         all_lanes_agree   (int condition, lane_mask_t lane_mask = full_warp_mask);
 #else
 KAT_FD lane_mask_t ballot            (int condition);
 KAT_FD int         all_lanes_satisfy (int condition);
-KAT_FD int         some_lanes_satisfy(int condition);
+KAT_FD int         any_lanes_satisfy (int condition);
 #endif
 
 #if (__CUDACC_VER_MAJOR__ >= 9)
@@ -193,9 +193,6 @@ KAT_FD unsigned int preceding_and_self();
 KAT_FD unsigned int self();
 KAT_FD unsigned int succeeding_and_self();
 KAT_FD unsigned int succeeding();
-
-template <typename T> KAT_FD lane_mask_t matching_value(lane_mask_t lane_mask, T value);
-template <typename T> KAT_FD lane_mask_t matching_value(T value);
 
 } // namespace mask_of_lanes
 
