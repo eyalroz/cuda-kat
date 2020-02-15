@@ -55,6 +55,16 @@ template <typename I> KAT_FD  I multiplication_high_bits(I x, I y);
  * when --use-fast-math is specified; otherwise it's the same as regular "/".
  */
 template <typename F> KAT_FD F divide(F dividend, F divisor);
+
+/**
+ * @brief clamps the input value to the unit segment [0.0,+1.0].
+ *
+ * @note behavior undefined for nan/infinity/etc.
+ *
+ * @return max(0.0,min(1.0,x))
+ */
+template <typename F> KAT_FD F clamp_to_unit_segment(F x);
+
 template <typename T> KAT_FD T absolute_value(T x);
 template <typename T> KAT_FD T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 template <typename T> KAT_FD T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
@@ -64,8 +74,10 @@ template <typename T> KAT_FD T maximum(T x, T y) = delete; // don't worry, it's 
  *
  * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
  * of the PTX ISA reference.
+ *
+ * @note
  */
-template <typename I1, typename I2> KAT_FD I2 sum_with_absolute_difference(I1 x, I1 y, I2 addend);
+template <typename I> KAT_FD unsigned sum_with_absolute_difference(I x, I y, unsigned addend);
 
 
 // --------------------------------------------

@@ -77,14 +77,14 @@ DEFINE_IS_IN_MEMORY_SPACE(shared) // is_in_shared_memory
  * sign bits (i.e. if it's 0 or if its type is signed and its bits are all 1) - the value 0xFFFFFFFF (-1) is returned
  */
 
-#define DEFINE_BFIND(ptx_value_type) \
+#define DEFINE_BFIND(ptx_type) \
 KAT_FD uint32_t \
-bfind(CPP_TYPE_BY_PTX_TYPE(ptx_value_type) val) \
+bfind(CPP_TYPE_BY_PTX_TYPE(ptx_type) val) \
 { \
 	uint32_t ret;  \
 	asm ( \
-		"bfind." PTX_STRINGIFY(ptx_value_type) " %0, %1;" \
-		: "=r"(ret) : SIZE_CONSTRAINT(ptx_value_type) (val)); \
+		"bfind." PTX_STRINGIFY(ptx_type) " %0, %1;" \
+		: "=r"(ret) : SIZE_CONSTRAINT(ptx_type) (val)); \
 	return ret; \
 }
 
@@ -168,18 +168,18 @@ KAT_FD uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
  * TODO: CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
  * I'll take a different route.
  */
-#define DEFINE_BFE(ptx_value_type) \
-KAT_FD CPP_TYPE_BY_PTX_TYPE(ptx_value_type) \
+#define DEFINE_BFE(ptx_type) \
+KAT_FD CPP_TYPE_BY_PTX_TYPE(ptx_type) \
 bfe( \
-	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) bits, \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type) bits, \
 	uint32_t start_position, \
 	uint32_t num_bits) \
 { \
-	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) extracted_bits;  \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type) extracted_bits;  \
 	asm ( \
-		"bfe." PTX_STRINGIFY(ptx_value_type) " %0, %1, %2, %3;" \
-		: "=" SIZE_CONSTRAINT(ptx_value_type) (extracted_bits) \
-		: SIZE_CONSTRAINT(ptx_value_type) (bits) \
+		"bfe." PTX_STRINGIFY(ptx_type) " %0, %1, %2, %3;" \
+		: "=" SIZE_CONSTRAINT(ptx_type) (extracted_bits) \
+		: SIZE_CONSTRAINT(ptx_type) (bits) \
 		, "r" (start_position) \
 		, "r" (num_bits) \
 	);\
@@ -230,6 +230,43 @@ bfi(
 	);
 	return ret;
 }
+
+/**
+ * @brief Adds the absolute difference of two values to a base value
+ *
+ * @param x value from which to subtract @p y
+ * @param y value to subtract from @p x
+ * @param addend base value to which to add `|x-y|`
+ *
+ * @return `addend + |x - y|`
+ */
+#define DEFINE_SAD(ptx_type_1, unsigned_ptx_type_1) \
+KAT_FD CPP_TYPE_BY_PTX_TYPE(unsigned_ptx_type_1) sad( \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type_1) x, \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type_1) y, \
+	CPP_TYPE_BY_PTX_TYPE(unsigned_ptx_type_1) addend) \
+{ \
+	CPP_TYPE_BY_PTX_TYPE(unsigned_ptx_type_1) result;  \
+	asm ( \
+		"sad." PTX_STRINGIFY(ptx_type_1) " %0, %1, %2, %3;" \
+		: "=" SIZE_CONSTRAINT(unsigned_ptx_type_1) (result) \
+		: SIZE_CONSTRAINT(ptx_type_1) (x) \
+		, SIZE_CONSTRAINT(ptx_type_1) (y) \
+		, SIZE_CONSTRAINT(unsigned_ptx_type_1) (addend) \
+	);\
+	return result; \
+}
+
+#define DEFINE_SAD_(x) DEFINE_SAD(x, MAKE_UNSIGNED(x));
+DEFINE_SAD_(u16);
+DEFINE_SAD_(u32);
+DEFINE_SAD_(u64);
+DEFINE_SAD_(s16);
+DEFINE_SAD_(s32);
+DEFINE_SAD_(s64);
+
+#undef DEFINE_SAD_
+#undef DEFINE_SAD
 
 } // namespace ptx
 } // namespace kat

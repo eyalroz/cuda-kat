@@ -34,6 +34,9 @@ template <> KAT_FD  unsigned long long multiplication_high_bits<unsigned long lo
 template <> KAT_FD  float  divide<float >(float dividend, float divisor)   { return fdividef(dividend, divisor); }
 template <> KAT_FD  double divide<double>(double dividend, double divisor) { return fdividef(dividend, divisor); }
 
+// TODO: Does this really work only for single-precision floats?
+template <> KAT_FD float clamp_to_unit_segment<float>(float x) { return __saturatef(x); }
+
 // TODO: Does this really translate into a single instruction? I'm worried the casting might incur more than a single one.
 template <typename I> KAT_FD int population_count(I x)
 {
@@ -52,8 +55,17 @@ template <typename I> KAT_FD int population_count(I x)
 template <> KAT_FD int population_count<unsigned>(unsigned x)                     { return __popc(x);   }
 template <> KAT_FD int population_count<unsigned long long>(unsigned long long x) { return __popcll(x); }
 
-template <> KAT_FD int      sum_with_absolute_difference<int     >(int x,      int y,      int addend)      { return __sad (x, y, addend); }
-template <> KAT_FD unsigned sum_with_absolute_difference<unsigned>(unsigned x, unsigned y, unsigned addend) { return __usad(x, y, addend); }
+//template <> KAT_FD int      sum_with_absolute_difference<int     >(int x,      int y,      unsigned addend) { return __sad (x, y, addend); }
+//template <> KAT_FD unsigned sum_with_absolute_difference<unsigned>(unsigned x, unsigned y, unsigned addend) { return __usad(x, y, addend); }
+template <typename I> KAT_FD unsigned sum_with_absolute_difference<I>(I x, I y, unsigned addend)
+{
+	static_assert(
+		std::is_same<I, uint16_t>::value or std::is_same<I, int16_t>::value or
+		std::is_same<I, uint32_t>::value or std::is_same<I, int32_t>::value or
+		std::is_same<I, uint64_t>::value or std::is_same<I, int64_t>::value
+		, "No sad instruction for requested parameter type");
+	return ptx::sad(x, y, addend);
+}
 
 template <> KAT_FD int                absolute_value<int                >(int x)                { return abs(x);   }
 template <> KAT_FD long               absolute_value<long               >(long x)               { return labs(x);  }

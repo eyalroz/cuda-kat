@@ -14,6 +14,7 @@
 
 #define PTX_STRINGIFY(_q) #_q
 
+// Mnemonic: "h" for half, "r" for regular, "l" for long, "f" and "d" for float and double
 #define SIZE_CONSTRAINT_s16 "h"
 #define SIZE_CONSTRAINT_u16 "h"
 #define SIZE_CONSTRAINT_s32 "r"
@@ -56,6 +57,19 @@
  * type (at the preprocessor level).
  */
 #define CPP_TYPE_BY_PTX_TYPE(ptx_value_type) CPP_TYPE_BY_PTX_TYPE_ ## ptx_value_type
+
+#define MAKE_UNSIGNED_s16 u16
+#define MAKE_UNSIGNED_s32 u32
+#define MAKE_UNSIGNED_s64 u64
+#define MAKE_UNSIGNED_u16 u16
+#define MAKE_UNSIGNED_u32 u32
+#define MAKE_UNSIGNED_u64 u64
+
+/*
+ * This converts specifiers of signed PTX types into their unsigned equivalent,
+ * textually.
+ */
+#define MAKE_UNSIGNED(ptx_value_type) MAKE_UNSIGNED_ ## ptx_value_type
 
 #endif // PTX_UTILITY_MACROS_DEFINED
 
