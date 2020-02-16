@@ -21,6 +21,7 @@ find_package(cuda-nvtx REQUIRED) # Actually, it's sort-of required by cuda-api-w
 
 include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(BUILD_PRINTING_RELATED_TESTS "Build (strf-based) printing-related tests" ON "BUILD_TESTS" ON)
+set(KEEP_PTX FALSE CACHE BOOL "Keep kernel PTX files for build targets")
 
 # This overcomes some linking issues I've encountered... I'm sure there's a better solution
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRARY})
@@ -41,9 +42,6 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRA
 #    PROPERTIES
 #        WILL_FAIL TRUE # We expect this test to fail
 #)
-
-# TODO 2: We're using an extra object target for each test to ensure compilation of .ptx files (the _obj
-# targets). We should try to avoid those.
 
 add_library(test_utils util/random.cu)
 set_target_properties(
@@ -78,23 +76,14 @@ foreach(TEST_TARGET ${tests})
 		NAME ${PROJECT_NAME}.${TEST_TARGET}
 		COMMAND ${TEST_TARGET} ${TEST_RUNNER_PARAMS}
 	)
+	if (KEEP_PTX)
+	        target_compile_options(${TEST_TARGET} PRIVATE "--keep")
+	endif()
 endforeach(TEST_TARGET)
 
 if (BUILD_PRINTING_RELATED_TESTS)
 	target_link_libraries(printing PRIVATE strf::strf-header-only)
 	target_compile_options(printing PRIVATE --ptxas-options --suppress-stack-size-warning)
-endif()
-
-if (KEEP_PTX)
-	add_library(test_obj OBJECT ${tests})
-	target_link_libraries(test_obj PRIVATE cuda-kat cudart ${CUDA_API_WRAPPERS_LIB} doctest)
-	target_include_directories(test_obj PRIVATE ${CUDA_API_WRAPPERS_INCLUDE_DIR})
-	target_compile_options(test_obj PRIVATE --expt-relaxed-constexpr)
-
-	# Note: The constexpr_math test doesn't have any kernel code
-
-	set_property(TARGET test_obj PROPERTY CUDA_PTX_COMPILATION ON)
-	set_property(TARGET test_obj PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin/tests)
 endif()
 
 # TODO: Something about code coverage perhaps?

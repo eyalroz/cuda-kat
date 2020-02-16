@@ -43,8 +43,6 @@ find_package(strf 0.10.2)
 #message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(BUILD_TESTS FALSE CACHE BOOL "Build tests for the library")
-set(KEEP_PTX FALSE CACHE BOOL "Keep kernel PTX files for build targets")
-
 
 ###############
 ##  Targets  ##
