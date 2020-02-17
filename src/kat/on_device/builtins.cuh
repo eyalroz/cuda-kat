@@ -19,6 +19,9 @@
  *    fundamental C++ types (and never for aggregate types); other files
  *    utilize these actual built-ins to generalize them to a richer set
  *    of types.
+ * 5. This file (and its implementation) has _no_ PTX code. PTX function
+ *    wrappers are to be found under the `ptx/` directory, and are not
+ *    templated.
  */
 #ifndef CUDA_KAT_ON_DEVICE_BUILTINS_CUH_
 #define CUDA_KAT_ON_DEVICE_BUILTINS_CUH_
@@ -75,9 +78,11 @@ template <typename T> KAT_FD T maximum(T x, T y) = delete; // don't worry, it's 
  * See the <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-sad">relevant section</a>
  * of the PTX ISA reference.
  *
- * @note
+ * @note The addend and the result are always unsigned, but of the same size as @p x and @p y .
  */
-template <typename I> KAT_FD unsigned sum_with_absolute_difference(I x, I y, unsigned addend);
+template <typename I>
+KAT_FD typename std::make_unsigned<I>::type
+sum_with_absolute_difference(I x, I y, typename std::make_unsigned<I>::type addend);
 
 
 // --------------------------------------------
@@ -90,8 +95,19 @@ template <typename I> KAT_FD unsigned sum_with_absolute_difference(I x, I y, uns
 template <typename I> KAT_FD int population_count(I x);
 template <typename I> KAT_FD I bit_reverse(I x) = delete;
 
-template <typename I> KAT_FD unsigned find_last_non_sign_bit(I x) = delete;
+/**
+ * @brief Find the most-significant, i.e. leading, bit that's different
+ * from the input's sign bit.
+ *
+ * @return for unsigned types, 0-based index of the last 1 bit, starting
+ * from the LSB towards the MSB; for signed integers it's the same if their
+ * sign bit (their MSB) is 0, and the index of the last 0 bit if the sign
+ * bit is 1.
+ */
+template <typename I> KAT_FD unsigned find_leading_non_sign_bit(I x) = delete;
+#if __CUDA_ARCH__ >= 320
 template <typename T> KAT_FD T load_global_with_non_coherent_cache(const T* ptr);
+#endif
 template <typename I> KAT_FD int count_leading_zeros(I x) = delete;
 
 
@@ -116,7 +132,21 @@ template <typename T> KAT_FD T insert(T original_bit_field, T bits_to_insert, un
 
 } // namespace bit_field
 
-template <typename T> KAT_FD T select_bytes(T x, T y, unsigned byte_selector);
+/**
+ * @brief See: <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-prmt">relevant section</a>
+ * of the CUDA PTX reference for an explanation of what this does exactly
+ *
+ * @param first           a first value from which to potentially use bytes
+ * @param second          a second value from which to potentially use bytes
+ * @param byte_selectors  a packing of 4 selector structures; each selector structure
+ *                        is 3 bits specifying which of the input bytes are to be used (as there are 8
+ *                        bytes overall in @p first and @p second ), and another bit specifying if it's an
+ *                        actual copy of a byte, or instead whether the sign of the byte (intrepeted as
+ *                        an int8_t) should be replicated to fill the target byte.
+ * @return the four bytes of first and/or second, or replicated signs thereof, indicated by the byte selectors
+ *
+ */
+KAT_FD unsigned select_bytes(unsigned first, unsigned second, unsigned byte_selectors);
 
 /**
  * Use this to select which variant of the funnel shift intrinsic to use
@@ -156,15 +186,18 @@ KAT_FD native_word_t funnel_shift(
 // --------------------------------------------
 
 /**
- * @brief compute the average of two values without needing special
- * accounting for overflow
+ * @brief compute the average of two integer values without needing special
+ * accounting for overflow - rounding down
  */
-template <bool Signed, bool Rounded = false> KAT_FD
-typename std::conditional<Signed, int, unsigned>::type average(
-	typename std::conditional<Signed, int, unsigned>::type x,
-	typename std::conditional<Signed, int, unsigned>::type y);
+template <typename I> I KAT_FD average(I x, I y) = delete; // don't worry, it's not really deleted for all types
 
-
+/**
+ * @brief compute the average of two values without needing special
+ * accounting for overflow - rounding up
+ *
+ * @note  ignoring type limits, average_rounded_up(x,y) = floor ((x + y + 1 ) / 2)
+ */
+template <typename I> I KAT_FD average_rounded_up(I x, I y) = delete; // don't worry, it's not really deleted for all types
 
 /**
  * Special register getter wrappers

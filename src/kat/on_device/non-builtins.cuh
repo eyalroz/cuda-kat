@@ -25,11 +25,36 @@ namespace non_builtins {
  * @return If @p x is 0, returns 0; otherwise, returns the 1-based index of the
  * first non-zero bit in @p x
  */
-template <typename I> KAT_FD int find_first_set(I x) = delete;
-template <> KAT_FD int find_first_set< int                >(int x)                { return __ffs(x);   }
-template <> KAT_FD int find_first_set< unsigned int       >(unsigned int x)       { return __ffs(x);   }
-template <> KAT_FD int find_first_set< long long          >(long long x)          { return __ffsll(x); }
-template <> KAT_FD int find_first_set< unsigned long long >(unsigned long long x) { return __ffsll(x); }
+template <typename I> KAT_FD int find_first_set(I x)
+{
+	static_assert(std::is_integral<I>::value, "Only integral types are supported");
+	static_assert(sizeof(I) <= sizeof(long long), "Unexpectedly large type");
+
+	using ffs_type = typename std::conditional< sizeof(I) <= sizeof(int), int, long long >::type;
+	return find_first_set<ffs_type>(x);
+}
+template <> KAT_FD int find_first_set< int               >(int                x) { return __ffs(x);                       }
+template <> KAT_FD int find_first_set< long long         >(long long          x) { return __ffsll(x);                     }
+
+/*
+
+= delete;
+template <> KAT_FD int find_first_set< int               >(int                x) { return __ffs(x);                       }
+template <> KAT_FD int find_first_set< long long         >(long long          x) { return __ffsll(x);                     }
+template <> KAT_FD int find_first_set< char              >(char               x) { return find_first_set< int       >(x); }
+template <> KAT_FD int find_first_set< unsigned char     >(unsigned char      x) { return find_first_set< int       >(x); }
+template <> KAT_FD int find_first_set< short             >(short              x) { return find_first_set< int       >(x); }
+template <> KAT_FD int find_first_set< unsigned short    >(unsigned short     x) { return find_first_set< int       >(x); }
+template <> KAT_FD int find_first_set< unsigned int      >(unsigned int       x) { return find_first_set< int       >(x); }
+template <> KAT_FD int find_first_set< long              >(long               x)
+{
+	using equivalent_type = typename std::conditional<sizeof(unsigned long) == sizeof(int), int, long long>::type;
+	return find_first_set<equivalent_type>(x);
+}
+template <> KAT_FD int find_first_set< unsigned long     >(unsigned long      x) { return find_first_set< long      >(x); }
+template <> KAT_FD int find_first_set< unsigned long long>(unsigned long long x) { return find_first_set< long long >(x); }
+*/
+
 
 /**
  * @brief counts the number of initial zeros when considering the binary representation

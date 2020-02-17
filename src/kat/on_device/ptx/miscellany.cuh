@@ -22,6 +22,22 @@ namespace kat {
 namespace ptx {
 
 /**
+ * @brief Aborts execution (of the entire kernel grid) and generates an interrupt to the host CPU.
+ */
+KAT_FD  void trap()
+{
+	asm("trap;");
+}
+
+/**
+ * Ends execution of the current thread of this kernel/grid
+ */
+KAT_FD void exit()
+{
+	asm("exit;");
+}
+
+/**
  * @brief Load data through the read-only data cache
  *
  * @note See the <a href="http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#ldg-function">relevant section</a>
@@ -37,7 +53,7 @@ KAT_FD T ldg(const T* ptr)
 #if __CUDA_ARCH__ >= 320
 	return __ldg(ptr);
 #else
-	return *ptr; // maybe we should ld.cg or ld.cs here?
+	assert(false);
 #endif
 }
 
@@ -115,22 +131,6 @@ DEFINE_PRMT_WITH_MODE( replicate_8,        rc8  ) // prmt_replicate_8
 DEFINE_PRMT_WITH_MODE( replicate_16,       rc16 ) // prmt_replicate_16
 DEFINE_PRMT_WITH_MODE( edge_clam_left,     ecl  ) // prmt_edge_clam_left
 DEFINE_PRMT_WITH_MODE( edge_clam_right,    ecl  ) // prmt_edge_clam_right
-
-/**
- * @brief Aborts execution (of the entire kernel grid) and generates an interrupt to the host CPU.
- */
-KAT_FD  void trap()
-{
-	asm("trap;");
-}
-
-/**
- * Ends execution of the current thread of this kernel/grid
- */
-KAT_FD void exit()
-{
-	asm("exit;");
-}
 
 
 /**

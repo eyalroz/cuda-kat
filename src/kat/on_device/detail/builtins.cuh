@@ -37,7 +37,7 @@ template <> KAT_FD  double divide<double>(double dividend, double divisor) { ret
 // TODO: Does this really work only for single-precision floats?
 template <> KAT_FD float clamp_to_unit_segment<float>(float x) { return __saturatef(x); }
 
-// TODO: Does this really translate into a single instruction? I'm worried the casting might incur more than a single one.
+// TODO: Does this really translate into a single instruction? I'm worried the casting might incur more than a single one for types of smaller sizes.
 template <typename I> KAT_FD int population_count(I x)
 {
 	static_assert(std::is_integral<I>::value, "Only integral types are supported");
@@ -52,12 +52,13 @@ template <typename I> KAT_FD int population_count(I x)
 	return population_count<native_popc_type>(static_cast<native_popc_type>(x));
 }
 
+//template <> KAT_FD int population_count<unsigned char>(unsigned char x)           { return __popc(x);   }
+//template <> KAT_FD int population_count<unsigned short>(unsigned short x)         { return __popc(x);   }
 template <> KAT_FD int population_count<unsigned>(unsigned x)                     { return __popc(x);   }
 template <> KAT_FD int population_count<unsigned long long>(unsigned long long x) { return __popcll(x); }
 
-//template <> KAT_FD int      sum_with_absolute_difference<int     >(int x,      int y,      unsigned addend) { return __sad (x, y, addend); }
-//template <> KAT_FD unsigned sum_with_absolute_difference<unsigned>(unsigned x, unsigned y, unsigned addend) { return __usad(x, y, addend); }
-template <typename I> KAT_FD unsigned sum_with_absolute_difference<I>(I x, I y, unsigned addend)
+template <typename I> KAT_FD typename std::make_unsigned<I>::type
+sum_with_absolute_difference(I x, I y, typename std::make_unsigned<I>::type addend)
 {
 	static_assert(
 		std::is_same<I, uint16_t>::value or std::is_same<I, int16_t>::value or
@@ -65,6 +66,8 @@ template <typename I> KAT_FD unsigned sum_with_absolute_difference<I>(I x, I y, 
 		std::is_same<I, uint64_t>::value or std::is_same<I, int64_t>::value
 		, "No sad instruction for requested parameter type");
 	return ptx::sad(x, y, addend);
+	// Note: We're not using __sad() nor __usad(), since those (should be) equivalent to our own wrappers
+	// for the cases of I = int32_t and I = uint32_t, and it's simple and clearer to maintain uniformity
 }
 
 template <> KAT_FD int                absolute_value<int                >(int x)                { return abs(x);   }
@@ -78,10 +81,12 @@ template <> KAT_FD unsigned           absolute_value<unsigned           >(unsign
 template <> KAT_FD unsigned long      absolute_value<unsigned long      >(unsigned long x)      { return x;        }
 template <> KAT_FD unsigned long long absolute_value<unsigned long long >(unsigned long long x) { return x;        }
 
-template <> KAT_FD int                bit_reverse<int               >(int x)                { return __brev(x);   }
 template <> KAT_FD unsigned           bit_reverse<unsigned          >(unsigned x)           { return __brev(x);   }
-template <> KAT_FD long long          bit_reverse<long long         >(long long x)          { return __brevll(x); }
 template <> KAT_FD unsigned long long bit_reverse<unsigned long long>(unsigned long long x) { return __brevll(x); }
+template <> KAT_FD unsigned long      bit_reverse<unsigned long     >(unsigned long x)
+{
+	return (sizeof(unsigned long) == sizeof(int)) ? bit_reverse<unsigned>(x) : bit_reverse<unsigned long long>(x);
+}
 
 
 namespace special_registers {
@@ -119,7 +124,10 @@ template <> KAT_FD uint64_t insert(uint64_t bits_to_insert, uint64_t existing_bi
 
 } // namespace bit_field
 
-template <> KAT_FD unsigned select_bytes(unsigned x, unsigned y, unsigned byte_selector) { return ptx::prmt(x, y, byte_selector); }
+KAT_FD unsigned select_bytes(unsigned first, unsigned second, unsigned byte_selectors)
+{
+	return ptx::prmt(first, second, byte_selectors);
+}
 
 #if __CUDA_ARCH__ >= 320
 
@@ -139,16 +147,11 @@ KAT_FD native_word_t funnel_shift(
 
 #endif // __CUDA_ARCH__ >= 320
 
-template <bool Signed, bool Rounded> KAT_FD
-typename std::conditional<Signed, int, unsigned>::type average(
-	typename std::conditional<Signed, int, unsigned>::type x,
-	typename std::conditional<Signed, int, unsigned>::type y);
+template<> KAT_FD int      average<int     >(int x,      int y)       { return __hadd(x,y);   }
+template<> KAT_FD unsigned average<unsigned>(unsigned x, unsigned y)  { return __uhadd(x,y);  }
 
-template <> KAT_FD unsigned average<false, false>(unsigned x, unsigned y) { return __uhadd(x,y);  }
-template <> KAT_FD int      average<true,  false>(int      x, int y     ) { return __hadd(x,y);   }
-template <> KAT_FD unsigned average<false, true >(unsigned x, unsigned y) { return __urhadd(x,y); }
-template <> KAT_FD int      average<true,  true >(int      x, int y     ) { return __rhadd(x,y);  }
-
+template<> KAT_FD int      average_rounded_up<int     >(int x,      int y)       { return __rhadd(x,y);   }
+template<> KAT_FD unsigned average_rounded_up<unsigned>(unsigned x, unsigned y)  { return __urhadd(x,y);  }
 
 namespace warp {
 
@@ -225,12 +228,12 @@ template <typename T> KAT_FD T xor_(T x, int lane_id_xoring_mask, int width, lan
 
 } // namespace warp
 
-template <>  KAT_FD uint32_t find_last_non_sign_bit<int               >(int x)                  { return ptx::bfind(x);            }
-template <>  KAT_FD uint32_t find_last_non_sign_bit<unsigned          >(unsigned x)             { return ptx::bfind(x);            }
-template <>  KAT_FD uint32_t find_last_non_sign_bit<long              >(long x)                 { return ptx::bfind((int64_t) x);  }
-template <>  KAT_FD uint32_t find_last_non_sign_bit<unsigned long     >(unsigned long x)        { return ptx::bfind((uint64_t) x); }
-template <>  KAT_FD uint32_t find_last_non_sign_bit<long long         >(long long x)            { return ptx::bfind((int64_t) x);  }
-template <>  KAT_FD uint32_t find_last_non_sign_bit<unsigned long long>(unsigned long long  x)  { return ptx::bfind((uint64_t) x); }
+template <>  KAT_FD uint32_t find_leading_non_sign_bit<int               >(int x)                  { return ptx::bfind(x);            }
+template <>  KAT_FD uint32_t find_leading_non_sign_bit<unsigned          >(unsigned x)             { return ptx::bfind(x);            }
+template <>  KAT_FD uint32_t find_leading_non_sign_bit<long              >(long x)                 { return ptx::bfind((int64_t) x);  }
+template <>  KAT_FD uint32_t find_leading_non_sign_bit<unsigned long     >(unsigned long x)        { return ptx::bfind((uint64_t) x); }
+template <>  KAT_FD uint32_t find_leading_non_sign_bit<long long         >(long long x)            { return ptx::bfind((int64_t) x);  }
+template <>  KAT_FD uint32_t find_leading_non_sign_bit<unsigned long long>(unsigned long long  x)  { return ptx::bfind((uint64_t) x); }
 
 template <typename T>
 KAT_FD T load_global_with_non_coherent_cache(const T* ptr)  { return ptx::ldg(ptr); }
@@ -239,6 +242,8 @@ KAT_FD T load_global_with_non_coherent_cache(const T* ptr)  { return ptx::ldg(pt
 
 template <> KAT_FD int count_leading_zeros<int               >(int x)                { return __clz(x);   }
 template <> KAT_FD int count_leading_zeros<unsigned          >(unsigned x)           { return __clz(x);   }
+template <> KAT_FD int count_leading_zeros<long              >(long x)               { return __clzll(x); }
+template <> KAT_FD int count_leading_zeros<unsigned long     >(unsigned long x)      { return __clzll(x); }
 template <> KAT_FD int count_leading_zeros<long long         >(long long x)          { return __clzll(x); }
 template <> KAT_FD int count_leading_zeros<unsigned long long>(unsigned long long x) { return __clzll(x); }
 
