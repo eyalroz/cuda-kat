@@ -122,9 +122,11 @@ namespace bit_field {
  *
  * @todo CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
  * For now only adopting his implementation for the 32-bit case.
+ *
+ * @note This method is more "strict" in its specialization that others.
  */
-template <typename T> KAT_FD T extract(T bit_field, unsigned int start_pos, unsigned int num_bits);
-template <typename T> KAT_FD T insert(T original_bit_field, T bits_to_insert, unsigned int start_pos, unsigned int num_bits);
+template <typename I> KAT_FD I extract_bits(I bit_field, unsigned int start_pos, unsigned int num_bits) = delete;
+template <typename I> KAT_FD I replace_bits(I original_bit_field, I bits_to_insert, unsigned int start_pos, unsigned int num_bits) = delete;
 
 // TODO: Implement these.
 //template <typename BitField, typename T> KAT_FD T extract(BitField bit_field, unsigned int start_pos);
@@ -145,22 +147,22 @@ template <typename T> KAT_FD T insert(T original_bit_field, T bits_to_insert, un
  *                        an int8_t) should be replicated to fill the target byte.
  * @return the four bytes of first and/or second, or replicated signs thereof, indicated by the byte selectors
  *
+ *@note If you don't use the sign-related bits, you could call this function "gather bytes" or "select bytes"
+ *
  */
-KAT_FD unsigned select_bytes(unsigned first, unsigned second, unsigned byte_selectors);
+KAT_FD unsigned prmt(unsigned first, unsigned second, unsigned byte_selectors);
 
 /**
  * Use this to select which variant of the funnel shift intrinsic to use
  */
 enum class funnel_shift_amount_resolution_mode_t {
-	take_lower_bits,       //!< Shift by shift_amount & (size_in_bits<native_word_t> - 1)
-	cap_at_full_word_size, //!< Shift by max(shift_amount, size_in_bits<native_word_t>)
+	take_lower_bits_of_amount,  //!< Shift by shift_amount & (size_in_bits<native_word_t> - 1)
+	cap_at_full_word_size,      //!< Shift by max(shift_amount, size_in_bits<native_word_t>)
 };
 
 /**
  * @brief Performs a right-shift on the combination of the two arguments
  * into a single, double-the-length, value
- *
- * @todo Perhaps make the "amount resolution mode" a template argument?
  *
  * @param low_word
  * @param high_word
@@ -168,20 +170,42 @@ enum class funnel_shift_amount_resolution_mode_t {
  *
  * @tparam AmountResolutionMode shift_amount can have values which are
  * higher than the maximum possible number of bits to right-shift; this
- * indicates how to interpret such values. Hopefully this should be
- * gone when inlining
+ * indicates how to interpret such values.
  *
  * @return the lower bits of the result
  */
 template <
-	typename T,
 	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
-		funnel_shift_amount_resolution_mode_t::take_lower_bits
+		funnel_shift_amount_resolution_mode_t::cap_at_full_word_size
 >
-KAT_FD native_word_t funnel_shift(
-	native_word_t  low_word,
-	native_word_t  high_word,
-	native_word_t  shift_amount);
+KAT_FD uint32_t funnel_shift_right(
+	uint32_t  low_word,
+	uint32_t  high_word,
+	uint32_t  shift_amount);
+
+/**
+ * @brief Performs a left-shift on the combination of the two arguments
+ * into a single, double-the-length, value
+ *
+ * @param low_word
+ * @param high_word
+ * @param shift_amount The number of bits to left-shift
+ *
+ * @tparam AmountResolutionMode shift_amount can have values which are
+ * higher than the maximum possible number of bits to right-shift; this
+ * indicates how to interpret such values.
+ *
+ * @return the upper bits of the result
+ */
+template <
+	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
+		funnel_shift_amount_resolution_mode_t::cap_at_full_word_size
+>
+KAT_FD uint32_t funnel_shift_left(
+	uint32_t  low_word,
+	uint32_t  high_word,
+	uint32_t  shift_amount);
+
 
 // --------------------------------------------
 
@@ -219,6 +243,8 @@ KAT_FD lane_mask_t ballot            (int condition, lane_mask_t lane_mask = ful
 KAT_FD int         all_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
 KAT_FD int         any_lanes_satisfy (int condition, lane_mask_t lane_mask = full_warp_mask);
 KAT_FD int         all_lanes_agree   (int condition, lane_mask_t lane_mask = full_warp_mask);
+	// Note: all_lanes_agree has the same semantics as all_lanes_
+
 #else
 KAT_FD lane_mask_t ballot            (int condition);
 KAT_FD int         all_lanes_satisfy (int condition);
@@ -226,9 +252,13 @@ KAT_FD int         any_lanes_satisfy (int condition);
 #endif
 
 #if (__CUDACC_VER_MAJOR__ >= 9)
-template <typename T> KAT_FD bool is_uniform_across_lanes(T value, lane_mask_t lane_mask = full_warp_mask);
-template <typename T> KAT_FD bool is_uniform_across_warp(T value);
-template <typename T> KAT_FD lane_mask_t matching_lanes(T value, lane_mask_t lanes = full_warp_mask);
+#if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 700
+
+template <typename T> KAT_FD lane_mask_t propagate_mask_if_lanes_agree(T value, lane_mask_t lane_mask);
+template <typename T> KAT_FD lane_mask_t propagate_mask_if_warp_agrees(T value);
+template <typename T> KAT_FD lane_mask_t get_matching_lanes(T value, lane_mask_t lanes = full_warp_mask);
+
+#endif
 #endif
 
 namespace mask_of_lanes {

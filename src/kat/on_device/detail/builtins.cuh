@@ -102,50 +102,72 @@ KAT_FD unsigned int       total_shared_memory_size()       { return ptx::special
 
 namespace bit_field {
 
-template <> KAT_FD uint32_t extract(uint32_t bit_field, unsigned start_pos, unsigned num_bits)
+template <> KAT_FD uint32_t extract_bits<uint32_t>(uint32_t bit_field, unsigned start_pos, unsigned num_bits)
 {
 	return ptx::bfe(bit_field, start_pos, num_bits);
 }
 
-template <> KAT_FD uint64_t extract(uint64_t bit_field, unsigned start_pos, unsigned num_bits)
+template <> KAT_FD uint64_t extract_bits<uint64_t>(uint64_t bit_field, unsigned start_pos, unsigned num_bits)
 {
 	return ptx::bfe(bit_field, start_pos, num_bits);
 }
 
-template <> KAT_FD uint32_t insert(uint32_t bits_to_insert, uint32_t existing_bit_field, uint32_t start_pos, uint32_t num_bits)
+template <> KAT_FD int32_t extract_bits<int32_t>(int32_t bit_field, unsigned start_pos, unsigned num_bits)
+{
+	return ptx::bfe(bit_field, start_pos, num_bits);
+}
+
+template <> KAT_FD int64_t extract_bits<int64_t>(int64_t bit_field, unsigned start_pos, unsigned num_bits)
+{
+	return ptx::bfe(bit_field, start_pos, num_bits);
+}
+
+template <> KAT_FD uint32_t replace_bits(uint32_t bits_to_insert, uint32_t existing_bit_field, uint32_t start_pos, uint32_t num_bits)
 {
 	return ptx::bfi(bits_to_insert, existing_bit_field, start_pos, num_bits);
 }
 
-template <> KAT_FD uint64_t insert(uint64_t bits_to_insert, uint64_t existing_bit_field, uint32_t start_pos, uint32_t num_bits)
+template <> KAT_FD uint64_t replace_bits(uint64_t bits_to_insert, uint64_t existing_bit_field, uint32_t start_pos, uint32_t num_bits)
 {
 	return ptx::bfi(bits_to_insert, existing_bit_field, start_pos, num_bits);
 }
 
 } // namespace bit_field
 
-KAT_FD unsigned select_bytes(unsigned first, unsigned second, unsigned byte_selectors)
+KAT_FD unsigned prmt(unsigned first, unsigned second, unsigned byte_selectors)
 {
 	return ptx::prmt(first, second, byte_selectors);
 }
 
-#if __CUDA_ARCH__ >= 320
+#if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 320
 
 template <
-	typename T,
 	funnel_shift_amount_resolution_mode_t AmountResolutionMode
 >
-KAT_FD native_word_t funnel_shift(
-	native_word_t  low_word,
-	native_word_t  high_word,
-	native_word_t  shift_amount)
+KAT_FD uint32_t funnel_shift_right(
+	uint32_t  low_word,
+	uint32_t  high_word,
+	uint32_t  shift_amount)
 {
-	return (AmountResolutionMode == detail::funnel_shift_amount_resolution_mode_t::take_lower_bits) ?
+	return (AmountResolutionMode == funnel_shift_amount_resolution_mode_t::take_lower_bits_of_amount) ?
+		__funnelshift_r(low_word, high_word, shift_amount) :
+		__funnelshift_rc(low_word, high_word, shift_amount);
+}
+
+template <
+	funnel_shift_amount_resolution_mode_t AmountResolutionMode
+>
+KAT_FD uint32_t funnel_shift_left(
+	uint32_t  low_word,
+	uint32_t  high_word,
+	uint32_t  shift_amount)
+{
+	return (AmountResolutionMode == funnel_shift_amount_resolution_mode_t::take_lower_bits_of_amount) ?
 		__funnelshift_l(low_word, high_word, shift_amount) :
 		__funnelshift_lc(low_word, high_word, shift_amount);
 }
 
-#endif // __CUDA_ARCH__ >= 320
+#endif
 
 template<> KAT_FD int      average<int     >(int x,      int y)       { return __hadd(x,y);   }
 template<> KAT_FD unsigned average<unsigned>(unsigned x, unsigned y)  { return __uhadd(x,y);  }
@@ -168,25 +190,31 @@ KAT_FD int all_lanes_agree  (int condition, lane_mask_t lane_mask) { return __un
 #endif
 
 #if (__CUDACC_VER_MAJOR__ >= 9)
+#if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 700
 
 template <typename T>
-KAT_FD bool is_uniform_across_lanes (T value, lane_mask_t lane_mask)
+KAT_FD lane_mask_t propagate_mask_if_lanes_agree(T value, lane_mask_t lane_mask)
 {
 	// __match_all_sync has a weirdly redundant signature and semantics!
 	// Consult the CUDA Programming guide v9 or later for more details
 	int dummy;
-	__match_all_sync(lane_mask, value, &dummy);
-	return (dummy != 0);
+	return __match_all_sync(lane_mask, value, &dummy);
 }
 
-template <typename T>
-KAT_FD bool is_uniform_across_warp(T value) { return is_uniform_across_lanes<T>(full_warp_mask, value); }
+template <typename T> KAT_FD lane_mask_t propagate_mask_if_warp_agrees(T value)
+{
+	return propagate_mask_if_lanes_agree<T>(value, full_warp_mask);
+}
 
-template <typename T> KAT_FD lane_mask_t matching_lanes(T value, lane_mask_t lanes) { return __match_any_sync(lanes, value); }
+template <typename T> KAT_FD lane_mask_t get_matching_lanes(T value, lane_mask_t lanes) { return __match_any_sync(lanes, value); }
+
+#endif
 #endif
 
 
 namespace mask_of_lanes {
+
+// Note: These builtins are actually not fast to use.
 
 KAT_FD lane_mask_t preceding()           { return ptx::special_registers::lanemask_lt(); }
 KAT_FD lane_mask_t preceding_and_self()  { return ptx::special_registers::lanemask_le(); }

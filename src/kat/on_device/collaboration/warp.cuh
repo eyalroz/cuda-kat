@@ -149,10 +149,17 @@ KAT_FD  bool majority_vote(int condition)
  */
 template <typename T> KAT_FD bool in_unique_lane_with(T value, lane_mask_t lane_mask = full_warp_mask)
 {
-	// Note: This assumes a lane's bit is always on in the result of matching_lanes(). The PTX
-	// reference implies that this is the case but is not explicit about it
-	return builtins::warp::matching_lanes(value, lane_mask) !=
-		builtins::warp::mask_of_lanes::self();
+	auto self_lane_mask = (1 << grid_info::lane::index());
+		// Note we're _not_ using the PTX builtin for obtaining the self lane mask from a special
+		// regiater - since that would probably be much slower.
+
+	// Note: This assumes a lane's bit is always on in the result of get_matching_lanes();
+	// this must indeed be the case, because The PTX spec demands that the calling lane be
+	// part of its own masked lanes; see:
+	//
+	// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#parallel-synchronization-and-communication-instructions-match-sync
+	//
+	return builtins::warp::get_matching_lanes(value, lane_mask) == self_lane_mask;
 }
 
 /*
