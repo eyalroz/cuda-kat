@@ -10,17 +10,17 @@
 #include <utility>
 
 template <typename I>
-I round_up(I x, I quantum) { return (x % quantum) ? (x + (quantum - (x % quantum))) : x; }
+constexpr inline I round_up(I x, I quantum) { return (x % quantum) ? (x + (quantum - (x % quantum))) : x; }
 
 template <typename I>
-I round_down(I x, I quantum) { return x - x % quantum; }
+constexpr inline I round_down(I x, I quantum) { return x - x % quantum; }
 
 template <typename T, std::size_t Length>
-std::size_t array_length(const T(&ref)[Length]) { return Length; }
+constexpr inline std::size_t array_length(const T(&ref)[Length]) { return Length; }
 
 // Should be constexpr - but only beginning in C++20
 template< class InputIt>
-bool all_of( InputIt first, InputIt last)
+bool inline all_of( InputIt first, InputIt last)
 {
 	static_assert(std::is_same<typename std::iterator_traits<InputIt>::value_type, bool>::value, "This function is intended for boolean-valued sequences only");
 	return std::all_of(first, last, [](bool b) { return b; });
@@ -60,9 +60,9 @@ template<bool... bs>
 using all_true = std::is_same<bool_pack<bs..., true>, bool_pack<true, bs...>>;
 
 template <typename T>
-constexpr std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
+constexpr inline std::size_t size_in_bits() { return sizeof(T) * CHAR_BIT; }
 template <typename T>
-constexpr std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
+constexpr inline std::size_t size_in_bits(const T&) { return sizeof(T) * CHAR_BIT; }
 
 
 /**
@@ -85,5 +85,9 @@ constexpr inline S div_rounding_up(const S& dividend, const T& divisor) {
 	return div_result.quot + !(!div_result.rem);
 */
 }
+
+// C++14 version of [[maybe_unused]] ...
+template <typename T>
+inline void ignore(T &&) { }
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
