@@ -31,6 +31,11 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRA
 ##  Tests  ##
 #############
 
+cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS_TMP Auto)
+set(CUDA_ARCH_FLAGS ${CUDA_ARCH_FLAGS_TMP} CACHE STRING "CUDA gencode parameters")
+string(REPLACE ";" " " CUDA_ARCH_FLAGS_STR "${CUDA_ARCH_FLAGS}")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS_STR}")
+
 #add_test(
 #    # Use some per-module/project prefix so that it is easier to run only tests for this module
 #    NAME ${PROJECT_NAME}.failtest
