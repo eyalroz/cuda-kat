@@ -80,6 +80,41 @@ KAT_FD void at_grid_stride(Size length, const Function& f)
 	}
 }
 
+namespace warp_per_input_element {
+
+/**
+ * A variant of the one-position-per-thread applicator,
+ * `collaborative::grid::at_grid_stride()`: Here each warp works on one
+ * input position, advancing by 'grid stride' in the sense of total
+ * warps in the grid.
+ *
+ * @note This version of `at_grid_stride` is specific to linear grids,
+ * even though the text of its code looks the same as that of
+ * @ref kat::grid_info::collaborative::warp::at_grid_stride .
+ *
+ * @param length The length of the range of positions on which to act
+ * @param f The callable for warps to use each position in the sequence
+ */
+template <typename Function, typename Size = unsigned>
+KAT_FD void at_grid_stride(Size length, const Function& f)
+{
+	auto num_warps_in_grid = grid_info::grid::num_warps();
+	if (threadIdx.x == 0) { printf("There are %u warps overall and my warp index is %u\n",
+		(unsigned) num_warps_in_grid, (unsigned) grid_info::warp::global_index());
+	}
+	for(// _not_ the global thread index! - one element per warp
+		promoted_size_t<Size> pos = grid_info::warp::global_index();
+		pos < length;
+		pos += num_warps_in_grid)
+	{
+		f(pos);
+	}
+}
+
+
+} // namespace warp_per_input_element
+
+
 /**
  * Have all grid threads perform some action over the linear range
  * of 0..length-1, with each thread acting on a fixed number of items
@@ -175,8 +210,8 @@ namespace block_to_grid {
  * different for threads of different blocks of course)
  */
 template <typename BinaryOp>
-KAT_FD void accumulation_to_scalar(
-	typename BinaryOp::result_type*          accumulator,
+KAT_FD void accumulate_to_scalar(
+	typename BinaryOp::result_type*          accumulation_result,
 	typename BinaryOp::second_argument_type  block_value)
 {
 	// TODO: Is it really a good idea to "hammer" the single accumulator
@@ -186,7 +221,7 @@ KAT_FD void accumulation_to_scalar(
 	// a Pascal Titan card, per cycle - which is a lot.
 	if (grid_info::thread::is_first_in_block()) {
 		typename BinaryOp::accumulator::atomic atomic_accumulation_op;
-		atomic_accumulation_op(*accumulator, block_value);
+		atomic_accumulation_op(*accumulation_result, block_value);
 	}
 }
 

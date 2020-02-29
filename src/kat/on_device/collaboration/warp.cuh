@@ -738,42 +738,6 @@ KAT_FD T merge_sorted_half_warps(T lane_element)
 
 } // namespace warp
 } // namespace collaborative
-
-namespace linear_grid {
-namespace collaborative {
-namespace warp {
-
-/**
- * A variant of the one-position-per-thread applicator,
- * `collaborative::grid::at_grid_stride()`: Here each warp works on one
- * input position, advancing by 'grid stride' in the sense of total
- * warps in the grid.
- *
- * @note This version of `at_grid_stride` is specific to linear grids,
- * even though the text of its code looks the same as that of
- * @ref kat::grid_info::collaborative::warp::at_grid_stride .
- *
- * @param length The length of the range of positions on which to act
- * @param f The callable for warps to use each position in the sequence
- */
-template <typename Function, typename Size = unsigned>
-KAT_FD void at_grid_stride(Size length, const Function& f)
-{
-	auto num_warps_in_grid = grid_info::grid::num_warps();
-	for(// _not_ the global thread index! - one element per warp
-		promoted_size_t<Size> pos = grid_info::warp::global_index();
-		pos < length;
-		pos += num_warps_in_grid)
-	{
-		f(pos);
-	}
-}
-
-
-} // namespace warp
-} // namespace collaborative
-} // namespace linear_grid
-
 } // namespace kat
 
 #endif // CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_

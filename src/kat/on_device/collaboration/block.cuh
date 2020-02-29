@@ -25,12 +25,101 @@
 ///@endcond
 
 namespace kat {
+
+namespace collaborative {
+
+namespace block {
+
+///@cond
+// If we want to refer to other primitives, we'll make those references explicit;
+// but we do want to be able to say `warp::index()` without prefixing that with anything.
+
+namespace grid   = grid_info::grid;
+namespace block  = grid_info::block;
+namespace warp   = grid_info::warp;
+namespace thread = grid_info::thread;
+namespace lane   = grid_info::lane;
+
+///@endcond
+
+/*
+ * TODO: Implement
+ * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
+ * KAT_FD  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
+ *
+ * at the block level
+ *
+ */
+
+// TODO: Perhaps make this a "warp to block" primitive?
+/**
+ * Makes one element of type T for each warp, which was previously
+ * only visible to that warp (or rather not known to be otherwise) - visible to,
+ * shared with, the entire block, via shared memory.
+ *
+ * @param datum a warp-specific (but not thread-specific) piece of data,
+ * one for each warp, which is to be shared with the whole block
+ * @param where_to_make_available the various warp-specific data will be
+ * stored here by warp index
+ * @param writing_lane_index which lane in each warp should perform write operations
+ */
+template <typename T, bool Synchronize = true>
+KAT_FD void share_warp_datum_with_whole_block(
+	const T&         datum,
+	T* __restrict__  where_to_make_available,
+	unsigned         writing_lane_index = 0)
+{
+	if (lane::index() == writing_lane_index) {
+		where_to_make_available[warp::index()] = datum;
+	}
+	if (Synchronize) __syncthreads();
+}
+
+KAT_FD void barrier() { __syncthreads(); }
+
+
+/**
+ * @brief have all block threads obtain a value held by just
+ * one of the threads (and likely not otherwise easily accessible
+ * to the rest of the block's threads).
+ *
+ * @note uses shared memory for the "broadcast" by the thread holding
+ * the relevant value
+ */
+template <typename T>
+KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
+{
+	__shared__ static T tmp;
+	if (thread::index_in_block() == source_thread_index) {
+		tmp = value;
+	}
+	__syncthreads();
+	return tmp;
+}
+
+/**
+ * @brief have all block threads obtain a value held by the first
+ * thread in the block (and likely not otherwise easily accessible
+ * to the rest of the block's threads).
+ *
+ * @note uses shared memory for "broadcasting" the value
+ */
+template <typename T>
+KAT_FD T get_from_first_thread(const T& value)
+{
+	return get_from_thread(value, 0);
+}
+
+} // namespace block
+} // namespace collaborative
+
 namespace linear_grid {
 namespace collaborative {
 namespace block {
 
 ///@cond
-// If we want to refer to other primitives, we'll make those references explicit;
+// If we want to refer to other collaboration primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
 namespace grid   = grid_info::grid;
@@ -145,93 +234,7 @@ KAT_FD T get_from_first_thread(const T& value)
 } // namespace collaborative
 } // namespace linear_grid
 
-namespace collaborative {
 
-namespace block {
-
-///@cond
-// If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::index()` without prefixing that with anything.
-
-namespace grid   = grid_info::grid;
-namespace block  = grid_info::block;
-namespace warp   = grid_info::warp;
-namespace thread = grid_info::thread;
-namespace lane   = grid_info::lane;
-
-///@endcond
-
-/*
- * TODO: Implement
- * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
- * KAT_FD  unsigned none_satisfy(unsigned int predicate, unsigned* scratch_area);
- * KAT_FD  unsigned some_satisfy(unsigned int predicate, unsigned* scratch_area);
- *
- * at the block level
- *
- */
-
-// TODO: Perhaps make this a "warp to block" primitive?
-/**
- * Makes one element of type T for each warp, which was previously
- * only visible to that warp (or rather not known to be otherwise) - visible to,
- * shared with, the entire block, via shared memory.
- *
- * @param datum a warp-specific (but not thread-specific) piece of data,
- * one for each warp, which is to be shared with the whole block
- * @param where_to_make_available the various warp-specific data will be
- * stored here by warp index
- * @param writing_lane_index which lane in each warp should perform write operations
- */
-template <typename T, bool Synchronize = true>
-KAT_FD void share_warp_datum_with_whole_block(
-	const T& datum,
-	T* __restrict__ where_to_make_available,
-	unsigned writing_lane_index = 0)
-{
-	if (lane::index() == writing_lane_index) {
-		where_to_make_available[warp::index()] = datum;
-	}
-	if (Synchronize) __syncthreads();
-}
-
-KAT_FD void barrier() { __syncthreads(); }
-
-
-/**
- * @brief have all block threads obtain a value held by just
- * one of the threads (and likely not otherwise easily accessible
- * to the rest of the block's threads).
- *
- * @note uses shared memory for the "broadcast" by the thread holding
- * the relevant value
- */
-template <typename T>
-KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
-{
-	__shared__ static T tmp;
-	if (thread::index_in_block() == source_thread_index) {
-		tmp = value;
-	}
-	__syncthreads();
-	return tmp;
-}
-
-/**
- * @brief have all block threads obtain a value held by the first
- * thread in the block (and likely not otherwise easily accessible
- * to the rest of the block's threads).
- *
- * @note uses shared memory for "broadcasting" the value
- */
-template <typename T>
-KAT_FD T get_from_first_thread(const T& value)
-{
-	return get_from_thread(value, 0);
-}
-
-} // namespace block
-} // namespace collaborative
 } // namespace kat
 
 #endif // BLOCK_LEVEL_PRIMITIVES_CUH_
