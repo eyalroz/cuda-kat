@@ -160,7 +160,7 @@ KAT_FD dimensions_t position_in_grid()      { return blockIdx; }
 KAT_FD bool         is_first_in_grid()      { return blockIdx == grid::first_block_position(); };
 KAT_FD bool         is_last_in_grid()       { return blockIdx == grid::last_block_position(); };
 template <unsigned NumDimensions = 3>
-KAT_FD dimensions_t index()                 { return detail::row_major_linearization<NumDimensions>(position_in_grid(), grid::dimensions_in_blocks()); }
+KAT_FD unsigned     index()                 { return detail::row_major_linearization<NumDimensions>(position_in_grid(), grid::dimensions_in_blocks()); }
 KAT_FD grid_block_dimension_t
                     size()                  { return dimensions().volume(); }
 KAT_FD grid_block_dimension_t
@@ -238,10 +238,7 @@ KAT_FD unsigned  index()               { return index_in_block(); }
 template <unsigned NumDimensions = 3>
 KAT_FD unsigned  index_in_grid(uint3 block_position_in_grid, uint3 thread_index)
 {
-
-	return
-		detail::row_major_linearization<NumDimensions, unsigned>(block_position_in_grid, grid::dimensions_in_blocks()) +
-		detail::row_major_linearization<NumDimensions, unsigned>(thread_index, block::dimensions());
+	return block::index() * block::size() + thread::index_in_block();
 }
 
 template <unsigned NumDimensions = 3>
@@ -278,7 +275,7 @@ KAT_FD unsigned global_index_of_first_lane() {
 KAT_FD unsigned index_in_grid_of_first_lane()
                                      { return warp::global_index_of_first_lane(); }
 KAT_FD unsigned int index_in_block() { return thread::index() >> log_warp_size; }
-KAT_FD unsigned int index()          { return warp::index(); }
+KAT_FD unsigned int index()          { return warp::index_in_block(); }
 KAT_FD bool is_first_in_block()      { return warp::index_in_block() == block::index_of_first_warp(); }
 KAT_FD bool is_last_in_block()       { return warp::index_in_block() == block::index_of_last_warp(); }
 KAT_FD bool is_first_in_grid()       { return warp::is_first_in_block() and block::is_first_in_grid(); }
