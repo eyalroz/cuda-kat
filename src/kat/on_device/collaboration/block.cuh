@@ -54,9 +54,8 @@ namespace lane   = grid_info::lane;
 
 // TODO: Perhaps make this a "warp to block" primitive?
 /**
- * Makes one element of type T for each warp, which was previously
- * only visible to that warp (or rather not known to be otherwise) - visible to,
- * shared with, the entire block, via shared memory.
+ * @brief Share one element of type T for each warp with the entire block -
+ * using a single array in shared memory for all shared values.
  *
  * @param datum a warp-specific (but not thread-specific) piece of data,
  * one for each warp, which is to be shared with the whole block
@@ -65,15 +64,30 @@ namespace lane   = grid_info::lane;
  * @param writing_lane_index which lane in each warp should perform write operations
  */
 template <typename T, bool Synchronize = true>
-KAT_FD void share_warp_datum_with_whole_block(
-	const T&         datum,
-	T* __restrict__  where_to_make_available,
-	unsigned         writing_lane_index = 0)
+KAT_FD void share_per_warp_data(
+	T                 datum,
+	T*  __restrict__  where_to_make_available,
+	unsigned          writing_lane_index)
 {
 	if (lane::index() == writing_lane_index) {
 		where_to_make_available[warp::index()] = datum;
 	}
 	if (Synchronize) __syncthreads();
+}
+
+/**
+ * @brief A variant of @ref share_per_warp_data , with the writing lane index
+ * being decided dynamically in each lane based on who's actually active.
+ */
+template <typename T, bool Synchronize = true>
+KAT_FD void share_per_warp_data(
+	T                 datum,
+	T*  __restrict__  where_to_make_available)
+{
+	return share_per_warp_data(
+		std::forward<T>(datum),
+		where_to_make_available,
+		collaborative::warp::select_leader_lane());
 }
 
 KAT_FD void barrier() { __syncthreads(); }
@@ -87,14 +101,15 @@ KAT_FD void barrier() { __syncthreads(); }
  * @note uses shared memory for the "broadcast" by the thread holding
  * the relevant value
  */
-template <typename T>
-KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
+template <typename T, bool Synchronize = true>
+KAT_FD T get_from_thread(const T& value, dim3 source_thread_position)
 {
-	__shared__ static T tmp;
-	if (thread::index_in_block() == source_thread_index) {
+	using decayed_type = typename std::decay<T>::type;
+	__shared__ static decayed_type tmp;
+	if (threadIdx == source_thread_position) {
 		tmp = value;
 	}
-	__syncthreads();
+	if (Synchronize) { __syncthreads(); }
 	return tmp;
 }
 
@@ -105,10 +120,10 @@ KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
  *
  * @note uses shared memory for "broadcasting" the value
  */
-template <typename T>
-KAT_FD T get_from_first_thread(const T& value)
+template <typename T, bool Synchronize = true>
+KAT_FD T get_from_first_thread(T&& value)
 {
-	return get_from_thread(value, 0);
+	return get_from_thread<T, Synchronize>(value, dim3{0,0,0} );
 }
 
 } // namespace block
@@ -144,6 +159,9 @@ namespace lane   = grid_info::lane;
  * Have all threads in (one/some/all) blocks perform some action over the
  * linear range of 0..length-1 - the same range for each block.
  *
+ * @note This function semi-assumes the block size is a multiple of
+ * the warp size; otherwise, it should still work, but - it'll be slow(ish).
+ *
  * @param length The length of the range (of integers) on which to act
  * handle (serially)
  * @param f The callable to execute for each element of the sequence.
@@ -163,21 +181,23 @@ KAT_FD void at_block_stride(Size length, const Function& f)
 
 // TODO: Perhaps make this a "warp to block" primitive?
 /**
- * Makes one element of type T for each warp, which was previously
- * only visible to that warp (or rather not known to be otherwise) - visible to,
- * shared with, the entire block, via shared memory.
+ * @brief Share one element of type T for each warp with the entire block -
+ * using a single array in shared memory for all shared values.
  *
  * @param datum a warp-specific (but not thread-specific) piece of data,
  * one for each warp, which is to be shared with the whole block
  * @param where_to_make_available the various warp-specific data will be
  * stored here by warp index
  * @param writing_lane_index which lane in each warp should perform write operations
+ *
+ * @note if different threads in a warp have different values, behavior is
+ * not guaranteed.
  */
 template <typename T, bool Synchronize = true>
-KAT_FD void share_warp_datum_with_whole_block(
-	const T&         datum,
-	T* __restrict__  where_to_make_available,
-	unsigned         writing_lane_index = 0)
+KAT_FD void share_per_warp_data(
+	T                 datum,
+	T*  __restrict__  where_to_make_available,
+	unsigned          writing_lane_index)
 {
 	if (lane::index() == writing_lane_index) {
 		where_to_make_available[warp::index()] = datum;
@@ -185,18 +205,23 @@ KAT_FD void share_warp_datum_with_whole_block(
 	if (Synchronize) __syncthreads();
 }
 
-KAT_FD void barrier() { __syncthreads(); }
-
 /**
- * @brief Execute some code exactly once per block of threads
- *
- * @note This macro is a kind of ugly and non-robust way of achieving
- * the stated effect; but a safe way to do so would be much slower.
- *
- * @note You must make sure that first thread of the block hits this
- * instruction to get the desired effect...
+ * @brief A variant of @ref share_per_warp_data , with the writing lane index
+ * being decided dynamically in each lane based on who's actually active.
  */
-#define once_per_block  if (thread::is_first_in_block())
+template <typename T, bool Synchronize = true>
+KAT_FD void share_per_warp_data(
+	T                 datum,
+	T*  __restrict__  where_to_make_available)
+{
+	return share_per_warp_data(
+		std::forward<T>(datum),
+		where_to_make_available,
+		::kat::collaborative::warp::select_leader_lane());
+}
+
+
+KAT_FD void barrier() { __syncthreads(); }
 
 /**
  * @brief have all block threads obtain a value held by just
@@ -206,14 +231,15 @@ KAT_FD void barrier() { __syncthreads(); }
  * @note uses shared memory for the "broadcast" by the thread holding
  * the relevant value
  */
-template <typename T>
-KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
+template <typename T, bool Synchronize = true>
+KAT_FD T get_from_thread(T&& value, unsigned source_thread_index)
 {
-	__shared__ static T tmp;
+	using decayed_type = typename std::decay<T>::type;
+	__shared__ static decayed_type tmp;
 	if (thread::index_in_block() == source_thread_index) {
 		tmp = value;
 	}
-	__syncthreads();
+	if (Synchronize) { __syncthreads(); }
 	return tmp;
 }
 
@@ -224,10 +250,10 @@ KAT_FD T get_from_thread(const T& value, unsigned source_thread_index)
  *
  * @note uses shared memory for "broadcasting" the value
  */
-template <typename T>
-KAT_FD T get_from_first_thread(const T& value)
+template <typename T, bool Synchronize = true>
+KAT_FD T get_from_first_thread(T&& value)
 {
-	return get_from_thread(value, 0);
+	return get_from_thread<T, Synchronize>(value, 0u);
 }
 
 } // namespace block

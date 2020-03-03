@@ -230,7 +230,8 @@ KAT_DEV typename ReductionOp::result_type reduce(InputDatum value)
 	static __shared__ result_type warp_reductions[warp_size];
 
 	result_type intra_warp_result = kat::collaborative::warp::reduce<ReductionOp>(static_cast<result_type>(value));
-	kat::linear_grid::collaborative::block::share_warp_datum_with_whole_block(intra_warp_result, warp_reductions);
+	auto warp_datum_sharing_lane { 0u };
+	kat::linear_grid::collaborative::block::share_per_warp_data(intra_warp_result, warp_reductions, warp_datum_sharing_lane);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
@@ -277,7 +278,7 @@ template<
 	result_type intra_warp_inclusive_scan_result =
 		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
 
-	collaborative::block::share_warp_datum_with_whole_block(
+	collaborative::block::share_per_warp_data(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
 		// Note: if the block is not made up of full warps, this will fail,
 		// since the last warp will not have a lane to do the writing
@@ -354,7 +355,7 @@ template<
 		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
 			static_cast<result_type>(value));
 
-	collaborative::block::share_warp_datum_with_whole_block(
+	collaborative::block::share_per_warp_data(
 		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
 		// Note: if the block is not made up of full warps, this will fail,
 		// since the last warp will not have a lane to do the writing
