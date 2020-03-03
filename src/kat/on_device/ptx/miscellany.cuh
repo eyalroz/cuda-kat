@@ -10,6 +10,7 @@
 #include <kat/on_device/common.cuh>
 
 #include <cstdint>
+#include <cassert>
 #include <type_traits>
 
 
