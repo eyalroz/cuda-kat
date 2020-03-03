@@ -160,7 +160,8 @@ KAT_FD dimensions_t position_in_grid()      { return blockIdx; }
 KAT_FD bool         is_first_in_grid()      { return blockIdx == grid::first_block_position(); };
 KAT_FD bool         is_last_in_grid()       { return blockIdx == grid::last_block_position(); };
 template <unsigned NumDimensions = 3>
-KAT_FD unsigned     index()                 { return detail::row_major_linearization<NumDimensions>(position_in_grid(), grid::dimensions_in_blocks()); }
+KAT_FD grid_dimension_t
+                    index()                 { return detail::row_major_linearization<NumDimensions>(position_in_grid(), grid::dimensions_in_blocks()); }
 KAT_FD grid_block_dimension_t
                     size()                  { return dimensions().volume(); }
 KAT_FD grid_block_dimension_t
@@ -210,8 +211,8 @@ namespace thread {
 KAT_FD uint3    position()            { return threadIdx; }
 KAT_FD uint3    position_in_block()   { return threadIdx; }
 
-KAT_FD bool     is_first_in_block()   { return position_in_block() == block::first_thread_position();    };
-KAT_FD bool     is_last_in_block()    { return position_in_block() == block::last_thread_position();     };
+KAT_FD bool     is_first_in_block()   { return position_in_block() == block::first_thread_position();     };
+KAT_FD bool     is_last_in_block()    { return position_in_block() == block::last_thread_position();      };
 KAT_FD bool     is_first_in_grid()    { return block::is_first_in_grid() and thread::is_first_in_block(); }
 KAT_FD bool     is_last_in_grid()     { return block::is_last_in_grid() and thread::is_last_in_block();   }
 
@@ -341,13 +342,12 @@ namespace grid {
 // return types here to the general-case ones. But some of the types
 // are admittedly a bit fudged.
 
-KAT_FD decltype(gridDim.x) dimensions_in_blocks()    { return gridDim.x; }
 KAT_FD grid_dimension_t  num_blocks()              { return gridDim.x; }
+KAT_FD grid_dimension_t  dimensions_in_blocks()    { return num_blocks(); }
 KAT_FD grid_dimension_t  index_of_first_block()    { return 0; }
 KAT_FD grid_dimension_t  index_of_last_block()     { return num_blocks() - 1; }
 KAT_FD grid_dimension_t  first_block_position()    { return index_of_first_block(); }
 KAT_FD grid_dimension_t  first_last_position()     { return index_of_last_block(); }
-
 
 } // namespace grid
 
