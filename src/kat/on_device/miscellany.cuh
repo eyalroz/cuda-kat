@@ -21,22 +21,6 @@
 
 namespace kat {
 
-/**
- * @brief Swap two values on the device-side, in-place.
- *
- * @note A (CUDA, or any other) compiler will often not actually
- * emit any code when this function is used. Instead, it will use
- * one argument instead of the other in later code, i.e. "swap"
- * them in its own internal figuring.
- */
-template <typename T>
-KAT_FD  void swap(T& x, T& y)  {
-   T _x = x;
-   T _y = y;
-   x = _y;
-   y = _x;
-}
-
 namespace detail {
 
 template <bool Signed, std::size_t NumBits> struct integer_type_struct;

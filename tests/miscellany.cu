@@ -3,6 +3,8 @@
 #include "common.cuh"
 
 #include <kat/on_device/miscellany.cuh>
+#include <kat/utility.hpp>
+
 // #include <gsl/span>
 #include <limits>
 
