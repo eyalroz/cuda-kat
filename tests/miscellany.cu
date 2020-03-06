@@ -398,7 +398,7 @@ TEST_SUITE("miscellany") {
 // TODO: Consider using larger-than-64-bit types, classes, etc.
 TEST_CASE_TEMPLATE("test swap", T, int8_t, int16_t, int32_t, int32_t, int64_t, float, double )
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	cuda::launch_configuration_t launch_config { cuda::grid::dimensions_t::point(), cuda::grid::dimensions_t::point() };
 	auto device_side_results { cuda::memory::device::make_unique<bool[]>(device, num_swap_checks) };
 	auto host_side_results { std::unique_ptr<bool[]>(new bool[num_swap_checks]) };
@@ -460,7 +460,7 @@ TEST_CASE_TEMPLATE("test native-word copy", T, uint8_t, int16_t, int32_t, uint32
 	auto host_side_test_data = generate_copy_test_data<T>(host_side_testcases);
 
 	try {
-		cuda::device_t<> device { cuda::device::current::get() };
+		cuda::device_t device { cuda::device::current::get() };
 		auto device_side_test_data { cuda::memory::device::make_unique<T[]>(device, buffer_length_in_elements) };
 		auto device_side_copy_target { cuda::memory::device::make_unique<T[]>(device, buffer_length_in_elements) };
 		auto host_side_copy_target { std::unique_ptr<T[]>(new T[buffer_length_in_elements]) };

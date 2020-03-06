@@ -493,7 +493,7 @@ using kernel_type = void (*)(bool*, std::size_t*);
 
 void conduct_test(kernel_type kernel, const char* kernel_name)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	auto block_size { 1 };
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };

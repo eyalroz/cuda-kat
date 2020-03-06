@@ -1088,28 +1088,28 @@ TEST_SUITE("span-device-side") {
 
 TEST_CASE("LWG-3225-constructibility-with-C-array")
 {
-	cuda::device_t<> device {cuda::device::current::get()};
+	cuda::device_t device {cuda::device::current::get()};
 	cuda::launch(kernels::lwg_3225_constructibility_with_c_array, singleton_grid_config());
 	device.synchronize();
 }
 
 TEST_CASE("LWG-3225-constructibility-with-kat-array")
 {
-	cuda::device_t<> device {cuda::device::current::get()};
+	cuda::device_t device {cuda::device::current::get()};
 	cuda::launch(kernels::lwg_3225_constructibility_with_kat_array, singleton_grid_config());
 	device.synchronize();
 }
 
 TEST_CASE("LWG-3225-constructibility-with-std-array")
 {
-	cuda::device_t<> device {cuda::device::current::get()};
+	cuda::device_t device {cuda::device::current::get()};
 	cuda::launch(kernels::lwg_3225_constructibility_with_std_array, singleton_grid_config());
 	device.synchronize();
 }
 
 TEST_CASE("nothrow-constructibility")
 {
-	cuda::device_t<> device {cuda::device::current::get()};
+	cuda::device_t device {cuda::device::current::get()};
 	cuda::launch(kernels::nothrow_constructibility, singleton_grid_config());
 	device.synchronize();
 }

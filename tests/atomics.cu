@@ -146,7 +146,7 @@ TEST_SUITE("atomics") {
 
 TEST_CASE_TEMPLATE("add", T, INTEGER_TYPES, FLOAT_TYPES )
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
 	constexpr auto data_size { num_grid_blocks * block_size * elements_per_thread };
@@ -214,7 +214,7 @@ TEST_CASE_TEMPLATE("add", T, INTEGER_TYPES, FLOAT_TYPES )
 
 TEST_CASE_TEMPLATE("subtract", T, INTEGER_TYPES, FLOAT_TYPES )
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
 	constexpr auto data_size { num_grid_blocks * block_size * elements_per_thread };
@@ -285,7 +285,7 @@ TEST_CASE_TEMPLATE("subtract", T, INTEGER_TYPES, FLOAT_TYPES )
 
 TEST_CASE_TEMPLATE("exchange", T, INTEGER_TYPES, FLOAT_TYPES )
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
 	constexpr auto data_size { num_grid_blocks * block_size * elements_per_thread };

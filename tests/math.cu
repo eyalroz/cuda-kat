@@ -382,7 +382,7 @@ TEST_SUITE("math") {
 
 TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	auto block_size { 1 };
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };

@@ -130,7 +130,7 @@ TEST_SUITE("shuffle") {
 
 TEST_CASE_TEMPLATE("up", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
@@ -187,7 +187,7 @@ TEST_CASE_TEMPLATE("up", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE
 
 TEST_CASE_TEMPLATE("down", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
@@ -244,7 +244,7 @@ TEST_CASE_TEMPLATE("down", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SI
 
 TEST_CASE_TEMPLATE("xor", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
