@@ -31,6 +31,15 @@
 ///@endcond
 
 namespace kat {
+
+KAT_FD unsigned num_active_lanes_in(lane_mask_t mask)
+{
+	// Note the type cast from signed to unsigned
+	return builtins::population_count(mask);
+}
+
+
+
 namespace collaborative {
 namespace warp {
 
@@ -53,9 +62,17 @@ namespace lane   = grid_info::lane;
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is non-zero for all threads
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD  bool all_lanes_satisfy(int condition)
+#else
+KAT_FD  bool all_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
+#if (__CUDACC_VER_MAJOR__ < 9)
 	return builtins::warp::all_lanes_satisfy(condition);
+#else
+	return builtins::warp::all_lanes_satisfy(condition, lane_mask);
+#endif
 }
 
 
@@ -66,9 +83,17 @@ KAT_FD  bool all_lanes_satisfy(int condition)
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is zero for all threads
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD  bool no_lanes_satisfy(int condition)
+#else
+KAT_FD  bool no_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
+#if (__CUDACC_VER_MAJOR__ < 9)
 	return all_lanes_satisfy(not condition);
+#else
+	return all_lanes_satisfy(not condition, lane_mask);
+#endif
 }
 
 /**
@@ -78,9 +103,18 @@ KAT_FD  bool no_lanes_satisfy(int condition)
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is non-zero for all threads
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD  bool all_lanes_agree_on(int condition)
+#else
+KAT_FD  bool all_lanes_agree_on(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
+#if (__CUDACC_VER_MAJOR__ < 9)
 	auto ballot_results = builtins::warp::ballot(condition);
+#else
+	auto ballot_results = builtins::warp::ballot(condition, lane_mask);
+#endif
+
 	return
 		    ballot_results == 0  // none satisfy the condition
 		or ~ballot_results == 0; // all satisfy the condition);
@@ -95,9 +129,17 @@ KAT_FD  bool all_lanes_agree_on(int condition)
  * since that's what nVIDIA GPUs actually check with the HW instruction
  * @return true if condition is non-zero for at least one thread
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD  bool some_lanes_satisfy(int condition)
+#else
+KAT_FD  bool some_lanes_satisfy(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
+#if (__CUDACC_VER_MAJOR__ < 9)
 	return !no_lanes_satisfy(condition);
+#else
+	return !no_lanes_satisfy(condition, lane_mask);
+#endif
 }
 
 /**
@@ -106,9 +148,17 @@ KAT_FD  bool some_lanes_satisfy(int condition)
  * @param condition the condition value for each lane (true if non-zero)
  * @return the number of threads in the warp whose @p condition is true (non-zero)
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD native_word_t num_lanes_satisfying(int condition)
+#else
+KAT_FD native_word_t num_lanes_satisfying(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
-	return builtins::population_count(builtins::warp::ballot(condition));
+#if (__CUDACC_VER_MAJOR__ < 9)
+	return num_active_lanes_in(builtins::warp::ballot(condition));
+#else
+	return num_active_lanes_in(builtins::warp::ballot(condition, lane_mask));
+#endif
 }
 
 /**
@@ -116,11 +166,20 @@ KAT_FD native_word_t num_lanes_satisfying(int condition)
  *
  * @param condition the condition value for each lane (true if non-zero)
  * @return the number of threads in the warp whose @p condition is the same value
- * as the calling lane
+ * as the calling lane (including the calling lane itself)
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD  native_word_t num_lanes_agreeing_on(int condition)
+#else
+KAT_FD  native_word_t num_lanes_agreeing_on(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
-	auto satisfying = num_lanes_satisfying(condition);
+	auto satisfying =
+#if (__CUDACC_VER_MAJOR__ < 9)
+		num_lanes_satisfying(condition);
+#else
+		num_lanes_satisfying(condition, lane_mask);
+#endif
 	return condition ? satisfying : warp_size - satisfying;
 }
 
@@ -130,9 +189,17 @@ KAT_FD  native_word_t num_lanes_agreeing_on(int condition)
  * @param condition A boolean value (passed as an integer
  * since that's what nVIDIA GPUs actually check with the HW instruction
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD  bool majority_vote(int condition)
+#else
+KAT_FD  bool majority_vote(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
+#if (__CUDACC_VER_MAJOR__ < 9)
 	return num_lanes_satisfying(condition) > (warp_size / 2);
+#else
+	return num_lanes_satisfying(condition, lane_mask) > (num_active_lanes_in(lane_mask) / 2);
+#endif
 }
 
 // --------------------------------------------------
@@ -147,7 +214,11 @@ KAT_FD  bool majority_vote(int condition)
  * @return true if the lane this value provided had no matches among the values
  * provided by other lanes
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
+template <typename T> KAT_FD bool in_unique_lane_with(T value)
+#else
 template <typename T> KAT_FD bool in_unique_lane_with(T value, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
 	auto self_lane_mask = (1 << grid_info::lane::index());
 		// Note we're _not_ using the PTX builtin for obtaining the self lane mask from a special
@@ -159,7 +230,11 @@ template <typename T> KAT_FD bool in_unique_lane_with(T value, lane_mask_t lane_
 	//
 	// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#parallel-synchronization-and-communication-instructions-match-sync
 	//
+#if (__CUDACC_VER_MAJOR__ < 9)
+	return builtins::warp::get_matching_lanes(value) == self_lane_mask;
+#else
 	return builtins::warp::get_matching_lanes(value, lane_mask) == self_lane_mask;
+#endif
 }
 
 /*
@@ -224,9 +299,17 @@ KAT_FD typename std::result_of<Function()>::type have_last_lane_compute(Function
  * If no lane has non-zero condition, either warp_size or -1 is returned
  * (depending on the value of @tparam WarpSizeOnNone
  */
+#if (__CUDACC_VER_MAJOR__ < 9)
 KAT_FD native_word_t first_lane_satisfying(int condition)
+#else
+KAT_FD native_word_t first_lane_satisfying(int condition, lane_mask_t lane_mask = full_warp_mask)
+#endif
 {
+#if (__CUDACC_VER_MAJOR__ < 9)
 	return non_builtins::count_trailing_zeros(builtins::warp::ballot(condition));
+#else
+	return non_builtins::count_trailing_zeros(builtins::warp::ballot(condition, lane_mask));
+#endif
 }
 
 /**
@@ -258,7 +341,7 @@ KAT_FD void at_grid_stride(Size length, const Function& f)
 // TODO: Mark this unsafe
 #define once_per_warp if (grid_info::thread::is_first_in_warp())
 
-KAT_FD unsigned active_lanes_mask()
+KAT_FD lane_mask_t get_active_lanes()
 {
 	return builtins::warp::ballot(1);
 		// the result will only have bits set for the lanes which are active;
@@ -266,9 +349,9 @@ KAT_FD unsigned active_lanes_mask()
 		// to the ballot function
 }
 
-KAT_FD unsigned active_lane_count()
+KAT_FD unsigned num_active_lanes()
 {
-	return builtins::population_count(active_lanes_mask());
+	return num_active_lanes_in(get_active_lanes());
 }
 
 namespace detail {
@@ -323,7 +406,7 @@ KAT_FD typename std::result_of<Function()>::type have_a_single_active_lane_compu
 template <bool PreferFirstLane = true>
 KAT_FD unsigned select_leader_lane()
 {
-	return detail::select_leader_lane<PreferFirstLane>(active_lanes_mask());
+	return detail::select_leader_lane<PreferFirstLane>( get_active_lanes() );
 }
 
 /**
@@ -338,19 +421,19 @@ KAT_FD unsigned select_leader_lane()
 template <bool PreferFirstLane = true>
 KAT_FD bool am_leader_lane()
 {
-	return detail::am_leader_lane<PreferFirstLane>(active_lanes_mask());
+	return detail::am_leader_lane<PreferFirstLane>( get_active_lanes() );
 }
 
 KAT_FD unsigned lane_index_among_active_lanes()
 {
-	return detail::lane_index_among_active_lanes(active_lanes_mask());
+	return detail::lane_index_among_active_lanes( get_active_lanes() );
 }
 
 
 template <typename Function, bool PreferFirstLane = true>
 KAT_FD typename std::result_of<Function()>::type have_a_single_active_lane_compute(Function f)
 {
-	return detail::have_a_single_active_lane_compute<PreferFirstLane>(f, active_lanes_mask());
+	return detail::have_a_single_active_lane_compute<PreferFirstLane>( f, get_active_lanes() );
 }
 
 // TODO: Consider implementing have_first_active_lane_compute and
@@ -370,8 +453,8 @@ KAT_FD typename std::result_of<Function()>::type have_a_single_active_lane_compu
 template <typename T>
 KAT_FD T active_lanes_increment(T* counter)
 {
-	auto lanes_mask = active_lanes_mask();
-	auto active_lane_count = builtins::population_count(lanes_mask);
+	auto lanes_mask = get_active_lanes();
+	auto active_lane_count = num_active_lanes_in(lanes_mask);
 	auto perform_all_increments = [counter, active_lane_count]() {
 		atomic::add(counter, active_lane_count);
 	};
