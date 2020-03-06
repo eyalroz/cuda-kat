@@ -51,13 +51,27 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS_STR}")
 add_library(test_utils util/random.cu)
 set_target_properties(
 	test_utils
-	PROPERTIES 
+	PROPERTIES
 	CXX_STANDARD 14
-	CXX_STANDARD_REQUIRED YES 
+	CXX_STANDARD_REQUIRED YES
 	CXX_EXTENSIONS NO
 )
 
-set(tests shared_memory math shuffle atomics constexpr_math time c_string span miscellany builtins)
+set(tests
+	shared_memory
+	math
+	shuffle
+	atomics
+	constexpr_math
+	time
+	c_string
+	span
+	miscellany
+	builtins
+	grid_collaboration
+	block_collaboration
+#	warp_collaboration
+)
 
 if (BUILD_PRINTING_RELATED_TESTS)
 	list(APPEND tests printing)
@@ -66,15 +80,16 @@ endif()
 foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
+	target_compile_options(${TEST_TARGET} PRIVATE "--expt-extended-lambda")
 	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cuda-api-wrappers::cuda-api-wrappers doctest  ${CUDA_LIBRARIES} test_utils)
 	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
 	target_include_directories(${TEST_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 	set_target_properties(
 		${TEST_TARGET}
-		PROPERTIES 
+		PROPERTIES
 		CXX_STANDARD 14
-		CXX_STANDARD_REQUIRED YES 
+		CXX_STANDARD_REQUIRED YES
 		CXX_EXTENSIONS NO
 	)
 	add_test(

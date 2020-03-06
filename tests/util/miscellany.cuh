@@ -2,6 +2,7 @@
 #define CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 
 #include <cuda/api/types.hpp>
+#include <doctest.h>
 
 #include <algorithm>
 #include <climits>
@@ -89,5 +90,11 @@ constexpr inline S div_rounding_up(const S& dividend, const T& divisor) {
 // C++14 version of [[maybe_unused]] ...
 template <typename T>
 inline void ignore(T &&) { }
+
+namespace doctest {
+
+const char* current_test_name() { return doctest::detail::g_cs->currentTest->m_name; }
+
+} // namespace doctest
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
