@@ -9,16 +9,22 @@
 #include <kat/on_device/non-builtins.cuh>
 #include <kat/on_device/collaboration/block.cuh>
 
-#include <cuda/api_wrappers.hpp>
-
-#include <limits>
-#include <algorithm>
-#include <iostream>
-#include <iomanip>
-
 using std::size_t;
 using fake_bool = int8_t; // so as not to have trouble with vector<bool>
 static_assert(sizeof(bool) == sizeof(fake_bool), "unexpected size mismatch");
+
+#if __cplusplus < 201701L
+#include <experimental/optional>
+template <typename T>
+using optional = std::experimental::optional<T>;
+#else
+template <typename T>
+#include <optional>
+using optional = std::optional<T>;
+#endif
+
+template <typename T>
+const auto make_exact_comparison { optional<T>{} };
 
 namespace device_function_ptrs {
 
@@ -199,16 +205,55 @@ std::size_t set_width_for_up_to(T max)
 	return ss.str().length();
 }
 
+bool check_execution_indicators(
+	size_t                    num_checks,
+	const char*               testcase_name,
+	fake_bool*                execution_indicators)
+{
+	std::stringstream ss;
+	auto index_width = set_width_for_up_to(num_checks);
+	bool all_executed { true };
+
+	// TODO: Consider using the maximum/minimum result values to set field widths.
+
+	for(size_t i = 0; i < num_checks; i++) {
+		ss.str("");
+		ss << "Failed executing testcase " << (i+1) << " for " << testcase_name;
+		auto failure_message { ss.str() };
+		CHECK_MESSAGE(execution_indicators[i], failure_message);
+		all_executed = all_executed and execution_indicators[i];
+	}
+	return all_executed;
+}
+
+namespace detail {
+
+template <typename T>
+T tolerance_gadget(std::true_type, optional<T> x) { return x.value(); }
+
+
+template <typename T>
+int tolerance_gadget(std::false_type, optional<T>) { return 0; }
+
+} // namespace detail
+
+template <typename T>
+std::conditional_t<std::is_arithmetic<T>::value, T, int>  tolerance_gadget(optional<T> x)
+{
+	constexpr const auto is_arithmetic = std::is_arithmetic< std::decay_t<T> >::value;
+	return detail::tolerance_gadget(std::integral_constant<bool, is_arithmetic>{}, x);
+}
+
+
 // TODO: Take iterator templates rather than pointers
-template <typename R, typename... Is>
+template <typename R, typename F, typename... Is>
 void check_results(
 	size_t                    num_checks,
 	const char*               testcase_name,
 	// perhaps add another parameter for specific individual-check details?
-	const R*                  actual_results,
-	fake_bool*                execution_indicators,
-	const R*  __restrict__    expected_results,
-	R                         comparison_tolerance_fraction,
+	const R*  __restrict__    actual_results,
+	F                         expected_result_retriever,
+	optional<R>               comparison_tolerance_fraction,
 	const Is* __restrict__... inputs)
 {
 	std::stringstream ss;
@@ -218,28 +263,27 @@ void check_results(
 
 	for(size_t i = 0; i < num_checks; i++) {
 		ss.str("");
-		ss << "Failed executing testcase " << (i+1) << " for " << testcase_name;
-		auto failure_message { ss.str() };
-		CHECK_MESSAGE(execution_indicators[i], failure_message);
-//		auto generate_mismatch_message = [&]()
-		if (execution_indicators[i]) {
-			ss.str("");
-			ss
-				<< "Assertion " << std::setw(index_width) << (i+1) << " for testcase " << testcase_name
-				// << " :\n"
-				<< "(" << std::make_tuple(inputs[i]...) << ")"
-				// << ", expected " << expected_results[i] << " but got " << actual_results[i]
-			;
-			auto mismatch_message { ss.str() };
-			if (comparison_tolerance_fraction == 0) {
-				CHECK_MESSAGE(actual_results[i] == expected_results[i], mismatch_message);
-			}
-			else {
-				CHECK_MESSAGE(actual_results[i] ==  doctest::Approx(expected_results[i]).epsilon(comparison_tolerance_fraction), mismatch_message);
-			}
+		ss
+			<< "Assertion " << std::setw(index_width) << (i+1) << " for testcase " << testcase_name
+			// << " :\n"
+			<< "(" << std::make_tuple(inputs[i]...) << ")"
+		;
+		auto mismatch_message { ss.str() };
+
+		if (comparison_tolerance_fraction) {
+			auto tolerance = tolerance_gadget(comparison_tolerance_fraction);
+				// With C++17, we could just use if constexpr and never try to compare against
+				// a non-arithmetic type
+			CHECK_MESSAGE(actual_results[i] ==  doctest::Approx(expected_result_retriever(i)).epsilon(tolerance), mismatch_message);
+		}
+		else {
+			CHECK_MESSAGE(actual_results[i] == expected_result_retriever(i), mismatch_message);
 		}
 	}
 }
+
+template <typename T>
+struct tag { };
 
 /**
  * @brief Executes a testcase intended to make certain checks using a GPU kernel
@@ -251,17 +295,16 @@ void check_results(
  * on.
  */
 template <typename K, typename R, typename... Is, size_t... Indices>
-void execute_testcase_on_gpu(
+auto execute_testcase_on_gpu(
+	tag<R>,
 	std::index_sequence<Indices...>,
-	const R* __restrict__            expected_results,
 	K                                testcase_kernel,
 	const char*                      testcase_name,
 	cuda::launch_configuration_t     launch_config,
 	size_t                           num_checks,
-	R                                comparison_tolerance_fraction,
 	Is* __restrict__ ...             inputs)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	auto device_side_results { cuda::memory::device::make_unique<R[]>(device, num_checks) };
 	cuda::memory::device::zero(device_side_results.get(), num_checks * sizeof(R)); // just to be on the safe side
 	auto device_side_execution_indicators { cuda::memory::device::make_unique<fake_bool[]>(device, num_checks * sizeof(fake_bool)) };
@@ -289,64 +332,113 @@ void execute_testcase_on_gpu(
 	cuda::memory::copy(host_side_results.data(), device_side_results.get(), sizeof(R) * num_checks);
 	cuda::memory::copy(host_side_execution_indicators.data(), device_side_execution_indicators.get(), sizeof(bool) * num_checks);
 
+	check_execution_indicators(num_checks, testcase_name, host_side_execution_indicators.data());
+	return host_side_results;
+}
+
+template <typename K, typename R, typename... Is, size_t... Indices>
+void execute_testcase_on_gpu_and_check(
+	std::index_sequence<Indices...>  is,
+	const R* __restrict__            expected_results,
+	K                                testcase_kernel,
+	const char*                      testcase_name,
+	cuda::launch_configuration_t     launch_config,
+	size_t                           num_checks,
+	optional<R>                      comparison_tolerance_fraction,
+	Is* __restrict__ ...             inputs)
+{
+	auto host_side_results = execute_testcase_on_gpu(
+		tag<R>{},
+		is,
+		testcase_kernel,
+		testcase_name,
+		launch_config,
+		num_checks,
+		inputs...);
+
+	auto expected_result_retriever = [&](size_t pos) { return expected_results[pos]; };
+
 	check_results (
 		num_checks,
 		testcase_name,
 		// perhaps add another parameter for specific testcase details?
 		host_side_results.data(),
-		host_side_execution_indicators.data(),
-		expected_results,
+		expected_result_retriever,
 		comparison_tolerance_fraction,
 		inputs...);
 }
 
+
+
+
 template <typename DeviceFunctionHook, typename R, typename... Is>
-void execute_uniform_builtin_testcase_on_gpu(
+void execute_uniform_builtin_testcase_on_gpu_and_check(
 	DeviceFunctionHook     dfh,
 	const R* __restrict__  expected_results,
 	size_t                 num_checks,
-	R                      comparison_tolerance_fraction,
+	optional<R>            comparison_tolerance_fraction,
 	Is* __restrict__ ...   inputs)
 {
 	auto block_size { 128 };
 	auto num_grid_blocks { div_rounding_up(num_checks, block_size) };
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
 
-	return execute_testcase_on_gpu( // <R, Is...>(
+	auto host_side_results = execute_testcase_on_gpu(
+		tag<R>{},
 		typename std::make_index_sequence<sizeof...(Is)> {},
-		expected_results,
 		kernels::execute_testcases<DeviceFunctionHook, R, Is...>,
 		DeviceFunctionHook::name,
 		launch_config,
 		num_checks,
-		comparison_tolerance_fraction,
 		inputs...
 	);
+
+	auto expected_result_retriever = [&](size_t pos) { return expected_results[pos]; };
+
+	check_results (
+		num_checks,
+		DeviceFunctionHook::name,
+		// perhaps add another parameter for specific testcase details?
+		host_side_results.data(),
+		expected_result_retriever,
+		comparison_tolerance_fraction,
+		inputs...);
+
 }
 
 template <typename DeviceFunctionHook, typename R, typename... Is>
-void execute_non_uniform_builtin_testcase_on_gpu(
+void execute_non_uniform_builtin_testcase_on_gpu_and_check(
 	DeviceFunctionHook             dfh,
 	const R* __restrict__          expected_results,
 	size_t                         num_checks,
 	cuda::grid::dimension_t        num_grid_blocks,
 	cuda::grid::block_dimension_t  block_size,
-	R                              comparison_tolerance_fraction,
+	optional<R>                    comparison_tolerance_fraction,
 	Is* __restrict__ ...           inputs)
 {
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
 	// TODO: Should we check that num_checks is equal to the number of grid threads?
 
-	return execute_testcase_on_gpu(
+	auto host_side_results = execute_testcase_on_gpu(
+		tag<R>{},
 		typename std::make_index_sequence<sizeof...(Is)> {},
-		expected_results,
 		kernels::execute_testcases<DeviceFunctionHook, R, Is...>,
 		DeviceFunctionHook::name,
 		launch_config,
 		num_checks,
-		comparison_tolerance_fraction,
 		inputs...
 	);
+
+	auto expected_result_retriever = [&](size_t pos) { return expected_results[pos]; };
+
+	check_results (
+		num_checks,
+		DeviceFunctionHook::name,
+		// perhaps add another parameter for specific testcase details?
+		host_side_results.data(),
+		expected_result_retriever,
+		comparison_tolerance_fraction,
+		inputs...);
 }
 
 
@@ -357,7 +449,9 @@ TEST_SUITE("uniform builtins") {
 
 TEST_CASE_TEMPLATE("multiplication high bits", I, unsigned, long long, unsigned long long)
 {
-	std::vector<I> expected_results;
+	using result_type = I;
+
+	std::vector<result_type> expected_results;
 	std::vector<I> lhs;
 	std::vector<I> rhs;
 
@@ -399,17 +493,18 @@ TEST_CASE_TEMPLATE("multiplication high bits", I, unsigned, long long, unsigned 
 
 //	std::cout << "function is at " << (void *)(kat::builtins::multiplication_high_bits<I>) << std::endl;
 
-	I comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 			device_function_ptrs::multiplication_high_bits<I>{}, // kat::builtins::multiplication_high_bits<I>,
 			expected_results.data(),
-			num_checks, comparison_tolerance_fraction,
+			num_checks, make_exact_comparison<result_type>,
 			lhs.data(), rhs.data());
 }
 
 TEST_CASE_TEMPLATE("minimum", T, int, unsigned int, long, unsigned long, long long, unsigned long long, float , double)
 {
-	std::vector<T> expected_results;
+	using result_type = T;
+	std::vector<result_type> expected_results;
 	std::vector<T> lhs;
 	std::vector<T> rhs;
 
@@ -445,11 +540,10 @@ TEST_CASE_TEMPLATE("minimum", T, int, unsigned int, long, unsigned long, long lo
 
 	auto num_checks = expected_results.size();
 
-	T comparison_tolerance_fraction { std::is_integral<T>::value ? T{0} : T{0} };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::minimum<T>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		lhs.data(), rhs.data());
 }
 
@@ -491,11 +585,10 @@ TEST_CASE_TEMPLATE("maximum", T, int, unsigned int, long, unsigned long, long lo
 
 	auto num_checks = expected_results.size();
 
-	T comparison_tolerance_fraction { std::is_integral<T>::value ? T{0} : T{0} };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::maximum<T>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<T>,
 		lhs.data(), rhs.data());
 }
 
@@ -520,11 +613,10 @@ TEST_CASE_TEMPLATE("absolute_value", T, int, long, long long, float, double, uns
 
 	auto num_checks = expected_results.size();
 
-	T comparison_tolerance_fraction { std::is_integral<T>::value ? T{0} : T{0} };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::absolute_value<T>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<T>,
 		values.data());
 }
 
@@ -564,8 +656,8 @@ TEST_CASE_TEMPLATE("divide", T, float, double)
 
 	auto num_checks = expected_results.size();
 
-	T comparison_tolerance_fraction { 1e-6 };
-	execute_uniform_builtin_testcase_on_gpu(
+	optional<T> comparison_tolerance_fraction { 1e-6 };
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::divide<T>{},
 		expected_results.data(), num_checks,
 		comparison_tolerance_fraction,
@@ -575,7 +667,8 @@ TEST_CASE_TEMPLATE("divide", T, float, double)
 TEST_CASE_TEMPLATE("sum_with_absolute_difference", I, int16_t, int32_t ,int64_t, uint16_t, uint32_t, uint64_t)
 {
 	using uint_t = std::make_unsigned_t<I>;
-	std::vector<uint_t> expected_results;
+	using result_type = uint_t;
+	std::vector<result_type> expected_results;
 	std::vector<uint_t> addends;
 	std::vector<I> x_values;
 	std::vector<I> y_values;
@@ -630,12 +723,11 @@ TEST_CASE_TEMPLATE("sum_with_absolute_difference", I, int16_t, int32_t ,int64_t,
 
 	auto num_checks = expected_results.size();
 
-	uint_t comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::sum_with_absolute_difference<I>{},
 		expected_results.data(),
 		num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		x_values.data(),
 		y_values.data(),
 		addends.data()
@@ -678,11 +770,10 @@ TEST_CASE_TEMPLATE("population_count", I, uint8_t, uint16_t, uint32_t, uint64_t)
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::population_count<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data());
 }
 
@@ -719,11 +810,10 @@ TEST_CASE_TEMPLATE("bit_reverse", I, uint32_t, uint64_t, unsigned long)
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::bit_reverse<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data());
 }
 
@@ -779,11 +869,10 @@ TEST_CASE_TEMPLATE("find_leading_non_sign_bit", I, int, unsigned, long, unsigned
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::find_leading_non_sign_bit<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data());
 }
 
@@ -850,11 +939,11 @@ TEST_CASE("select_bytes")
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::prmt{},
-		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		expected_results.data(),
+		num_checks,
+		make_exact_comparison<result_type>,
 		low_words.data(),
 		high_words.data(),
 		selectors_words.data()
@@ -909,11 +998,10 @@ TEST_CASE_TEMPLATE("count_leading_zeros", I, int32_t, uint32_t, int64_t, uint64_
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::count_leading_zeros<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data());
 }
 
@@ -954,11 +1042,10 @@ TEST_CASE_TEMPLATE("average", I, int, unsigned)
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::average<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		lhs.data(), rhs.data());
 }
 
@@ -999,11 +1086,10 @@ TEST_CASE_TEMPLATE("average_rounded_up", I, int, unsigned)
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::average_rounded_up<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		lhs.data(), rhs.data());
 }
 
@@ -1061,11 +1147,10 @@ TEST_CASE_TEMPLATE("count_trailing_zeros", I, int, unsigned, long, unsigned long
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::count_trailing_zeros<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data());
 }
 
@@ -1118,11 +1203,10 @@ TEST_CASE_TEMPLATE("find_first_set", I, int, unsigned, long, unsigned long, long
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::find_first_set<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data());
 }
 
@@ -1186,11 +1270,10 @@ TEST_CASE_TEMPLATE("extract_bits", I, int32_t, uint32_t, int64_t, uint64_t)
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::extract_bits<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		bit_fields.data(),
 		start_positions.data(),
 		numbers_of_bits.data()
@@ -1245,11 +1328,10 @@ TEST_CASE_TEMPLATE("replace_bits", I, uint32_t, uint64_t)
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::replace_bits<I>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		bits_to_insert.data(),
 		original_bit_fields.data(),
 		start_positions.data(),
@@ -1291,11 +1373,11 @@ TEST_CASE("funnel_shift_right")
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::funnel_shift_right<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
-		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		expected_results.data(),
+		num_checks,
+		make_exact_comparison<result_type>,
 		low_words.data(),
 		high_words.data(),
 		shift_amounts.data()
@@ -1335,11 +1417,10 @@ TEST_CASE("funnel_shift_left")
 
 	auto num_checks = expected_results.size();
 
-	result_type comparison_tolerance_fraction { 0 };
-	execute_uniform_builtin_testcase_on_gpu(
+	execute_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::funnel_shift_left<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
 		expected_results.data(), num_checks,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		low_words.data(),
 		high_words.data(),
 		shift_amounts.data()
@@ -1372,12 +1453,11 @@ TEST_CASE("lane_index")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::lane_index{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction
+		make_exact_comparison<result_type>
 	);
 }
 
@@ -1404,12 +1484,12 @@ TEST_CASE("preceding_lanes_mask")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::preceding{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction
+		make_exact_comparison<result_type>
 	);
 }
 
@@ -1435,12 +1515,11 @@ TEST_CASE("preceding_and_self_lanes_mask")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::preceding_and_self{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction
+		make_exact_comparison<result_type>
 	);
 }
 
@@ -1466,12 +1545,11 @@ TEST_CASE("self_lane_mask")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::self{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction
+		make_exact_comparison<result_type>
 	);
 }
 
@@ -1497,12 +1575,11 @@ TEST_CASE("succeeding_and_self_lanes_mask")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::succeeding_and_self{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction
+		make_exact_comparison<result_type>
 	);
 }
 
@@ -1528,12 +1605,11 @@ TEST_CASE("succeeding_lanes_mask")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::succeeding{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction
+		make_exact_comparison<result_type>
 	);
 }
 
@@ -1610,12 +1686,11 @@ TEST_CASE("ballot")
 	);
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::ballot{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data(),
 		lane_masks.data()
 	);
@@ -1690,12 +1765,11 @@ TEST_CASE("all_lanes_satisfy")
 
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::all_lanes_satisfy{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data(),
 		lane_masks.data()
 	);
@@ -1769,12 +1843,11 @@ TEST_CASE("any_lanes_satisfy")
 
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::any_lanes_satisfy{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data(),
 		lane_masks.data()
 	);
@@ -1783,7 +1856,7 @@ TEST_CASE("any_lanes_satisfy")
 #if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 700
 TEST_CASE("all_lanes_agree")
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	if (device.properties().compute_capability() < cuda::device::make_compute_capability(7,0)) {
 		return;
 	}
@@ -1854,12 +1927,11 @@ TEST_CASE("all_lanes_agree")
 
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::all_lanes_agree{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data(),
 		lane_masks.data()
 	);
@@ -1868,7 +1940,7 @@ TEST_CASE("all_lanes_agree")
 
 TEST_CASE_TEMPLATE("get_matching_lanes", I, int, unsigned, long, unsigned long, long long, unsigned long long)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	if (device.properties().compute_capability() < cuda::device::make_compute_capability(7,0)) {
 		return;
 	}
@@ -1940,12 +2012,11 @@ TEST_CASE_TEMPLATE("get_matching_lanes", I, int, unsigned, long, unsigned long, 
 
 
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	result_type comparison_tolerance_fraction { 0 };
-	execute_non_uniform_builtin_testcase_on_gpu(
+	execute_non_uniform_builtin_testcase_on_gpu_and_check(
 		device_function_ptrs::succeeding{},
 		expected_results.data(),
 		num_checks, num_grid_blocks, block_size,
-		comparison_tolerance_fraction,
+		make_exact_comparison<result_type>,
 		values.data(),
 		lane_masks.data()
 	);
