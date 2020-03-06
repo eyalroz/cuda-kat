@@ -37,8 +37,8 @@ struct dimensions_t // this almost-inherits dim3
     constexpr KAT_FHD dimensions_t(unsigned x_ = 1, unsigned y_ = 1, unsigned z_ = 1) noexcept
     : x(x_), y(y_), z(z_) {}
 
-    constexpr KAT_FHD dimensions_t(const uint3& v) noexcept : dimensions_t(v.x, v.y, v.z) { }
-    constexpr KAT_FHD dimensions_t(const dim3& dims) noexcept : dimensions_t(dims.x, dims.y, dims.z) { }
+    constexpr KAT_FHD dimensions_t(uint3 v) noexcept : dimensions_t(v.x, v.y, v.z) { }
+    constexpr KAT_FHD dimensions_t(dim3 dims) noexcept : dimensions_t(dims.x, dims.y, dims.z) { }
 
     constexpr KAT_FHD operator uint3(void) const noexcept { return { x, y, z }; }
 
@@ -78,7 +78,7 @@ KAT_FD Size row_major_linearization(dimensions_t position, dimensions_t dims)
 }*/
 
 template <unsigned NumDimensions = 3, typename Size = unsigned>
-KAT_FD Size row_major_linearization(uint3 position, dimensions_t dims)
+KAT_FHD Size row_major_linearization(uint3 position, dimensions_t dims)
 {
 #pragma push
 #pragma diag_suppress = code_is_unreachable
@@ -100,7 +100,7 @@ KAT_FD Size row_major_linearization(uint3 position, dimensions_t dims)
  *
  * @note Assumes non-empty dimensions!
  */
-KAT_FD bool dimensionality_is_canonical(dimensions_t dims)
+KAT_FHD bool dimensionality_is_canonical(dimensions_t dims)
 {
 #if __cplusplus >= 201402L
 	assert(not dims.empty());
@@ -308,7 +308,7 @@ KAT_FD unsigned index_in_warp()           { return index(); }
 KAT_FD unsigned is_first()                { return index_in_warp() == warp::first_lane; }
 KAT_FD unsigned is_last()                 { return index_in_warp() == warp::last_lane; }
 
-KAT_FD unsigned index_in_half_warp(unsigned thread_or_lane_index)
+KAT_FHD unsigned index_in_half_warp(unsigned thread_or_lane_index)
 {
 	enum { half_warp_index_mask = half_warp_size - 1 };
 	return thread_or_lane_index & half_warp_index_mask;
