@@ -36,33 +36,28 @@ template <typename I> KAT_FD int find_first_set(I x)
 template <> KAT_FD int find_first_set< int               >(int                x) { return __ffs(x);                       }
 template <> KAT_FD int find_first_set< long long         >(long long          x) { return __ffsll(x);                     }
 
-/*
-
-= delete;
-template <> KAT_FD int find_first_set< int               >(int                x) { return __ffs(x);                       }
-template <> KAT_FD int find_first_set< long long         >(long long          x) { return __ffsll(x);                     }
-template <> KAT_FD int find_first_set< char              >(char               x) { return find_first_set< int       >(x); }
-template <> KAT_FD int find_first_set< unsigned char     >(unsigned char      x) { return find_first_set< int       >(x); }
-template <> KAT_FD int find_first_set< short             >(short              x) { return find_first_set< int       >(x); }
-template <> KAT_FD int find_first_set< unsigned short    >(unsigned short     x) { return find_first_set< int       >(x); }
-template <> KAT_FD int find_first_set< unsigned int      >(unsigned int       x) { return find_first_set< int       >(x); }
-template <> KAT_FD int find_first_set< long              >(long               x)
-{
-	using equivalent_type = typename std::conditional<sizeof(unsigned long) == sizeof(int), int, long long>::type;
-	return find_first_set<equivalent_type>(x);
-}
-template <> KAT_FD int find_first_set< unsigned long     >(unsigned long      x) { return find_first_set< long      >(x); }
-template <> KAT_FD int find_first_set< unsigned long long>(unsigned long long x) { return find_first_set< long long >(x); }
-*/
-
-
 /**
  * @brief counts the number of initial zeros when considering the binary representation
  * of a number from least to most significant digit
- * @param x the number whose representation is to be counted
- * @return the number of initial zero bits before the first 1; if x is 0, -1 is returned
+ * 
+ * @tparam FixSemanticsForZero the simpler implementation of this function uses the
+ * @ref `find_first_set()` builtin. Unfortunately, that one returns -1 rather than 0
+ * if no bits are set. Fixing this requires a couple of extra instructions. By default,
+ * we'll use them, but one might be interested just skipping them and taking -1
+ * instead of 32 (= warp_size) for the no-1's case.
+ *
+ * @param x the number whose binary representation is to be counted
+ * @return the number of initial zero bits before the first 1; if x is 0, the full
+ * number of bits is returned (or -1, depending on @tparam FixSemanticsForZero).
  */
-template <typename I> KAT_FD int count_trailing_zeros(I x) { return find_first_set<I>(x) - 1; }
+template <typename I, bool FixSemanticsForZero = true>
+KAT_FD int count_trailing_zeros(I x)
+{
+	if (FixSemanticsForZero and x == 0) {
+		return size_in_bits<I>();
+	}
+	return find_first_set<I>(x) - 1;
+}
 
 /**
  * @brief counts the number of initial zeros when considering the binary representation
@@ -80,7 +75,6 @@ template <typename I> KAT_FD int count_leading_zeros(I x)
 	enum : int { width_difference_in_bits = (sizeof(native_clz_type) - sizeof(I)) * CHAR_BIT };
 	return builtins::count_leading_zeros<native_clz_type>(static_cast<native_clz_type>(x)) - width_difference_in_bits;
 }
-
 
 } // namespace non_builtins
 } // namespace kat

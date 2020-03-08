@@ -1119,7 +1119,7 @@ TEST_CASE_TEMPLATE("count_trailing_zeros", I, int, unsigned, long, unsigned long
 //	constexpr const auto msb_index { size_in_bits<I>() - 1 };
 
 
-	add_check(0,                  -1);
+	add_check(0,                  size_in_bits<I>());
 	add_check(0b1,                0);
 	add_check(0b10,               1);
 	add_check(0b11,               0);
