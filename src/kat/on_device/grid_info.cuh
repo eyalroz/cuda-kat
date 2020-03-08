@@ -290,34 +290,25 @@ namespace lane {
 enum { half_warp_size = warp_size / 2 };
 
 
-KAT_FD unsigned index(unsigned thread_index)
+KAT_FD unsigned index(uint3 thread_position)
 {
 	// we could use a special register:
 	//
 	//   return builtins::lane_index();
 	//
 	// but apparently, retrieving a special register takes a good
-	// number of clock cycles (why?!), so in practice, this is
-	// probably faster:
+	// number of clock cycles (why?!), so in practice, this might be
+	// faster:
 	enum { lane_id_mask = warp_size - 1 };
-	return thread_index & lane_id_mask;
+	return thread::index(thread_position) & lane_id_mask;
+	// ... but it's less obvious than the linear grid case, where
+	// no linearization is required.
 }
 
-KAT_FD unsigned index()                   { return index(threadIdx.x); }
+KAT_FD unsigned index()                   { return index(threadIdx); }
 KAT_FD unsigned index_in_warp()           { return index(); }
 KAT_FD unsigned is_first()                { return index_in_warp() == warp::first_lane; }
 KAT_FD unsigned is_last()                 { return index_in_warp() == warp::last_lane; }
-
-KAT_FHD unsigned index_in_half_warp(unsigned thread_or_lane_index)
-{
-	enum { half_warp_index_mask = half_warp_size - 1 };
-	return thread_or_lane_index & half_warp_index_mask;
-}
-
-KAT_FD unsigned index_in_half_warp()      { return index_in_half_warp(threadIdx.x); }
-KAT_FD unsigned is_in_first_half_warp()   { return index_in_warp() < half_warp_size; }
-KAT_FD unsigned is_in_second_half_warp()  { return index_in_warp() >= half_warp_size; }
-
 
 } // namespace lane
 
@@ -485,7 +476,40 @@ KAT_FD bool is_last_in_grid()                  { return warp::is_last_in_block()
 } // namespace warp
 
 
-namespace lane = ::kat::grid_info::lane;
+namespace lane {
+
+enum { half_warp_size = kat::grid_info::lane::half_warp_size };
+
+KAT_FD unsigned index(unsigned thread_index)
+{
+	// we could use a special register:
+	//
+	//   return builtins::lane_index();
+	//
+	// but apparently, retrieving a special register takes a good
+	// number of clock cycles (why?!), so in practice, this is
+	// probably faster:
+	enum { lane_id_mask = warp_size - 1 };
+	return thread_index & lane_id_mask;
+}
+
+KAT_FD unsigned index()                   { return index(threadIdx.x); }
+KAT_FD unsigned index_in_warp()           { return index(); }
+KAT_FD unsigned is_first()                { return index_in_warp() == warp::first_lane; }
+KAT_FD unsigned is_last()                 { return index_in_warp() == warp::last_lane; }
+
+KAT_FHD unsigned index_in_half_warp(unsigned thread_or_lane_index)
+{
+	enum { half_warp_index_mask = half_warp_size - 1 };
+	return thread_or_lane_index & half_warp_index_mask;
+}
+
+KAT_FD unsigned index_in_half_warp()      { return index_in_half_warp(threadIdx.x); }
+KAT_FD unsigned is_in_first_half_warp()   { return index_in_warp() < half_warp_size; }
+KAT_FD unsigned is_in_second_half_warp()  { return index_in_warp() >= half_warp_size; }
+
+
+} // namespace lane
 
 } // namespace grid_info
 
