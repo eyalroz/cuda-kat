@@ -168,7 +168,7 @@ auto execute_testcase_on_gpu(
 }
 
 template <typename F, typename ExpectedResultRetriever, typename T, typename... Is>
-void execute_non_uniform_builtin_testcase_on_gpu_and_check(
+void execute_non_uniform_testcase_on_gpu_and_check(
 	F                               testcase_device_function,
 	ExpectedResultRetriever         expected_value_retriever,
 	size_t                          num_values_to_populate,
@@ -226,7 +226,7 @@ TEST_CASE("at_grid_stride")
 
 	auto num_values_to_populate = total_num_threads * 2 + kat::warp_size / 2 - 1;
 
-	execute_non_uniform_builtin_testcase_on_gpu_and_check(
+	execute_non_uniform_testcase_on_gpu_and_check(
 		testcase_device_function,
 		expected_value_retriever,
 		num_values_to_populate, num_grid_blocks, num_threads_per_block,
@@ -279,7 +279,7 @@ TEST_CASE("at_block_stride")
 //	}
 //	std::cout << "\n\n";
 
-	execute_non_uniform_builtin_testcase_on_gpu_and_check(
+	execute_non_uniform_testcase_on_gpu_and_check(
 		testcase_device_function,
 		expected_value_retriever,
 		length_to_cover,
@@ -354,7 +354,7 @@ TEST_CASE("warp_per_input_element::at_grid_stride")
 		return attending_threads_info { { grid_size_minus_first, last }, num };
 	};
 
-	execute_non_uniform_builtin_testcase_on_gpu_and_check(
+	execute_non_uniform_testcase_on_gpu_and_check(
 		testcase_device_function,
 		expected_value_retriever,
 		num_values_to_populate, num_grid_blocks, num_threads_per_block,
