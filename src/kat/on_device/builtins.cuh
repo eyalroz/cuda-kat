@@ -108,6 +108,13 @@ template <typename I> KAT_FD unsigned find_leading_non_sign_bit(I x) = delete;
 #if __CUDA_ARCH__ >= 320
 template <typename T> KAT_FD T load_global_with_non_coherent_cache(const T* ptr);
 #endif
+
+/**
+ * @brief Return the number of bits, beginning from the least-significant,
+ * which are all 0 ("leading" zeros)
+ *
+ * @return The number of leading zeros, between 0 and the size of I in bits.
+ */
 template <typename I> KAT_FD int count_leading_zeros(I x) = delete;
 
 
@@ -127,10 +134,6 @@ namespace bit_field {
  */
 template <typename I> KAT_FD I extract_bits(I bit_field, unsigned int start_pos, unsigned int num_bits) = delete;
 template <typename I> KAT_FD I replace_bits(I original_bit_field, I bits_to_insert, unsigned int start_pos, unsigned int num_bits) = delete;
-
-// TODO: Implement these.
-//template <typename BitField, typename T> KAT_FD T extract(BitField bit_field, unsigned int start_pos);
-//template <typename BitField, typename T> KAT_FD BitField insert(BitField original_bit_field, T bits_to_insert, unsigned int start_pos);
 
 } // namespace bit_field
 
