@@ -97,4 +97,14 @@ const char* current_test_name() { return doctest::detail::g_cs->currentTest->m_n
 
 } // namespace doctest
 
+// #ifdef __GNUC__
+template <typename T>
+[[gnu::warning("Artificial warning to print a type name - please ignore")]]
+void print_type() noexcept { return; }
+
+template <typename T>
+[[gnu::warning("Artificial warning to print a type name - please ignore")]]
+void print_type_of(T&& x) noexcept{ return; }
+// #endif
+
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
