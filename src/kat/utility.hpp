@@ -8,14 +8,16 @@
 #ifndef CUDA_KAT_UTILITY_HPP_
 #define CUDA_KAT_UTILITY_HPP_
 
-///@cond
-#include <kat/detail/execution_space_specifiers.hpp>
-///@endcond
-
-#include <kat/detail/constexpr_by_cpp_version.hpp>
+#include <kat/common.hpp>
 
 #include <type_traits>
 #include <utility> // Mainly so that KAT code can our header as a drop-in for <utility> itself
+
+///@cond
+#include <kat/detail/execution_space_specifiers.hpp>
+///@endcond
+#include <kat/detail/integer_sequence.hpp>
+
 
 namespace kat {
 
@@ -26,13 +28,13 @@ constexpr KAT_FHD typename std::remove_reference<T>::type&& move(T&& v) noexcept
 }
 
 template<typename T>
-constexpr KAT_FD T&& forward(typename std::remove_reference<T>::type& v) noexcept
+constexpr KAT_FHD T&& forward(typename std::remove_reference<T>::type& v) noexcept
 {
 	return static_cast<T&&>(v);
 }
 
 template<typename T>
-constexpr KAT_FD T&& forward(typename std::remove_reference<T>::type&& v) noexcept
+constexpr KAT_FHD T&& forward(typename std::remove_reference<T>::type&& v) noexcept
 {
 	return static_cast<T&&>(v);
 }

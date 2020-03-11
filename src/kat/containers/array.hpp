@@ -36,11 +36,9 @@
 #ifndef CUDA_KAT_CONTAINERS_ARRAY_HPP_
 #define CUDA_KAT_CONTAINERS_ARRAY_HPP_
 
-#include <kat/detail/constexpr_by_cpp_version.hpp>
+#include <kat/common.hpp>
 
-///@cond
-#include <kat/detail/execution_space_specifiers.hpp>
-///@endcond
+#include <type_traits>
 
 namespace kat {
 
