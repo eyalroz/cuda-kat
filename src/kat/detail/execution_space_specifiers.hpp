@@ -9,6 +9,8 @@
 #ifndef EXECUTION_SPACE_SPECIFIERS_HPP_
 #define EXECUTION_SPACE_SPECIFIERS_HPP_
 
+///@cond
+
 #ifdef __CUDACC__
 
 #ifndef KAT_FD
@@ -62,5 +64,8 @@
 #endif
 
 #endif // __CUDACC__
+
+///@endcond
+
 
 #endif // EXECUTION_SPACE_SPECIFIERS_HPP_

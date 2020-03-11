@@ -24,6 +24,6 @@
 #endif
 #endif
 
-///@nocond
+///@endcond
 
 #endif // CUDA_KAT_CONSTEXPR_BY_CPP_VERSION_HPP_
