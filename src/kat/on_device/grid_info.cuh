@@ -66,31 +66,17 @@ constexpr KAT_FHD bool operator==(const dimensions_t& lhs, const dimensions_t& r
 
 namespace detail {
 
-/*// Note: This can very well overflow, but for CUDA upto 9.0,
-// in practice - it can't
-template <typename Size = unsigned>
-KAT_FD Size row_major_linearization(dimensions_t position, dimensions_t dims)
-{
-	return
-		((dims.z == 1) ? 0 : (position.z * dims.x * dims.y)) +
-		((dims.y == 1) ? 0 : (position.y * dims.x)) +
-		position.x;
-}*/
-
 template <unsigned NumDimensions = 3, typename Size = unsigned>
 KAT_FHD Size row_major_linearization(uint3 position, dimensions_t dims)
 {
-#pragma push
-#pragma diag_suppress = code_is_unreachable
-	switch(NumDimensions) {
-	case 0: return 0; break;
-	case 1: return position.x; break;
-	case 2: return position.x + position.y * dims.x; break;
-	case 3: return position.x + position.y * dims.x + position.z * dims.x * dims.y; break;
-	}
-	assert(false and "can't get here.");
-	return {};
-#pragma pop
+	// If you're wondering why this doesn't use a switch statement - that's
+	// due to an (apparent) NVCC bug, complaining about "unreachable statements"
+	// which _are_ reachable for different template parameters.
+	if (NumDimensions == 0) { return 0; }
+	else if (NumDimensions == 1) { return position.x; }
+	else if (NumDimensions == 2) { return position.x + position.y * dims.x; }
+	else if (NumDimensions == 3) { return position.x + position.y * dims.x + position.z * dims.x * dims.y; }
+	else return {};
 }
 
 } // namespace detail
