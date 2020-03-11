@@ -70,7 +70,7 @@ set(tests
 	builtins
 	grid_collaboration
 	block_collaboration
-#	warp_collaboration
+	warp_collaboration
 )
 
 if (BUILD_PRINTING_RELATED_TESTS)
