@@ -71,6 +71,7 @@ set(tests
 	grid_collaboration
 	block_collaboration
 	warp_collaboration
+	tuple
 )
 
 if (BUILD_PRINTING_RELATED_TESTS)
