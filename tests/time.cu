@@ -83,8 +83,8 @@ TEST_SUITE("time") {
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
 		std::size_t total_num_threads = launch_config.grid_dimensions.volume() * launch_config.block_dimensions.volume();
-		auto times_before_sleep = cuda::memory::device::make_unique<kat::clock_value_t[]>(device.id(), total_num_threads);
-		auto times_after_sleep = cuda::memory::device::make_unique<kat::clock_value_t[]>(device.id(), total_num_threads);
+		auto times_before_sleep = cuda::memory::device::make_unique<kat::clock_value_t[]>(device, total_num_threads);
+		auto times_after_sleep = cuda::memory::device::make_unique<kat::clock_value_t[]>(device, total_num_threads);
 		auto kernel = ::kernels::measure_time_and_sleep<resolution>;
 		cuda::launch(kernel, launch_config,
 			times_before_sleep.get(), times_after_sleep.get(), total_num_threads);
