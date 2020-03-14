@@ -48,6 +48,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <tuple>
 
 // Forward declarations - originally from EASTL/detail/tuple_fwd_decls.h
 namespace kat {
@@ -115,6 +116,8 @@ template <typename T> class tuple_size<const volatile T> : public tuple_size<T> 
 template <typename... Ts> class tuple_size<tuple_types<Ts...>> : public std::integral_constant<size_t, sizeof...(Ts)> {};
 template <typename... Ts> class tuple_size<tuple<Ts...>>      : public std::integral_constant<size_t, sizeof...(Ts)> {};
 
+template <typename... Ts> class tuple_size<std::tuple<Ts...>>  : public std::integral_constant<size_t, sizeof...(Ts)> {};
+
 // Originally from EASTL's tuple implementation in their <utility> header
 
 template <typename T1, typename T2>
@@ -152,14 +155,14 @@ template <typename H, typename... Ts>
 class tuple_element<0, tuple_types<H, Ts...>>
 {
 public:
-	typedef H type;
+	using type = H;
 };
 
 template <size_t I, typename H, typename... Ts>
 class tuple_element<I, tuple_types<H, Ts...>>
 {
 public:
-	typedef tuple_element_t<I - 1, tuple_types<Ts...>> type;
+	using type = tuple_element_t<I - 1, tuple_types<Ts...>>;
 };
 
 // specialization for tuple
@@ -167,28 +170,61 @@ template <size_t I, typename... Ts>
 class tuple_element<I, tuple<Ts...>>
 {
 public:
-	typedef tuple_element_t<I, tuple_types<Ts...>> type;
+	using type = tuple_element_t<I, tuple_types<Ts...>>;
+};
+
+// tuple-std-tuple compatibility adaptation of the above
+template <size_t I, typename... Ts>
+class tuple_element<I, std::tuple<Ts...>>
+{
+public:
+	using type = typename std::tuple_element<I, std::tuple<Ts...>>::type;
 };
 
 template <size_t I, typename... Ts>
 class tuple_element<I, const tuple<Ts...>>
 {
 public:
-	typedef typename std::add_const<tuple_element_t<I, tuple_types<Ts...>>>::type type;
+	using type = typename std::add_const<tuple_element_t<I, tuple_types<Ts...>>>::type;
+};
+
+// tuple-std-tuple compatibility adaptation of the above
+template <size_t I, typename... Ts>
+class tuple_element<I, const std::tuple<Ts...>>
+{
+public:
+	using type = typename std::tuple_element<I, const std::tuple<Ts...>>::type;
 };
 
 template <size_t I, typename... Ts>
 class tuple_element<I, volatile tuple<Ts...>>
 {
 public:
-	typedef typename std::add_volatile<tuple_element_t<I, tuple_types<Ts...>>>::type type;
+	using type = typename std::add_volatile<tuple_element_t<I, tuple_types<Ts...>>>::type;
 };
+
+// tuple-std-tuple compatibility adaptation of the above
+template <size_t I, typename... Ts>
+class tuple_element<I, volatile std::tuple<Ts...>>
+{
+public:
+	using type = typename std::tuple_element<I, volatile std::tuple<Ts...>>::type;
+};
+
 
 template <size_t I, typename... Ts>
 class tuple_element<I, const volatile tuple<Ts...>>
 {
 public:
-	typedef typename std::add_cv<tuple_element_t<I, tuple_types<Ts...>>>::type type;
+	using type = typename std::add_cv<tuple_element_t<I, tuple_types<Ts...>>>::type;
+};
+
+// tuple-std-tuple compatibility adaptation of the above
+template <size_t I, typename... Ts>
+class tuple_element<I, const volatile std::tuple<Ts...>>
+{
+public:
+	using type = typename std::tuple_element<I, const volatile std::tuple<Ts...>>::type;
 };
 
 // specialization for tuple_impl
@@ -520,6 +556,7 @@ struct tuple_impl<std::integer_sequence<size_t, Indices...>, Ts...> : public tup
 	}
 
 	KAT_HD void swap(tuple_impl& t) { swallow(tuple_leaf<Indices, Ts>::swap(static_cast<tuple_leaf<Indices, Ts>&>(t))...); }
+
 };
 
 template <size_t I, typename Indices, typename... Ts>
@@ -564,6 +601,8 @@ inline KAT_HD T&& get(tuple_impl<Indices, Ts...>&& t)
 	return static_cast<T&&>(static_cast<detail::tuple_leaf<Index::index, T>&>(t).get_internal());
 }
 
+template <size_t... Indices, typename... Ts>
+inline KAT_HOST std::tuple<Ts...> as_std_tuple(tuple_impl<std::integer_sequence<size_t, Indices...>, Ts...> ti);
 
 // tuple_like
 //
@@ -577,6 +616,10 @@ template <typename T> struct tuple_like<const volatile T> : public tuple_like<T>
 
 template <typename... Ts>
 struct tuple_like<tuple<Ts...>> : public std::true_type {};
+
+// tuple-std-tuple compatibility adaptation of the above
+template <typename... Ts>
+struct tuple_like<std::tuple<Ts...>> : public std::true_type {};
 
 template <typename First, typename Second>
 struct tuple_like<std::pair<First, Second>> : public std::true_type {};
@@ -646,6 +689,10 @@ struct tuple_assignable<Target, From, true, true>
 		tuple_size<typename std::remove_reference<From>::type>::value,
 		make_tuple_types_t<Target>, make_tuple_types_t<From>>
 {
+	using parent_type = tuple_assignable_impl<
+		tuple_size<typename std::remove_reference<Target>::type>::value ==
+		tuple_size<typename std::remove_reference<From>::type>::value,
+		make_tuple_types_t<Target>, make_tuple_types_t<From>>;
 };
 
 
@@ -901,6 +948,11 @@ public:
 
 	KAT_HD void swap(tuple& t) { impl_.swap(t.impl_); }
 
+	// TODO: Perhaps make this explicit?
+	operator std::tuple<T, Ts...>() const {
+		return detail::as_std_tuple(impl_);
+	}
+
 private:
 	typedef detail::tuple_impl<kat::make_index_sequence<sizeof...(Ts) + 1>, T, Ts...> impl_type;
 	impl_type impl_;
@@ -930,6 +982,12 @@ class tuple<>
 {
 public:
 	KAT_HD void swap(tuple&) {}
+
+	// TODO: Perhaps make this explicit?
+	operator std::tuple<>() const
+	{
+		return std::tuple<>();
+	}
 };
 
 template <size_t I, typename... Ts>
@@ -984,8 +1042,38 @@ inline KAT_HD bool operator==(const tuple<T1s...>& t1, const tuple<T2s...>& t2)
 	return detail::tuple_equal<sizeof...(T1s)>()(t1, t2);
 }
 
+// tuple-std-tuple adaptation of the above
+template <typename... T1s, typename... T2s>
+KAT_HOST bool operator==(const tuple<T1s...>& t1, const std::tuple<T2s...>& t2)
+{
+	return detail::tuple_equal<sizeof...(T1s)>()(t1, tuple<T2s...>{t2});
+}
+
+// tuple-std-tuple adaptation of the above
+template <typename... T1s, typename... T2s>
+KAT_HOST bool operator==(const std::tuple<T1s...>& t1, const tuple<T2s...>& t2)
+{
+	return detail::tuple_equal<sizeof...(T1s)>()(t1, tuple<T2s...>{t2});
+}
+
+
+
 template <typename... T1s, typename... T2s>
 inline KAT_HD bool operator<(const tuple<T1s...>& t1, const tuple<T2s...>& t2)
+{
+	return detail::tuple_less<sizeof...(T1s)>()(t1, t2);
+}
+
+// tuple-std-tuple adaptation of the above
+template <typename... T1s, typename... T2s>
+KAT_HOST bool operator<(const tuple<T1s...>& t1, const std::tuple<T2s...>& t2)
+{
+	return detail::tuple_less<sizeof...(T1s)>()(t1, t2);
+}
+
+// tuple-std-tuple adaptation of the above
+template <typename... T1s, typename... T2s>
+KAT_HOST bool operator<(const std::tuple<T1s...>& t1, const tuple<T2s...>& t2)
 {
 	return detail::tuple_less<sizeof...(T1s)>()(t1, t2);
 }
@@ -994,6 +1082,18 @@ template <typename... T1s, typename... T2s> inline KAT_HD bool operator!=(const 
 template <typename... T1s, typename... T2s> inline KAT_HD bool operator> (const tuple<T1s...>& t1, const tuple<T2s...>& t2) { return t2 < t1; }
 template <typename... T1s, typename... T2s> inline KAT_HD bool operator<=(const tuple<T1s...>& t1, const tuple<T2s...>& t2) { return !(t2 < t1); }
 template <typename... T1s, typename... T2s> inline KAT_HD bool operator>=(const tuple<T1s...>& t1, const tuple<T2s...>& t2) { return !(t1 < t2); }
+
+// tuple-std-tuple adaptation of the above
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator!=(const tuple<T1s...>& t1, const std::tuple<T2s...>& t2) { return !(t1 == t2); }
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator> (const tuple<T1s...>& t1, const std::tuple<T2s...>& t2) { return t2 < t1; }
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator<=(const tuple<T1s...>& t1, const std::tuple<T2s...>& t2) { return !(t2 < t1); }
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator>=(const tuple<T1s...>& t1, const std::tuple<T2s...>& t2) { return !(t1 < t2); }
+
+// tuple-std-tuple adaptation of the above
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator!=(const std::tuple<T1s...>& t1, const tuple<T2s...>& t2) { return !(t1 == t2); }
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator> (const std::tuple<T1s...>& t1, const tuple<T2s...>& t2) { return t2 < t1; }
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator<=(const std::tuple<T1s...>& t1, const tuple<T2s...>& t2) { return !(t2 < t1); }
+template <typename... T1s, typename... T2s> inline KAT_HOST bool operator>=(const std::tuple<T1s...>& t1, const tuple<T2s...>& t2) { return !(t1 < t2); }
 
 
 // tuple_cat
@@ -1025,6 +1125,15 @@ inline KAT_HD constexpr tuple<Ts&&...> forward_as_tuple(Ts&&... ts) noexcept
 	return tuple<Ts&&...>(forward<Ts&&>(ts)...);
 }
 
+namespace detail {
+
+template <size_t... Indices, typename... Ts>
+inline KAT_HOST std::tuple<Ts...> as_std_tuple(tuple_impl<std::integer_sequence<size_t, Indices...>, Ts...> ti)
+{
+	return std::make_tuple(get<Indices>(ti)...);
+}
+
+} // namespace detail
 
 namespace detail {
 // ignore

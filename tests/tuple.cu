@@ -441,7 +441,8 @@ TEST_CASE("tuple_cat")
 	CHECK( a == 2 );
 }
 
-TEST_CASE("empty tuple") {
+TEST_CASE("empty tuple")
+{
 	tuple<> empty_tuple;
 	CHECK( tuple_size<decltype(empty_tuple)>::value == 0 );
 	empty_tuple = make_tuple();
@@ -449,6 +450,92 @@ TEST_CASE("empty tuple") {
 	swap(another_empty_tuple, empty_tuple);
 }
 
+TEST_CASE("std::tuple compatibility") {
+	{
+		tuple<> empty_tuple;
+
+		auto empty_std_tuple_1 { static_cast< std::tuple<> >(empty_tuple) };
+		auto empty_std_tuple_2 { static_cast< std::tuple<> >(kat::make_tuple()) };
+		std::tuple<> empty_std_tuple_3 = empty_tuple;
+		// empty_tuple = empty_std_tuple_1;
+		CHECK (std::is_same<std::tuple<>,decltype(empty_std_tuple_1)>::value);
+		CHECK (kat::detail::tuple_convertible< std::tuple<>, tuple<> >::value);
+	}
+
+	{
+		tuple<int, float, bool> a_tuple(1, 1.0f, true);
+
+		auto std_tuple_1 { static_cast< std::tuple<int, float, bool> >(a_tuple) };
+		auto std_tuple_2 { static_cast< std::tuple<int, float, bool> >(kat::make_tuple(1, 1.0f, true)) };
+		std::tuple<int, float, bool> std_tuple_3 = a_tuple;
+		// a_tuple = std_tuple_1;
+		CHECK (std::is_same<std::tuple<int, float, bool>,decltype(std_tuple_1)>::value);
+//		CHECK (kat::detail::tuple_convertible< std::tuple<int, float, bool>, tuple<int, float, bool> >::value);
+//		CHECK (kat::tuple_size<std::tuple<int, float, bool>>::value == 3);
+//		CHECK (kat::detail::tuple_assignable< tuple<int, float, bool>, std::tuple<int, float, bool> >::value);
+//		std::cout
+//			<< "tuple_size<typename std::remove_reference<tuple<int, float, bool>>::type>::value = "
+//			<< tuple_size<typename std::remove_reference<tuple<int, float, bool>>::type>::value << '\n'
+//			<< "tuple_size<std::tuple<int, float, bool>>::value) = "
+//			<< tuple_size<std::tuple<int, float, bool>>::value << '\n'
+//			<< "kat::detail::make_tuple_types_t<tuple<int, float, bool>> = "
+//			<< util::type_name<kat::detail::make_tuple_types_t<tuple<int, float, bool> > >() << '\n'
+//			<< "make_tuple_types_t<std::tuple<int, float, bool> > = "
+//			<< util::type_name< kat::detail::make_tuple_types_t<std::tuple<int, float, bool> > >() << '\n';
+//		CHECK (kat::detail::tuple_assignable< tuple<int, float, bool>, tuple<int, float, bool> >::value);
+	}
+
+//	std::tuple<> empty_std_tuple;
+
+//	tuple<> empty_tuple_1 { static_cast< kat::tuple<> >(empty_tuple_1) };
+//	tuple<> empty_tuple_2 {  static_cast< kat::tuple<> >(std::make_tuple()) };
+//	tuple<> empty_tuple_3 = empty_std_tuple_1;
+
+//	swap(empty_tuple, empty_std_tuple);
+//	swap(empty_std_tuple, empty_tuple);
+
+//	{
+//		tuple<move_only_type> a_tuple_with_move_only_member(1);
+//		auto std_tuple_1 { static_cast< std::tuple<move_only_type> >(a_tuple_with_move_only_member) };
+//
+//		tuple<const move_only_type&> a_tuple_with_ref_to_move_only_member(a_tuple_with_move_only_member);
+//		std::tuple<> std_tuple_2 { static_cast< std::tuple<const move_only_type> >(a_tuple_with_ref_to_move_only_member) };
+//
+//		tuple<const move_only_type&> aTupleWithConstRefToGetMoveOnly(get<0>(a_tuple_with_move_only_member));
+//		std::tuple<const move_only_type&> std_tuple_3 { static_cast< std::tuple<const move_only_type&> >(a_tuple_with_ref_to_move_only_member) };
+//
+//		tuple<move_only_type&> a_tuple_with_ref_to_get_move_only(get<0>(a_tuple_with_move_only_member));
+//		std::tuple<move_only_type&> std_tuple_4 { static_cast< std::tuple<move_only_type&> >(a_tuple_with_ref_to_move_only_member) };
+//	}
+
+	{
+		// operators: ==, !=, <
+		tuple<int, float, bool> a_tuple(1, 1.0f, true);
+		std::tuple<int, float, bool> an_std_tuple = a_tuple;
+		CHECK( a_tuple == an_std_tuple );
+		CHECK_UNARY( !(a_tuple < an_std_tuple) && !(an_std_tuple < a_tuple) );
+	}
+
+	{
+		tuple<int, int, int> a_lesser_tuple(1, 2, 3);
+		tuple<int, int, int> a_greater_tuple(1, 2, 4);
+		std::tuple<int, int, int> a_lesser_std_tuple(1, 2, 3);
+		std::tuple<int, int, int> a_greater_std_tuple(1, 2, 4);
+		CHECK_UNARY(
+			a_lesser_tuple < a_greater_std_tuple &&
+			!(a_greater_tuple < a_lesser_std_tuple) &&
+			a_greater_tuple > a_lesser_std_tuple &&
+			!(a_lesser_tuple > a_greater_std_tuple)
+			);
+
+		CHECK_UNARY(
+			a_lesser_std_tuple < a_greater_tuple &&
+			!(a_greater_std_tuple < a_lesser_tuple) &&
+			a_greater_std_tuple > a_lesser_tuple &&
+			!(a_lesser_std_tuple > a_greater_tuple)
+			);
+	}
+}
 
 // TODO: Enable this when we've introduced compatibility code of kat::tuple
 // and std::tuple on the host side. Also, if we get kat::pair, replicate the
