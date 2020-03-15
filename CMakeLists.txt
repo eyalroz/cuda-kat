@@ -56,6 +56,11 @@ target_include_directories(
 	"$<INSTALL_INTERFACE:include>"
 )
 
+target_link_libraries(cuda-kat
+	INTERFACE
+	strf::strf-header-only
+)
+
 
 # TODO: Consider enabling the following command. It helps IDEs
 # notice the library's header files even if they're not currently
