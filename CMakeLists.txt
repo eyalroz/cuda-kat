@@ -105,8 +105,10 @@ install(
 	EXPORT cuda-kat_export
 	DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cuda-kat"
 	NAMESPACE "cuda-kat::"
-	FILE cuda-kat-config.cmake
+	FILE cuda-kat-targets.cmake
 )
+
+configure_file("cmake/${PROJECT_NAME}-config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake" @ONLY)
 
 include(CMakePackageConfigHelpers)
 
@@ -117,6 +119,6 @@ write_basic_package_version_file(
 )
 
 install(
-  FILES "${CMAKE_CURRENT_BINARY_DIR}/cuda-kat-config-version.cmake"
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/cuda-kat-config-version.cmake" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cuda-kat"
 )

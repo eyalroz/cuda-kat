@@ -1,0 +1,9 @@
+# Get the directory containing this file.
+get_filename_component(@PROJECT_NAME@_CURRENT_CONFIG_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+# Find all dependencies.
+include(CMakeFindDependencyMacro)
+find_dependency(strf REQUIRED)
+
+# Import targets.
+include("${@PROJECT_NAME@_CURRENT_CONFIG_DIR}/@PROJECT_NAME@-targets.cmake")
