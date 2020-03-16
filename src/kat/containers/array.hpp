@@ -240,25 +240,20 @@ KAT_FHD constexpr const T& get(const array<T, NumElements>& arr) noexcept
 
 } // namespace kat
 
-// TODO: Do we really need this when we have no CUDA'ized std::tuple?
-namespace kat {
-
-// Tuple interface to class template array.
-
 ///@cond
 
-/// tuple_size
+namespace kat {
+
+// kat::tuple interface to class template array.
+
 template<typename T> class tuple_size;
 
-/// Partial specialization for kat::array
 template<typename T, size_t NumElements>
-struct tuple_size<kat::array<T, NumElements>> : public std::integral_constant<size_t, NumElements> { };
+struct tuple_size<kat::array<T, NumElements>> : public std::integral_constant<kat::size_t, NumElements> { };
 
-/// tuple_element
-template<size_t Integer, typename T> class tuple_element;
+template<kat::size_t Integer, typename T> class tuple_element;
 
-/// Partial specialization for kat::array
-template<size_t Integer, typename T, size_t NumElements>
+template<kat::size_t Integer, typename T, kat::size_t NumElements>
 struct tuple_element<Integer, kat::array<T, NumElements>>
 {
 	static_assert(Integer < NumElements, "index is out of bounds");
@@ -269,5 +264,27 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 
 } // namespace kat
 
+namespace std {
+
+// std::tuple interface to class template kat::array.
+
+
+template<typename T> class tuple_size;
+
+template<typename T, size_t NumElements>
+struct tuple_size<kat::array<T, NumElements>> : public integral_constant<size_t, NumElements> { };
+
+template<size_t Integer, typename T> class tuple_element;
+
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, kat::array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	typedef T type;
+};
+
+} // namespace kat
+
+///@endcond
 
 #endif // CUDA_KAT_CONTAINERS_ARRAY_HPP_
