@@ -49,7 +49,7 @@ namespace warp_to_grid {
  * @param fragment_length
  */
 template <typename T, typename Size = size_t>
-KAT_FD void collaborative_append_to_global_memory(
+KAT_FD void append_to_global_memory(
 	T*     __restrict__  global_output,
 	Size*  __restrict__  global_output_length,
 	T*     __restrict__  fragment_to_append,
