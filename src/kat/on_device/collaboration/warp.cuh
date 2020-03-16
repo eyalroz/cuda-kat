@@ -77,7 +77,7 @@ namespace collaborative {
 namespace warp {
 
 // If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::index()` without prefixing that with anything.
+// but we do want to be able to say `warp::id()` without prefixing that with anything.
 
 //namespace grid   = grid_info::grid;
 //namespace block  = grid_info::block;
@@ -254,7 +254,7 @@ template <typename T> KAT_FD bool in_unique_lane_with(T value)
 template <typename T> KAT_FD bool in_unique_lane_with(T value, lane_mask_t lane_mask = full_warp_mask)
 #endif
 {
-	auto self_lane_mask = (1 << grid_info::lane::index());
+	auto self_lane_mask = (1 << lane::id());
 		// Note we're _not_ using the PTX builtin for obtaining the self lane mask from a special
 		// regiater - since that would probably be much slower.
 
@@ -353,7 +353,7 @@ KAT_FD bool am_leader_lane(unsigned active_lanes_mask)
 {
 	// This code hints that leadership is automatic given who's active - and in fact, it is,
 	// despite the name "select leader lane". TODO: Perhaps we should rename that function, then?
-	return select_leader_lane_among<PreferFirstLane>(active_lanes_mask) == grid_info::lane::index();
+	return select_leader_lane_among<PreferFirstLane>(active_lanes_mask) == lane::id();
 }
 
 KAT_FD unsigned lane_index_among(lane_mask_t mask)
@@ -404,7 +404,7 @@ KAT_FD typename std::result_of<Function()>::type have_a_single_lane_compute(
 	Function f, unsigned designated_computing_lane)
 {
 	typename std::result_of<Function()>::type result;
-	if (lane::index() == designated_computing_lane) { result = f(); }
+	if (lane::id() == designated_computing_lane) { result = f(); }
 	return get_from_lane(result, designated_computing_lane);
 }
 
@@ -428,6 +428,11 @@ KAT_FD typename std::result_of<Function()>::type have_last_lane_compute(Function
 }
 
 KAT_FD unsigned index_among_active_lanes()
+{
+	return detail::lane_index_among( get_active_lanes() );
+}
+
+KAT_FD unsigned last_active_lane_index()
 {
 	return detail::lane_index_among( get_active_lanes() );
 }
@@ -466,9 +471,11 @@ KAT_FD T active_lanes_atomically_increment(T* counter)
 
 
 template <typename Function, typename Size = unsigned>
-KAT_FD void at_warp_stride(Size length, const Function& f)
+KAT_FD void at_warp_stride(Size length, Function f)
 {
-	for(promoted_size_t<Size> pos = linear_grid::grid_info::lane::index();
+	// If the length is known at compile-time, perhaps this loop can be unrolled
+	#pragma unroll
+	for(promoted_size_t<Size> pos = lane::id();
 		pos < length;
 		pos += warp_size)
 	{
@@ -546,10 +553,10 @@ KAT_FD search_result_t<T> multisearch(const T& lane_needle, const T& lane_hay_st
 	} bounds;
 	if (lane_needle <= lane_hay_straw) {
 		bounds.lower = grid_info::warp::first_lane;
-		bounds.upper = grid_info::lane::index();
+		bounds.upper = grid_info::lane::id();
 	}
 	else {
-		bounds.lower = grid_info::lane::index() + 1;
+		bounds.lower = grid_info::lane::id() + 1;
 		bounds.upper = warp_size;
 	}
 	enum : unsigned { cutoff_to_linear_search = 6 };
@@ -573,10 +580,11 @@ KAT_FD search_result_t<T> multisearch(const T& lane_needle, const T& lane_hay_st
 }
 
 template <typename Function, typename Size = unsigned>
-KAT_FD void at_warp_stride(Size length, const Function& f)
+KAT_FD void at_warp_stride(Size length, Function f)
 {
-	for(// _not_ the global thread index! - one element per warp
-		promoted_size_t<Size> pos = grid_info::lane::index();
+	// If the length is known at compile-time, perhaps this loop can be unrolled
+	#pragma unroll
+	for(promoted_size_t<Size> pos = linear_grid::grid_info::lane::id();
 		pos < length;
 		pos += warp_size)
 	{
@@ -672,7 +680,7 @@ template <
 	auto full_warp_writes_output_length = (PossibilityOfSlack == detail::has_no_slack) ?
 		full_warp_reads_output_length :
 		round_down_to_full_warps(full_warp_reads_output_length);
-	const auto lane_index = grid_info::lane::index();
+	const auto lane_index = grid_info::lane::id();
 
 
 	promoted_size_t<Size> input_pos = lane_index;

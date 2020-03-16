@@ -17,6 +17,7 @@
 #include <kat/on_device/shared_memory/basic.cuh>
 #include <kat/on_device/common.cuh>
 #include <kat/on_device/math.cuh>
+#include <kat/on_device/grid_info.cuh>
 
 #include <type_traits>
 
@@ -32,7 +33,7 @@ namespace block {
 
 ///@cond
 // If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::index()` without prefixing that with anything.
+// but we do want to be able to say `warp::id()` without prefixing that with anything.
 
 namespace grid   = grid_info::grid;
 namespace block  = grid_info::block;
@@ -61,16 +62,16 @@ namespace lane   = grid_info::lane;
  * one for each warp, which is to be shared with the whole block
  * @param where_to_make_available the various warp-specific data will be
  * stored here by warp index
- * @param writing_lane_index which lane in each warp should perform write operations
+ * @param writing_lane_id which lane in each warp should perform write operations
  */
 template <typename T, bool Synchronize = true>
 KAT_FD void share_per_warp_data(
 	T                 datum,
 	T*  __restrict__  where_to_make_available,
-	unsigned          writing_lane_index)
+	unsigned          writing_lane_id)
 {
-	if (lane::index() == writing_lane_index) {
-		where_to_make_available[warp::index()] = datum;
+	if (lane::index() == writing_lane_id) {
+		where_to_make_available[warp::id()] = datum;
 	}
 	if (Synchronize) __syncthreads();
 }
@@ -101,12 +102,12 @@ KAT_FD void barrier() { __syncthreads(); }
  * @note uses shared memory for the "broadcast" by the thread holding
  * the relevant value
  */
-template <typename T, bool Synchronize = true>
-KAT_FD T get_from_thread(const T& value, dim3 source_thread_position)
+template <typename T, bool Synchronize = true, unsigned Dimensionality = 3>
+KAT_FD T get_from_thread(const T& value, kat::position_t source_thread_position)
 {
 	using decayed_type = typename std::decay<T>::type;
 	__shared__ static decayed_type tmp;
-	if (threadIdx == source_thread_position) {
+	if (kat::equals<Dimensionality>(threadIdx, source_thread_position)) {
 		tmp = value;
 	}
 	if (Synchronize) { __syncthreads(); }
@@ -135,7 +136,7 @@ namespace block {
 
 ///@cond
 // If we want to refer to other collaboration primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::index()` without prefixing that with anything.
+// but we do want to be able to say `warp::id()` without prefixing that with anything.
 
 namespace grid   = grid_info::grid;
 namespace block  = grid_info::block;
@@ -188,7 +189,7 @@ KAT_FD void at_block_stride(Size length, const Function& f)
  * one for each warp, which is to be shared with the whole block
  * @param where_to_make_available the various warp-specific data will be
  * stored here by warp index
- * @param writing_lane_index which lane in each warp should perform write operations
+ * @param writing_lane_id which lane in each warp should perform write operations
  *
  * @note if different threads in a warp have different values, behavior is
  * not guaranteed.
@@ -197,10 +198,10 @@ template <typename T, bool Synchronize = true>
 KAT_FD void share_per_warp_data(
 	T                 datum,
 	T*  __restrict__  where_to_make_available,
-	unsigned          writing_lane_index)
+	unsigned          writing_lane_id)
 {
-	if (lane::index() == writing_lane_index) {
-		where_to_make_available[warp::index()] = datum;
+	if (lane::index() == writing_lane_id) {
+		where_to_make_available[warp::id()] = datum;
 	}
 	if (Synchronize) __syncthreads();
 }
@@ -232,11 +233,11 @@ KAT_FD void barrier() { __syncthreads(); }
  * the relevant value
  */
 template <typename T, bool Synchronize = true>
-KAT_FD T get_from_thread(T&& value, unsigned source_thread_index)
+KAT_FD T get_from_thread(T&& value, unsigned source_thread_id)
 {
 	using decayed_type = typename std::decay<T>::type;
 	__shared__ static decayed_type tmp;
-	if (thread::index_in_block() == source_thread_index) {
+	if (thread::id_in_block() == source_thread_id) {
 		tmp = value;
 	}
 	if (Synchronize) { __syncthreads(); }

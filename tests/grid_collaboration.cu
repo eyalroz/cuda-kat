@@ -210,7 +210,7 @@ TEST_CASE("at_grid_stride")
 
 	auto testcase_device_function = [] KAT_DEV (size_t length, checked_value_type* results) {
 		auto f_inner = [&] (size_t pos) {
-			results[pos] = kat::linear_grid::grid_info::thread::global_index();
+			results[pos] = kat::linear_grid::grid_info::thread::id_in_grid();
 		};
 		klcg::at_grid_stride(length, f_inner);
 	};
@@ -252,7 +252,7 @@ TEST_CASE("at_block_stride")
 	auto testcase_device_function = [] KAT_DEV (size_t length, checked_value_type* results) {
 		auto f_inner = [&] (size_t pos) {
 //			printf("Thread %u in block %u got pos %u of %u\n", threadIdx.x, blockIdx.x, (unsigned) pos, (unsigned) length);
-			results[pos] = kat::linear_grid::grid_info::thread::global_index();
+			results[pos] = kat::linear_grid::grid_info::thread::id_in_grid();
 		};
 		auto serialization_factor =
 			length / kat::linear_grid::grid_info::grid::num_threads() + (length % kat::linear_grid::grid_info::grid::num_threads() != 0);
@@ -330,7 +330,7 @@ TEST_CASE("warp_per_input_element::at_grid_stride")
 			checked_value_type* attending_threads_info)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			const auto my_index = gi::thread::global_index();
+			const auto my_index = gi::thread::id_in_grid();
 			auto grid_size_minus_my_index = gi::grid::num_threads() - my_index;
 			auto f_inner = [&] (size_t pos) {
 //				printf("Thead %d of block %d is handling pos %lu\n", threadIdx.x, blockIdx.x, pos);

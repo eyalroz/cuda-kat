@@ -312,15 +312,15 @@ TEST_CASE("all_lanes_satisfy") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::all_lanes_satisfy(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
 		predicate_type warp_values[warp_size];
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
 		bool all_satisfy { true };
 		for(unsigned lane_id = 0; lane_id < warp_size; lane_id++) {
 			warp_values[lane_id] = make_thread_value(warp_id, lane_id);
@@ -366,15 +366,15 @@ TEST_CASE("no_lanes_satisfy") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::no_lanes_satisfy(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
 		predicate_type warp_values[warp_size];
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
 		bool any_satisfy { false };
 		for(unsigned lane_id = 0; lane_id < warp_size; lane_id++) {
 			warp_values[lane_id] = make_thread_value(warp_id, lane_id);
@@ -419,15 +419,15 @@ TEST_CASE("all_lanes_agree_on") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::all_lanes_agree_on(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
 		predicate_type warp_values[warp_size];
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
 		bool any_satisfy { false };
 		bool any_dont_satisfy { false };
 		for(unsigned lane_id = 0; lane_id < warp_size; lane_id++) {
@@ -477,15 +477,15 @@ TEST_CASE("some_lanes_satisfy") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::some_lanes_satisfy(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
 		predicate_type warp_values[warp_size];
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
 		bool any_satisfy { false };
 		for(unsigned lane_id = 0; lane_id < warp_size; lane_id++) {
 			warp_values[lane_id] = make_thread_value(warp_id, lane_id);
@@ -530,15 +530,15 @@ TEST_CASE("num_lanes_agreeing_on") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::num_lanes_agreeing_on(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		auto thread_value = make_thread_value(warp_id, lane_id);
 		auto num_lanes_agreeing { 0 };
 		for(unsigned other_lane_id = 0; other_lane_id < warp_size; other_lane_id++) {
@@ -584,15 +584,15 @@ TEST_CASE("majority_vote") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::majority_vote(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		auto thread_value = make_thread_value(warp_id, lane_id);
 		int vote_balance { 0 };
 		for(unsigned other_lane_id = 0; other_lane_id < warp_size; other_lane_id++) {
@@ -645,14 +645,14 @@ TEST_CASE("in_unique_lane_with") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::in_unique_lane_with(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		auto thread_value = make_thread_value(warp_id, lane_id);
 		bool am_unique { true };
 		for(unsigned other_lane_id = 0; other_lane_id < warp_size; other_lane_id++) {
@@ -699,14 +699,14 @@ TEST_CASE("get_from_lane") {
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::thread::index()) };
-			auto source_lane { make_source_lane(gi::thread::index()) };
+			auto thread_value { make_thread_value(gi::thread::id()) };
+			auto source_lane { make_source_lane(gi::thread::id()) };
 			auto obtained_value { kcw::get_from_lane(thread_value, source_lane) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto thread_id { global_thread_index % block_dimensions.volume() };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto thread_id { global_thread_id % block_dimensions.volume() };
 		auto source_lane { make_source_lane(thread_id) };
 		auto warp_id { thread_id / warp_size };
 		auto source_thread_id { warp_id * warp_size + source_lane };
@@ -742,13 +742,13 @@ TEST_CASE("get_from_first_lane") {
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::thread::index()) };
+			auto thread_value { make_thread_value(gi::thread::id()) };
 			auto obtained_value { kcw::get_from_first_lane(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto thread_id { global_thread_index % block_dimensions.volume() };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto thread_id { global_thread_id % block_dimensions.volume() };
 		auto warp_id { thread_id / warp_size };
 		auto source_thread_id { warp_id * warp_size + 0 };
 		checked_value_type source_thread_value { make_thread_value(source_thread_id) };
@@ -784,13 +784,13 @@ TEST_CASE("get_from_last_lane") {
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::thread::index()) };
+			auto thread_value { make_thread_value(gi::thread::id()) };
 			auto obtained_value { kcw::get_from_last_lane(thread_value) };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto thread_id { global_thread_index % block_dimensions.volume() };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto thread_id { global_thread_id % block_dimensions.volume() };
 		auto warp_id { thread_id / warp_size };
 		auto source_thread_id { warp_id * warp_size + (warp_size - 1) };
 		checked_value_type source_thread_value { make_thread_value(source_thread_id) };
@@ -831,16 +831,16 @@ TEST_CASE("have_a_single_lane_compute") {
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
 			namespace gi = kat::grid_info;
-			auto source_lane { make_source_lane(gi::thread::index()) };
+			auto source_lane { make_source_lane(gi::thread::id()) };
 			auto obtained_value =
 				kcw::have_a_single_lane_compute(
-					[=]() { return make_thread_value(gi::thread::index()); },
+					[=]() { return make_thread_value(gi::thread::id()); },
 					source_lane);
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto thread_id { global_thread_index % block_dimensions.volume() };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto thread_id { global_thread_id % block_dimensions.volume() };
 		auto source_lane { make_source_lane(thread_id) };
 		auto warp_id { thread_id / warp_size };
 		auto source_thread_id { warp_id * warp_size + source_lane };
@@ -879,13 +879,13 @@ TEST_CASE("have_first_lane_compute") {
 			namespace gi = kat::grid_info;
 			auto obtained_value =
 				kcw::have_first_lane_compute(
-					[=]() { return make_thread_value(gi::thread::index()); }
+					[=]() { return make_thread_value(gi::thread::id()); }
 				);
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto thread_id { global_thread_index % block_dimensions.volume() };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto thread_id { global_thread_id % block_dimensions.volume() };
 		auto warp_id { thread_id / warp_size };
 		auto source_thread_id { warp_id * warp_size + 0 };
 		checked_value_type source_thread_value { make_thread_value(source_thread_id) };
@@ -922,13 +922,13 @@ TEST_CASE("have_last_lane_compute") {
 			namespace gi = kat::grid_info;
 			auto obtained_value =
 				kcw::have_last_lane_compute(
-					[=]() { return make_thread_value(gi::thread::index()); }
+					[=]() { return make_thread_value(gi::thread::id()); }
 				);
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto thread_id { global_thread_index % block_dimensions.volume() };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto thread_id { global_thread_id % block_dimensions.volume() };
 		auto warp_id { thread_id / warp_size };
 		auto source_thread_id { warp_id * warp_size + (warp_size - 1) };
 		checked_value_type source_thread_value { make_thread_value(source_thread_id) };
@@ -972,16 +972,16 @@ TEST_CASE("first_lane_satisfying") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto thread_value { make_thread_value(gi::warp::index(), gi::lane::index()) };
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::first_lane_satisfying(thread_value) };
-			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_index(), thread_value, obtained_value);
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_id(), thread_value, obtained_value);
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-//		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+//		auto lane_id { global_thread_id % warp_size };
 		for(unsigned other_lane_id = 0; other_lane_id < warp_size; other_lane_id++) {
 			if (make_thread_value(warp_id, other_lane_id))
 				{ return checked_value_type{other_lane_id}; }
@@ -1030,23 +1030,23 @@ TEST_CASE("get_active_lanes") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			bool should_stay_active { determine_whether_to_stay_active(gi::warp::index(), gi::lane::index()) };
+			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			// if (threadIdx.x < 32)
-			//	printf("Thread %u %s stay active\n", gi::thread::index(), (should_stay_active ? "SHOULD" : "SHOULD NOT"));
+			//	printf("Thread %u %s stay active\n", gi::thread::id(), (should_stay_active ? "SHOULD" : "SHOULD NOT"));
 			if (not should_stay_active) {
-				thread_obtained_values[gi::thread::global_index()] =
+				thread_obtained_values[gi::thread::global_id()] =
 					default_lane_mask_for_threads_who_go_inactive;
 				return;
 			}
 			auto obtained_value { kcw::get_active_lanes() };
-			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_index(), thread_value, obtained_value);
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_id(), thread_value, obtained_value);
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		if (not determine_whether_to_stay_active(warp_id, lane_id)) {
 			return default_lane_mask_for_threads_who_go_inactive;
 		}
@@ -1100,20 +1100,20 @@ TEST_CASE("num_active_lanes") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			bool should_stay_active { determine_whether_to_stay_active(gi::warp::index(), gi::lane::index()) };
+			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			if (not should_stay_active) {
-				thread_obtained_values[gi::thread::global_index()] = invalid_num_active_lanes;
+				thread_obtained_values[gi::thread::global_id()] = invalid_num_active_lanes;
 				return;
 			}
 			auto obtained_value { kcw::num_active_lanes() };
-			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_index(), thread_value, obtained_value);
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_id(), thread_value, obtained_value);
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		if (not determine_whether_to_stay_active(warp_id, lane_id)) {
 			return invalid_num_active_lanes;
 		}
@@ -1165,15 +1165,15 @@ TEST_CASE("am_leader_lane") {
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			bool should_stay_active { determine_whether_to_stay_active(gi::warp::index(), gi::lane::index()) };
+			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			if (not should_stay_active) {
-				thread_obtained_values[gi::thread::global_index()] = false;
-				// if (threadIdx.x < 32) printf("Thread %u goes inactive\n", gi::thread::index());
+				thread_obtained_values[gi::thread::global_id()] = false;
+				// if (threadIdx.x < 32) printf("Thread %u goes inactive\n", gi::thread::id());
 				return;
 			}
 			auto obtained_value { kcw::am_leader_lane() };
-			// if (threadIdx.x < 32) printf("Thread %u value believes it %s the leader\n", gi::thread::index(), (obtained_value ? "IS" : "IS NOT"));
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			// if (threadIdx.x < 32) printf("Thread %u value believes it %s the leader\n", gi::thread::id(), (obtained_value ? "IS" : "IS NOT"));
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
@@ -1246,19 +1246,19 @@ TEST_CASE("index_among_active_lanes") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			bool should_stay_active { determine_whether_to_stay_active(gi::warp::index(), gi::lane::index()) };
+			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			if (not should_stay_active) {
-				thread_obtained_values[gi::thread::global_index()] = invalid_index;
+				thread_obtained_values[gi::thread::global_id()] = invalid_index;
 				return;
 			}
 			auto obtained_value { kcw::index_among_active_lanes() };
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		if (not determine_whether_to_stay_active(warp_id, lane_id)) {
 			return invalid_index;
 		}
@@ -1302,9 +1302,9 @@ TEST_CASE("at_warp_stride")
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto offset_into_attendant_array = length_to_cover_per_warp * gi::warp::index();
+			auto offset_into_attendant_array = length_to_cover_per_warp * gi::warp::id_in_block();
 			auto f_inner = [&] (size_t pos) {
-				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::index_in_grid();
+				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::id_in_grid();
 			};
 			kcw::at_warp_stride(length_to_cover_per_warp, f_inner);
 		};
@@ -1362,11 +1362,11 @@ TEST_CASE("active_lanes_atomically_increment")
 		)
 		{
 			namespace gi = kat::grid_info;
-			if (not determine_whether_to_stay_active(gi::warp::index(), gi::lane::index() )) {
-				thread_values_before_increment[gi::thread::global_index()] = invalid_value_for_inactives;
+			if (not determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id() )) {
+				thread_values_before_increment[gi::thread::global_id()] = invalid_value_for_inactives;
 				return;
 			}
-			thread_values_before_increment[gi::thread::global_index()] =
+			thread_values_before_increment[gi::thread::global_id()] =
 				kcw::active_lanes_atomically_increment(device_side_increment_target_raw);
 		};
 
@@ -1427,9 +1427,9 @@ TEST_CASE("at_warp_stride")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			auto offset_into_attendant_array = length_to_cover_per_warp * gi::warp::index();
+			auto offset_into_attendant_array = length_to_cover_per_warp * gi::warp::id_in_block();
 			auto f_inner = [&] (size_t pos) {
-				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::index_in_grid();
+				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::id_in_grid();
 			};
 			klcw::at_warp_stride(length_to_cover_per_warp, f_inner);
 		};
@@ -1488,16 +1488,16 @@ TEST_CASE("multisearch") {
 		)
 		{
 			namespace gi = kat::grid_info;
-			auto haystack_straw = make_thread_value(gi::warp::index(), gi::lane::index());
-			thread_value_type needle_to_search_for = make_search_value(gi::warp::index(), gi::lane::index());
+			auto haystack_straw = make_thread_value(gi::warp::id_in_block(), gi::lane::id());
+			thread_value_type needle_to_search_for = make_search_value(gi::warp::id_in_block(), gi::lane::id());
 			auto search_result = klcw::multisearch(needle_to_search_for, haystack_straw);
-			search_results[gi::thread::global_index()] = search_result;
+			search_results[gi::thread::global_id()] = search_result;
 		};
 
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) -> checked_value_type {
-		auto warp_id { (global_thread_index % block_dimensions.volume()) / warp_size };
-		auto lane_id { global_thread_index % warp_size };
+	auto expected_value_retriever = [=] (size_t global_thread_id) -> checked_value_type {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto lane_id { global_thread_id % warp_size };
 		auto needle = make_search_value(warp_id, lane_id);
 		thread_value_type warp_values[warp_size];
 		// checked_value_type warp_search_results[warp_size];
@@ -1568,10 +1568,10 @@ TEST_CASE_TEMPLATE ("compute_predicate_at_warp_stride", SlackSetting,
 		{
 			namespace gi = kat::linear_grid::grid_info;
 			auto instrumented_pred = [=] (size_t pos) -> bool {
-				device_side_pos_attendants_raw[gi::warp::global_index() * length_to_cover_per_warp + pos] = gi::thread::index_in_grid();
+				device_side_pos_attendants_raw[gi::warp::global_id() * length_to_cover_per_warp + pos] = gi::thread::id_in_grid();
 				return pred(pos);
 			};
-			auto computed_predicate_for_this_warp  = computed_predicate + num_bit_containers_per_warp * gi::warp::global_index();
+			auto computed_predicate_for_this_warp  = computed_predicate + num_bit_containers_per_warp * gi::warp::global_id();
 			klcw::compute_predicate_at_warp_stride(computed_predicate_for_this_warp, instrumented_pred, length_to_cover_per_warp);
 		};
 
@@ -1650,15 +1650,15 @@ TEST_CASE("merge_sorted_half_warps - in-register")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			auto half_warp_pair_index = gi::warp::global_index(); // Each warp gets a different pair of half-warps to merge
+			auto half_warp_pair_index = gi::warp::global_id(); // Each warp gets a different pair of half-warps to merge
 			auto first_half_warp_index = half_warp_pair_index / num_half_warps;
 			auto second_half_warp_index = half_warp_pair_index % num_half_warps;
 			auto my_half_warp_index = gi::lane::is_in_first_half_warp() ?
 				first_half_warp_index : second_half_warp_index;
-			lane_value_type lane_value = device_side_half_warps_raw[my_half_warp_index * half_warp_size + gi::lane::index()];
+			lane_value_type lane_value = device_side_half_warps_raw[my_half_warp_index * half_warp_size + gi::lane::id()];
 			auto post_merge_value = klcw::merge_sorted_half_warps(lane_value);
-			// printf("Thread %3u had %2d now has %2d\n", gi::thread::global_index(), lane_value, post_merge_value);
-			merged_data[gi::thread::global_index()] = post_merge_value;
+			// printf("Thread %3u had %2d now has %2d\n", gi::thread::global_id(), lane_value, post_merge_value);
+			merged_data[gi::thread::global_id()] = post_merge_value;
 		};
 
 	auto expected_value_retriever = [=] (size_t pos) {

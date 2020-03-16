@@ -225,7 +225,7 @@ TEST_CASE("at_block_stride")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			auto offset_into_attendant_array = length_to_cover_per_block * gi::block::index();
+			auto offset_into_attendant_array = length_to_cover_per_block * gi::block::id();
 			auto f_inner = [&] (size_t pos) {
 				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::index_in_grid();
 			};
@@ -236,9 +236,9 @@ TEST_CASE("at_block_stride")
 		// Which thread processes position pos?
 
 		auto intra_block_pos = pos % length_to_cover_per_block;
-		auto processing_block_index = pos / length_to_cover_per_block;
+		auto processing_block_id = pos / length_to_cover_per_block;
 		auto processing_thread_index = intra_block_pos % num_threads_per_block;
-		return checked_value_type(processing_thread_index  + processing_block_index * num_threads_per_block);
+		return checked_value_type(processing_thread_index  + processing_block_id * num_threads_per_block);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -261,10 +261,10 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 
 	auto make_warp_datum =
 		[] KAT_HD (
-			cuda::grid::dimension_t block_index,
-			cuda::grid::block_dimension_t warp_index_within_block)
+			cuda::grid::dimension_t block_id,
+			cuda::grid::block_dimension_t warp_id_within_block)
 		{
-			return datum_type{(warp_index_within_block + 1) + (block_index + 1) * 10000};
+			return datum_type{(warp_id_within_block + 1) + (block_id + 1) * 10000};
 		};
 
 	auto testcase_device_function =
@@ -274,7 +274,7 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			datum_type thread_datum { make_warp_datum(gi::block::index(), gi::warp::index()) };
+			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 				// same for all threads in warp!
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
 			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
@@ -284,7 +284,7 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 
 			if (gi::thread::is_first_in_block()) {
 				// Now we're populating what's going to be checked outside the kernel.
-				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::index() * num_warps_per_block;
+				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::id() * num_warps_per_block;
 				for(int i = 0; i < num_warps_per_block; i++) {
 					warp_data_for_this_block[i] = warp_data[i];
 				}
@@ -292,9 +292,9 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 		};
 
 	auto expected_value_retriever = [=] (size_t i) {
-		auto relevant_block_index = i / num_warps_per_block;
-		auto warp_index_within_block = i % num_warps_per_block;
-		return make_warp_datum(relevant_block_index, warp_index_within_block);
+		auto relevant_block_id = i / num_warps_per_block;
+		auto warp_id_within_block = i % num_warps_per_block;
+		return make_warp_datum(relevant_block_id, warp_id_within_block);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -318,10 +318,10 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 
 	auto make_warp_datum =
 		[] KAT_HD (
-			cuda::grid::dimension_t block_index,
-			cuda::grid::block_dimension_t warp_index_within_block)
+			cuda::grid::dimension_t block_id,
+			cuda::grid::block_dimension_t warp_id_within_block)
 		{
-			return datum_type{(warp_index_within_block + 1) + (block_index + 1) * 10000};
+			return datum_type{(warp_id_within_block + 1) + (block_id + 1) * 10000};
 		};
 
 	auto testcase_device_function =
@@ -331,7 +331,7 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			datum_type thread_datum { make_warp_datum(gi::block::index(), gi::warp::index()) };
+			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 				// same for all threads in warp!
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
 			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
@@ -340,7 +340,7 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 
 			if (gi::thread::is_first_in_block()) {
 				// Now we're populating what's going to be checked outside the kernel.
-				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::index() * num_warps_per_block;
+				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::id() * num_warps_per_block;
 				for(int i = 0; i < num_warps_per_block; i++) {
 					warp_data_for_this_block[i] = warp_data[i];
 				}
@@ -348,9 +348,9 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 		};
 
 	auto expected_value_retriever = [=] (size_t i) {
-		auto relevant_block_index = i / num_warps_per_block;
-		auto warp_index_within_block = i % num_warps_per_block;
-		return make_warp_datum(relevant_block_index, warp_index_within_block);
+		auto relevant_block_id = i / num_warps_per_block;
+		auto warp_id_within_block = i % num_warps_per_block;
+		return make_warp_datum(relevant_block_id, warp_id_within_block);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -373,16 +373,16 @@ TEST_CASE("get_from_thread")
 
 	auto make_thread_datum =
 		[] KAT_HD (
-			cuda::grid::dimension_t block_index,
+			cuda::grid::dimension_t block_id,
 			cuda::grid::block_dimension_t thread_index)
 		{
-			return datum_type{(thread_index + 1) + (block_index + 1) * 10000};
+			return datum_type{(thread_index + 1) + (block_id + 1) * 10000};
 		};
 
 	auto make_source_thread_index =
-		[=] KAT_HD (cuda::grid::dimension_t block_index)
+		[=] KAT_HD (cuda::grid::dimension_t block_id)
 		{
-			return unsigned{(block_index + 1) * 11 % num_threads_per_block};
+			return unsigned{(block_id + 1) * 11 % num_threads_per_block};
 		};
 
 	auto testcase_device_function =
@@ -392,18 +392,18 @@ TEST_CASE("get_from_thread")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			datum_type thread_datum { make_thread_datum(gi::block::index(), gi::thread::index()) };
-			auto source_thread_index { make_source_thread_index(gi::block::index()) };
+			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
+			auto source_thread_index { make_source_thread_index(gi::block::id()) };
 			auto obtained_value { klcb::get_from_thread(thread_datum, source_thread_index) };
 			// We've run the synchronized variant, so no need for extra sync
 
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto block_index { global_thread_index / num_threads_per_block };
-		auto source_thread_index { make_source_thread_index(block_index) };
-		return make_thread_datum(block_index, source_thread_index);
+		auto block_id { global_thread_index / num_threads_per_block };
+		auto source_thread_index { make_source_thread_index(block_id) };
+		return make_thread_datum(block_id, source_thread_index);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -427,10 +427,10 @@ TEST_CASE("get_from_first_thread")
 
 	auto make_thread_datum =
 		[] KAT_HD (
-			cuda::grid::dimension_t block_index,
+			cuda::grid::dimension_t block_id,
 			cuda::grid::block_dimension_t thread_index)
 		{
-			return datum_type{(thread_index + 1) + (block_index + 1) * 10000};
+			return datum_type{(thread_index + 1) + (block_id + 1) * 10000};
 		};
 
 	auto testcase_device_function =
@@ -440,17 +440,17 @@ TEST_CASE("get_from_first_thread")
 		)
 		{
 			namespace gi = kat::linear_grid::grid_info;
-			datum_type thread_datum { make_thread_datum(gi::block::index(), gi::thread::index()) };
+			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto obtained_value { klcb::get_from_first_thread(thread_datum) };
 			// We've run the synchronized variant, so no need for extra sync
 
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 	auto expected_value_retriever = [=] (size_t global_thread_index) {
-		auto block_index { global_thread_index / num_threads_per_block };
+		auto block_id { global_thread_index / num_threads_per_block };
 		auto source_thread_index { 0 };
-		return make_thread_datum(block_index, source_thread_index);
+		return make_thread_datum(block_id, source_thread_index);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -485,10 +485,10 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 
 	auto make_warp_datum =
 		[] KAT_HD (
-			cuda::grid::dimension_t block_index,
-			cuda::grid::block_dimension_t warp_index_within_block)
+			cuda::grid::dimension_t block_id,
+			cuda::grid::block_dimension_t warp_id_within_block)
 		{
-			return datum_type{(warp_index_within_block + 1) + (block_index + 1) * 1000};
+			return datum_type{(warp_id_within_block + 1) + (block_id + 1) * 1000};
 		};
 
 	auto testcase_device_function =
@@ -498,9 +498,7 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 		)
 		{
 			namespace gi = kat::grid_info;
-			datum_type thread_datum { make_warp_datum(gi::block::index(), gi::warp::index()) };
-//			printf("gi::block::index() = %u, gi::warp::index() = %u, datum = %u\n", gi::block::index(), gi::warp::index(), thread_datum);
-				// same for all threads in warp!
+			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
 			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
 
@@ -510,7 +508,7 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 
 			if (gi::thread::is_first_in_block()) {
 				// Now we're populating what's going to be checked outside the kernel.
-				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::index() * num_warps_per_block;
+				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::id() * num_warps_per_block;
 				for(int i = 0; i < num_warps_per_block; i++) {
 					warp_data_for_this_block[i] = warp_data[i];
 				}
@@ -518,12 +516,9 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 		};
 
 	auto expected_value_retriever = [=] (size_t i) {
-		auto relevant_block_index = i / num_warps_per_block;
-		auto warp_index_within_block = i % num_warps_per_block;
-//		std::cout << "relevant_block_index = " << relevant_block_index << " warp_index_within_block = " <<
-//			warp_index_within_block  << "warp_datum = " <<
-//			make_warp_datum(relevant_block_index, warp_index_within_block) << "\n";
-		return make_warp_datum(relevant_block_index, warp_index_within_block);
+		auto relevant_block_id = i / num_warps_per_block;
+		auto warp_id_within_block = i % num_warps_per_block;
+		return make_warp_datum(relevant_block_id, warp_id_within_block);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -540,17 +535,17 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 {
 	using datum_type = uint32_t;
 	cuda::grid::dimensions_t grid_dimensions { 2, 2 };
-	cuda::grid::block_dimensions_t block_dimensions { kat::warp_size, 3, 3 };
+	cuda::grid::block_dimensions_t block_dimensions { kat::warp_size * 2, 5, 3 };
 	auto num_warps_per_block = block_dimensions.volume() / kat::warp_size;
 
 	auto num_values_to_populate = num_warps_per_block * grid_dimensions.volume();
 
 	auto make_warp_datum =
 		[] KAT_HD (
-			cuda::grid::dimension_t block_index,
-			cuda::grid::block_dimension_t warp_index_within_block)
+			cuda::grid::dimension_t block_id,
+			cuda::grid::block_dimension_t warp_id_within_block)
 		{
-			return datum_type{(warp_index_within_block + 1) + (block_index + 1) * 1000};
+			return datum_type{(warp_id_within_block + 1) + (block_id + 1) * 1000};
 		};
 
 	auto testcase_device_function =
@@ -560,7 +555,7 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 		)
 		{
 			namespace gi = kat::grid_info;
-			datum_type thread_datum { make_warp_datum(gi::block::index(), gi::warp::index()) };
+			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
 			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
 
@@ -569,7 +564,7 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 
 			if (gi::thread::is_first_in_block()) {
 				// Now we're populating what's going to be checked outside the kernel.
-				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::index() * num_warps_per_block;
+				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::id() * num_warps_per_block;
 				for(int i = 0; i < num_warps_per_block; i++) {
 					warp_data_for_this_block[i] = warp_data[i];
 				}
@@ -577,9 +572,9 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 		};
 
 	auto expected_value_retriever = [=] (size_t i) {
-		auto relevant_block_index = i / num_warps_per_block;
-		auto warp_index_within_block = i % num_warps_per_block;
-		return make_warp_datum(relevant_block_index, warp_index_within_block);
+		auto relevant_block_id = i / num_warps_per_block;
+		auto warp_id_within_block = i % num_warps_per_block;
+		return make_warp_datum(relevant_block_id, warp_id_within_block);
 	};
 
 	execute_non_uniform_builtin_testcase_on_gpu_and_check(
@@ -596,8 +591,8 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 TEST_CASE("get_from_thread")
 {
 	using datum_type = uint32_t;
-	cuda::grid::dimensions_t grid_dimensions { 2, 2 };
-	cuda::grid::block_dimensions_t block_dimensions { kat::warp_size * 3, 3 };
+	cuda::grid::dimensions_t grid_dimensions { 1 };
+	cuda::grid::block_dimensions_t block_dimensions { kat::warp_size, 2, 1 };
 	auto num_total_threads = block_dimensions.volume() * grid_dimensions.volume();
 	auto num_values_to_populate = num_total_threads;
 
@@ -612,7 +607,7 @@ TEST_CASE("get_from_thread")
 	auto make_source_thread_index =
 		[=] KAT_HD (cuda::grid::dimension_t block_id)
 		{
-			return dim3 { block_id, 1, 0 };
+			return kat::position_t { block_id, 1, 0 };
 		};
 
 	auto testcase_device_function =
@@ -622,14 +617,15 @@ TEST_CASE("get_from_thread")
 		)
 		{
 			namespace gi = kat::grid_info;
-			datum_type thread_datum { make_thread_datum(gi::block::index(), gi::thread::index()) };
-			auto source_thread_index { make_source_thread_index(gi::block::index()) };
+			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
+			auto source_thread_index { make_source_thread_index(gi::block::id()) };
 			auto obtained_value { kcb::get_from_thread(thread_datum, source_thread_index) };
 			// We've run the synchronized variant, so no need for extra sync
-			printf("Thread %4u in block %4u used source thread index %2u,%2u,%2u and got value %4u\n",
-				(unsigned) gi::thread::index(), (unsigned) gi::block::index(),source_thread_index.x, source_thread_index.y, source_thread_index.z, obtained_value   );
+//			printf("Thread (%2u %2u %2u) = %4u in block %4u had datum %5d, used source thread index %2u,%2u,%2u and got value %4u\n",
+//				threadIdx.x,threadIdx.y,threadIdx.z,
+//				(unsigned) gi::thread::id(), (unsigned) gi::block::id(), thread_datum, source_thread_index.x, source_thread_index.y, source_thread_index.z, obtained_value   );
 
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 	auto expected_value_retriever = [=] (size_t global_thread_index) {
@@ -673,11 +669,11 @@ TEST_CASE("get_from_first_thread")
 		)
 		{
 			namespace gi = kat::grid_info;
-			datum_type thread_datum { make_thread_datum(gi::block::index(), gi::thread::index()) };
+			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto obtained_value { kcb::get_from_first_thread(thread_datum) };
 			// We've run the synchronized variant, so no need for extra sync
 
-			thread_obtained_values[gi::thread::global_index()] = obtained_value;
+			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
 
