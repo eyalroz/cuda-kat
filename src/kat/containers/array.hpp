@@ -38,6 +38,12 @@
 
 #include <kat/common.hpp>
 
+#include <cstddef>
+#include <array>
+#include <tuple>
+#include <utility>
+#include <algorithm>
+#include <iterator>
 #include <type_traits>
 
 namespace kat {
