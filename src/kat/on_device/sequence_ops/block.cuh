@@ -18,9 +18,10 @@
 #define CUDA_KAT_BLOCK_COLLABORATIVE_SEQUENCE_OPS_CUH_
 
 #include "common.cuh"
-#include <kat/on_device/sequence_ops/warp.cuh>
+#include <kat/on_device/collaboration/warp.cuh>
 #include <kat/on_device/collaboration/block.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
+#include <kat/on_device/shuffle.cuh>
 
 
 ///@cond
@@ -50,7 +51,7 @@ namespace block {
 // TODO: Check whether writing this with a forward iterator and std::advance
 // yields the same PTX code (in which case we'll prefer that)
 template <typename RandomAccessIterator, typename Size, typename T>
-KAT_FD void fill_n(RandomAccessIterator start, Size count, T value)
+KAT_FD void fill_n(RandomAccessIterator start, Size count, const T& value)
 {
 	auto f = [=](promoted_size_t<Size> pos) {
 		start[pos] = value;
@@ -58,24 +59,25 @@ KAT_FD void fill_n(RandomAccessIterator start, Size count, T value)
 	at_block_stride(count, f);
 }
 
-template <typename RandomAccessIterator, typename T>
+template <typename RandomAccessIterator, typename T, typename Size = decltype(std::declval<RandomAccessIterator>() - std::declval<RandomAccessIterator>())>
 KAT_FD void fill(RandomAccessIterator start, RandomAccessIterator end, const T& value)
 {
-    auto count = end - start;
+    Size count = end - start;
     return fill_n(start, count, value);
 }
 
 template <typename RandomAccessIterator, typename Size>
 KAT_FD void memzero_n(RandomAccessIterator start, Size count)
 {
-    return fill_n(start, count, 0);
+	using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
+    return fill_n(start, count, value_type{0});
 }
 
-template <typename RandomAccessIterator, typename Size>
+template <typename RandomAccessIterator, typename Size = decltype(std::declval<RandomAccessIterator>() - std::declval<RandomAccessIterator>())>
 KAT_FD void memzero(RandomAccessIterator start, RandomAccessIterator end)
 {
 	auto count = end - start;
-    return fill_n(start, count, 0);
+    return memzero_n(start, count);
 }
 
 /**
@@ -90,12 +92,12 @@ KAT_FD void memzero(RandomAccessIterator start, RandomAccessIterator end)
 template <typename T, typename S, typename UnaryOperation, typename Size>
 KAT_FD void transform_n(
 	const S*  __restrict__  source,
-	T*        __restrict__  target,
 	Size                    length,
-	UnaryOperation          op)
+	T*        __restrict__  target,
+	UnaryOperation          unary_op)
 {
-	auto f = [=](promoted_size_t<Size> pos) {
-		target[pos] = op(source[pos]);
+	auto f = [&](promoted_size_t<Size> pos) {
+		target[pos] = unary_op(source[pos]);
 	};
 	at_block_stride(length, f);
 }
@@ -103,15 +105,15 @@ KAT_FD void transform_n(
 /**
  * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
  */
-template <typename S, typename T, typename UnaryOperation, typename Size>
+template <typename S, typename T, typename UnaryOperation, typename Size = std::ptrdiff_t>
 KAT_FD void transform(
 	const S*  __restrict__  source_start,
 	const S*  __restrict__  source_end,
 	T*        __restrict__  target,
-	UnaryOperation          op)
+	UnaryOperation          unary_op)
 {
-	auto length = source_end - source_start;
-	return transform_n(source_start, target, op, length);
+	Size length = source_end - source_start;
+	return transform_n(source_start, length, target, unary_op);
 }
 
 /**
@@ -127,21 +129,21 @@ KAT_FD void transform(
 template <typename S, typename T, typename Size>
 KAT_FD void cast_and_copy_n(
 	const S*  __restrict__  source,
-	T*        __restrict__  target,
-	Size                    length)
+	Size                    length,
+	T*        __restrict__  target)
 {
-	auto op = [](S x) { return T{x};} ;
-	return transform_n(source, target, length, op);
+	auto op = [](S x) -> T { return T(x);} ;
+	return transform_n(source, length, target, op);
 }
 
-template <typename S, typename T, typename Size>
-KAT_FD void cast_and_copy_n(
+template <typename S, typename T, typename Size = std::ptrdiff_t>
+KAT_FD void cast_and_copy(
 	const S*  __restrict__  source_start,
 	const S*  __restrict__  source_end,
 	T*        __restrict__  target)
 {
-	auto length = source_end - source_start;
-	return cast_and_copy_n(source_start, target, length);
+	Size length = source_end - source_start;
+	return cast_and_copy_n(source_start, length, target);
 }
 
 
@@ -155,8 +157,8 @@ KAT_FD void cast_and_copy_n(
 template <typename T, typename Size>
 KAT_FD void copy_n(
 	const T*  __restrict__  source,
-	T*        __restrict__  target,
-	Size                    length)
+	Size                    length,
+	T*        __restrict__  target)
 {
 	auto f = [=](promoted_size_t<Size> pos) {
 		target[pos] = source[pos];
@@ -173,14 +175,14 @@ KAT_FD void copy_n(
  *
  * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
  */
-template <typename T>
+template <typename T, typename Size = std::ptrdiff_t>
 KAT_FD void copy(
 	const T*  __restrict__  source_start,
 	const T*  __restrict__  source_end,
 	T*        __restrict__  target)
 {
-	auto length = source_end - source_start;
-	return copy_n(source_start, target, length);
+	Size length = source_end - source_start;
+	return copy_n(source_start, length, target);
 }
 
 
@@ -205,54 +207,97 @@ KAT_FD void lookup(
 
 // TODO: Consider replacing the following with a functor on GSL-style array spans
 
+namespace detail {
+
+template<class Op> struct accumulator_op_return_type_helper : accumulator_op_return_type_helper<decltype(&Op::operator())> {};
+template<class Op> struct accumulator_op_return_type_helper<Op(Op&)> { using type = Op; };
+template<class Op> struct accumulator_op_return_type_helper<Op(Op&) const> { using type = Op; };
+template<class Op> struct accumulator_op_return_type_helper<Op(*)(Op&)> { using type = Op; };
+template<class C, class M> struct accumulator_op_return_type_helper<M (C::*)> : accumulator_op_return_type_helper<M> {};
+
+template <typename Op>
+using accumulator_op_return_type_t = typename accumulator_op_return_type_helper<Op>::type;
+
+}
 
 /**
  * @brief Perform a reduction over a block's worth of data with a specific
- * binary reduction operation (e.g. sum, or maximum, etc.).
+ * (asymmetric) accumulation operation, and maintaing the input element type.
  *
  * @param value each thread's contribution to the reduction
- * @return for the first thread of the warp - the reduction result over
- * all @p value elements of all block threads; for other threads - the
- * result is undefined
+ * @param op the accumulation operator - it must have the appropriate `operator()`,
+ * i.e. with signature `T AccumulationOp::operator()(T&, T)`. It does not have
+ * to have any other members or types defined (so a lambda works fine).
  *
- * @note all threads must participate in this primitive; consider
- * supporting partial participation
+ * @return for threads in the first warp of the block - the reduction result over
+ * all @p value elements of all block threads; for other threads - the
+ * result is undefined, in case @tparam AllThreadsObtainResult is false,
+ * or like the first warp if AllThreadsObtainResult is true
+ *
+ * @note This _should_ work without full block participation, but it
+ * does need full warp participation, i.e. each warp either participates fully
+ * or not at all.
+ *
+ * @note One might wonder: "Why insist on the same type for the result and the
+ * input?" - well, that is not necessary. However, separating the types would
+ * require additional template or parameter information: Two operators (if not
+ * more), and a decision at what point we switch to the result type - immediately,
+ * after at most k operations, above the warp level. This also makes it
+ * nearly impossible to write "simple" calls to reduce - with a value and
+ * a single lambda. We may at some point define a structure for setting these
+ * parameters, which will put some onus on the user code, but allow for
+ * this flexibility. Poke the library author/contributors about this.
+ *
+ * @tparam AllThreadsObtainResult when true, all threads in a block will
+ * return the reduction result; otherwise, only the first warp of the block
+ * is guaranteed to return the actual reduction result.
  *
  */
 template<
-	typename ReductionOp,
-	typename InputDatum,
-	bool AllThreadsObtainResult = false>
-KAT_DEV typename ReductionOp::result_type reduce(InputDatum value)
+	typename T,
+	typename AccumulationOp,
+	bool AllThreadsObtainResult = false,
+	T NeutralValue = T{}>
+KAT_DEV T reduce(T value, AccumulationOp op)
 {
-	using result_type = typename ReductionOp::result_type;
-	ReductionOp op;
-	static __shared__ result_type warp_reductions[warp_size];
+	namespace gi = kat::linear_grid::grid_info;
 
-	result_type intra_warp_result = kat::collaborative::warp::reduce<ReductionOp>(static_cast<result_type>(value));
-	auto warp_datum_sharing_lane { 0u };
-	kat::linear_grid::collaborative::block::share_per_warp_data(intra_warp_result, warp_reductions, warp_datum_sharing_lane);
+	static __shared__ T warp_reductions[warp_size];
+
+	auto intra_warp_result = kat::collaborative::warp::reduce<T, AccumulationOp>(value, op);
+
+	collaborative::block::share_per_warp_data(intra_warp_result, warp_reductions, gi::warp::first_lane);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
 	// phase
 
-	if (!AllThreadsObtainResult) {
+	if (not AllThreadsObtainResult) {
 		// We currently only guarantee the first thread has the final result,
 		// which is what allows most threads to return already:
-		if (!linear_grid::grid_info::warp::is_first_in_block()) { return op.neutral_value(); }
+		if (not gi::warp::is_first_in_block()) { return NeutralValue; }
 	}
 
-	__syncthreads(); // Perhaps a block fence is enough here?
+	collaborative::block::barrier(); // Perhaps we can do with something weaker here?
 
 	// shared memory now holds all intra-warp reduction results
 
 	// read from shared memory only if that warp actually existed
-	result_type other_warp_result  =
-		(grid_info::lane::index() < linear_grid::grid_info::block::num_warps()) ?
-		warp_reductions[grid_info::lane::index()] : op.neutral_value();
+	auto other_warp_result  = (gi::lane::id() < gi::block::num_warps()) ?
+		warp_reductions[gi::lane::id()] : NeutralValue;
 
-	return kat::collaborative::warp::reduce<ReductionOp>(other_warp_result);
+	return kat::collaborative::warp::reduce<T, AccumulationOp>(other_warp_result, op);
+		// TODO: Would it perhaps be faster to have only one warp compute this,
+		// and then use get_from_first_thread() ?
+}
+
+template<
+	typename T,
+	bool AllThreadsObtainResult = false>
+KAT_DEV T sum(T value)
+{
+	auto plus = [](T& x, T y) { x += y; };
+	return reduce<T, decltype(plus), AllThreadsObtainResult, T{}>(value, plus);
 }
 
 /**
@@ -264,28 +309,35 @@ KAT_DEV typename ReductionOp::result_type reduce(InputDatum value)
  * @param value
  * @return
  */
-template<
-	typename ReductionOp,
-	typename InputDatum,
-	bool Inclusivity = inclusivity_t::Inclusive>
- KAT_DEV typename ReductionOp::result_type scan(
-	 typename ReductionOp::result_type* __restrict__ scratch, // must have warp_size element allocated
-	 InputDatum value)
+template <
+	typename T,
+	typename AccumulationOp,
+	bool Inclusivity = inclusivity_t::Inclusive,
+	T NeutralValue = T{}
+>
+KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 {
-	using result_type = typename ReductionOp::result_type;
-	ReductionOp op;
+	auto intra_warp_inclusive_scan_result =	kat::collaborative::warp::scan<
+		T, AccumulationOp, inclusivity_t::Inclusive, NeutralValue >(value, op);
 
-	result_type intra_warp_inclusive_scan_result =
-		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(static_cast<result_type>(value));
+	auto last_active_lane_id =
+		// (AssumeFullWarps or not grid_info::warp::is_last_in_block()) ?
+		warp::last_lane
+		// : collaborative::warp::last_active_lane_index()
+		;
+
+	// Note: At the moment, we assume the block is not made up of full warps,
+	// as otherwise the last active lane may not be the last one - so no lane
+	// will write to shared memory. However, the assumptions is actually earlier,
+	// since our warp scan also assumes the participation of the full warp.
 
 	collaborative::block::share_per_warp_data(
-		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
-		// Note: if the block is not made up of full warps, this will fail,
-		// since the last warp will not have a lane to do the writing
+		intra_warp_inclusive_scan_result, scratch, last_active_lane_id);
+		// The last active lane writes, because only it has the whole warp's reduction value
 
-	__syncthreads();
+	collaborative::block::barrier();
 
-	// shared memory now holds all full-warp _reductions_;
+	// scratch buffer now holds all full-warp _reductions_;
 
 	if (warp::is_first_in_block()) {
 		// Note that for a block with less than warp_size warps, some of the lanes
@@ -294,25 +346,39 @@ template<
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaborative::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
-				scratch[lane::index()]);
-		scratch[lane::index()] = warp_reductions_scan_result;
+			kat::collaborative::warp::scan<T, AccumulationOp, inclusivity_t::Exclusive, NeutralValue>(
+				scratch[lane::id()], op);
+		scratch[lane::id()] = warp_reductions_scan_result;
 	}
-	__syncthreads();
 
+	collaborative::block::barrier();
 
-	auto inclusive_reduction_result_upto_previous_warp = scratch[warp::index()];
-	result_type intra_warp_scan_result;
+	auto r = scratch[warp::id()];
+	T intra_warp_scan_result;
 	if (Inclusivity == inclusivity_t::Inclusive) {
 		intra_warp_scan_result = intra_warp_inclusive_scan_result;
 	}
 	else {
-		result_type shuffled = shuffle_up(intra_warp_inclusive_scan_result, 1);
-		intra_warp_scan_result =
-			lane::is_first() ? op.neutral_value() : shuffled;
+		auto shuffled = shuffle_up(intra_warp_inclusive_scan_result, 1);
+		intra_warp_scan_result = lane::is_first() ? NeutralValue : shuffled;
 	}
-	return op(inclusive_reduction_result_upto_previous_warp, intra_warp_scan_result);
+	op(r, intra_warp_scan_result);
+	return r;
 }
+
+template <
+	typename T,
+	typename AccumulationOp,
+	bool Inclusivity = inclusivity_t::Inclusive,
+	T NeutralValue = T{}
+>
+KAT_DEV T scan(T value, AccumulationOp op)
+{
+	// Note the assumption there can no than warp_size warps per block
+	static __shared__ T scratch[warp_size];
+	return scan<T, AccumulationOp, Inclusivity, NeutralValue>(value, op, scratch);
+}
+
 
 /**
  * Perform both a block-level scan and a block-level reduction,
@@ -337,35 +403,44 @@ template<
  * in order of the thread indices
  * @param reduction_result the result of reducing all threads' input values
  */
-template<
-	typename ReductionOp,
-	typename InputDatum,
-	bool Inclusivity = inclusivity_t::Inclusive>
+template <
+	typename T,
+	typename AccumulationOp,
+	bool Inclusivity = inclusivity_t::Inclusive,
+	T NeutralValue = T{}
+>
  KAT_DEV void scan_and_reduce(
-	 typename ReductionOp::result_type* __restrict__ scratch, // must have warp_size element allocated
-	 InputDatum                                      value,
-	 typename ReductionOp::result_type&              scan_result,
-	 typename ReductionOp::result_type&              reduction_result)
+	 T* __restrict__ scratch, // must have as many elements as there are warps
+	 T               value,
+	 AccumulationOp  op,
+	 T&              scan_result,
+	 T&              reduction_result)
 {
-	using result_type = typename ReductionOp::result_type;
-	ReductionOp op;
-	typename ReductionOp::accumulator acc_op;
+	auto intra_warp_inclusive_scan_result = kat::collaborative::warp::scan<
+		T, AccumulationOp, inclusivity_t::Inclusive, NeutralValue>(value, op);
 
-	result_type intra_warp_inclusive_scan_result =
-		kat::collaborative::warp::scan<ReductionOp, InputDatum, inclusivity_t::Inclusive>(
-			static_cast<result_type>(value));
+	auto last_active_lane_id =
+		// (AssumeFullWarps or not grid_info::warp::is_last_in_block()) ?
+		warp::last_lane
+		// : collaborative::warp::last_active_lane_index()
+		;
+
+	// Note: At the moment, we assume the block is not made up of full warps,
+	// as otherwise the last active lane may not be the last one - so no lane
+	// will write to shared memory. However, the assumptions is actually earlier,
+	// since our warp scan also assumes the participation of the full warp.
 
 	collaborative::block::share_per_warp_data(
-		intra_warp_inclusive_scan_result, scratch, grid_info::warp::last_lane);
-		// Note: if the block is not made up of full warps, this will fail,
-		// since the last warp will not have a lane to do the writing
-
+		intra_warp_inclusive_scan_result, scratch, last_active_lane_id);
+		// The last active lane writes, because only it has the whole warp's reduction value
 
 	// scratch[i] now contains the reduction result of the data of all threads in
 	// the i'th warp of this block
 
 	auto num_warps = block::num_warps();
-	reduction_result = scratch[num_warps - 1];
+	auto partial_reduction_result = scratch[num_warps - 1];
+		// We're keeping this single-warp reduction result, since it will soon
+		// be overwritten
 
 	if (warp::is_first_in_block()) {
 		// Note that for a block with less than warp_size warps, some of the lanes
@@ -373,32 +448,59 @@ template<
 		// since these values will not effect the scan results of previous lanes,
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
-		auto warp_reductions_scan_result =
-			kat::collaborative::warp::scan<ReductionOp, result_type, inclusivity_t::Exclusive>(
-				scratch[lane::index()]);
-		scratch[lane::index()] = warp_reductions_scan_result;
+		auto other_warp_reduction_result = scratch[lane::id()];
+		auto warp_reductions_scan_result = kat::collaborative::warp::scan<
+			T, AccumulationOp, inclusivity_t::Exclusive, NeutralValue>(
+				other_warp_reduction_result, op);
+		scratch[lane::id()] = warp_reductions_scan_result;
 	}
-	__syncthreads();
+
+	collaborative::block::barrier();
 
 	// scratch[i] now contains the reduction result of the data of all threads in
 	// warps 0 ... i-1 of this block
 
-	acc_op(reduction_result, scratch[num_warps - 1]);
+	op(partial_reduction_result, scratch[num_warps - 1]);
+		// We had kept the last warp's reduction result, now we've taken
+		// the other warps into account as well
 
-	auto inclusive_reduction_result_upto_previous_warp = scratch[warp::index()];
+	auto partial_scan_result = scratch[warp::id()]; // only a partial result for now
 
 	// To finalize the computation, we now account for the requested scan inclusivity
 
-	result_type intra_warp_scan_result;
+	T intra_warp_scan_result;
 	if (Inclusivity == inclusivity_t::Inclusive) {
 		intra_warp_scan_result = intra_warp_inclusive_scan_result;
 	}
 	else {
-		result_type shuffled = shuffle_up(intra_warp_inclusive_scan_result, 1);
-		intra_warp_scan_result =
-			lane::is_first() ? op.neutral_value() : shuffled;
+		// Note: We don't have a de-accumulation operator.
+		// TODO: Version of this function taking a de-accumulation operator
+		// which avoid this shuffle
+		T shuffled = shuffle_up(intra_warp_inclusive_scan_result, 1);
+		intra_warp_scan_result = lane::is_first() ? NeutralValue : shuffled;
 	}
-	scan_result = op(inclusive_reduction_result_upto_previous_warp, intra_warp_scan_result);
+	op(partial_scan_result, intra_warp_scan_result);
+
+	reduction_result = partial_reduction_result;
+	scan_result = partial_scan_result;
+}
+
+template <
+	typename T,
+	typename AccumulationOp,
+	bool Inclusivity = inclusivity_t::Inclusive,
+	T NeutralValue = T{}
+>
+ KAT_DEV void scan_and_reduce(
+	 T               value,
+	 AccumulationOp  op,
+	 T&              scan_result,
+	 T&              reduction_result)
+{
+	// Note the assumption there can no than warp_size warps per block
+	static __shared__ T scratch[warp_size];
+	scan_and_reduce<T, AccumulationOp, Inclusivity, NeutralValue>(
+		scratch, value, op, scan_result, reduction_result);
 }
 
 /**
@@ -441,14 +543,15 @@ template<
  */
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
 KAT_FD void elementwise_accumulate(
+	AccumulatingOperation  op,
 	D*       __restrict__  destination,
 	const S* __restrict__  source,
 	Size                   length)
 {
-	AccumulatingOperation op;
-	for(promoted_size_t<Size> pos = thread::index(); pos < length; pos += block::size()) {
+	auto accumulate_in_element = [&](promoted_size_t<Size> pos) {
 		op(destination[pos], source[pos]);
-	}
+	};
+	at_block_stride(length, accumulate_in_element);
 }
 
 template <typename Operation, typename Size, typename ResultDatum, typename... Args>
