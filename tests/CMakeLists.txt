@@ -72,6 +72,7 @@ set(tests
 	block_collaboration
 	warp_collaboration
 	tuple
+	sequence_ops
 )
 
 if (BUILD_PRINTING_RELATED_TESTS)
