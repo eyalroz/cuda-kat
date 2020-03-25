@@ -25,6 +25,18 @@
 #define KAT_FHD __forceinline__ __host__ __device__
 #endif
 
+#ifndef KAT_ID
+#define KAT_ID  inline __device__
+#endif
+
+#ifndef KAT_IH
+#define KAT_IH  inline __host__
+#endif
+
+#ifndef KAT_IHD
+#define KAT_IHD inline __host__ __device__
+#endif
+
 #ifndef KAT_HD
 #define KAT_HD __host__ __device__
 #endif
@@ -49,6 +61,18 @@
 
 #ifndef KAT_FHD
 #define KAT_FHD inline
+#endif
+
+#ifndef KAT_ID
+#define KAT_ID inline
+#endif
+
+#ifndef KAT_IH
+#define KAT_IH inline
+#endif
+
+#ifndef KAT_IHD
+#define KAT_IHD inline
 #endif
 
 #ifndef KAT_HD
