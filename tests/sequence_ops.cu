@@ -68,7 +68,6 @@ __global__ void execute_testcase(
 	)
 {
 	testcase_device_function(num_values_to_populate, values_to_populate, inputs...);
-	kat::collaborative::block::barrier();
 }
 
 } // namespace kernels
