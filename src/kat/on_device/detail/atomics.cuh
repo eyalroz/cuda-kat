@@ -224,7 +224,7 @@ KAT_FD T compare_and_swap(T* address, T compare, T val)
 		(sizeof(T) == sizeof(int)) or (sizeof(T) == sizeof(unsigned long long int));
 
 	return detail::implementation::compare_and_swap<T>(
-		std::integral_constant<bool, can_cas_directly>{},
+		kat::bool_constant<can_cas_directly>{},
 		address, compare, val);
 }
 
@@ -299,7 +299,7 @@ KAT_FD T apply(UnaryFunction f, T* __restrict__ address)
 		(sizeof(T) == sizeof(int)) or (sizeof(T) == sizeof(unsigned long long int));
 
 	return detail::implementation::apply<UnaryFunction, T>(
-		std::integral_constant<bool, can_cas_directly>{}, f, address);
+		kat::bool_constant<can_cas_directly>{}, f, address);
 }
 
 template <typename Function, typename T, typename... Ts>
@@ -351,7 +351,7 @@ KAT_FD T increment(
 	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
 
 	return detail::implementation::increment<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, wraparound_value);
 }
 
@@ -398,7 +398,7 @@ KAT_FD T decrement (
 	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
 
 	return detail::implementation::decrement<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, wraparound_value);
 }
 
@@ -535,8 +535,8 @@ KAT_FD T add(T*  address, T val)
 #endif
 		;
 	return detail::implementation::add<T>(
-		std::integral_constant<bool, can_act_directly>{},
-		//std::integral_constant<bool, false>{},
+		kat::bool_constant<can_act_directly>{},
+		//kat::bool_constant<false>{},
 		address, val);
 }
 
@@ -548,7 +548,7 @@ KAT_FD T subtract (T*  address, T val)
 		or std::is_same< T,unsigned           >::value
 		;
 	return detail::implementation::subtract<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -557,7 +557,7 @@ KAT_FD T exchange (T*  address, T val)
 {
 	constexpr bool can_act_directly = (sizeof(T) == 4) or (sizeof(T) == 8);
 	return detail::implementation::exchange<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -577,7 +577,7 @@ KAT_FD T min (T*  address, T val)
 #endif
 		;
 	return detail::implementation::min<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -597,7 +597,7 @@ KAT_FD T max (T*  address, T val)
 #endif
 		;
 	return detail::implementation::max<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -617,7 +617,7 @@ KAT_FD T bitwise_and (T*  address, T val)
 #endif
 		;
 	return detail::implementation::bitwise_and<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -637,7 +637,7 @@ KAT_FD T bitwise_or (T*  address, T val)
 #endif
 		;
 	return detail::implementation::bitwise_or<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -657,7 +657,7 @@ KAT_FD T bitwise_xor (T*  address, T val)
 #endif
 		;
 	return detail::implementation::bitwise_xor<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 

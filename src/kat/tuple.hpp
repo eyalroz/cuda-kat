@@ -640,7 +640,7 @@ struct tuple_convertible_impl : public std::false_type
 
 template <typename... FromTypes, typename... ToTypes>
 struct tuple_convertible_impl<true, tuple_types<FromTypes...>,	tuple_types<ToTypes...>>
-	: public std::integral_constant<bool, conjunction<std::is_convertible<FromTypes, ToTypes>...>::value>
+	: public kat::bool_constant<conjunction<std::is_convertible<FromTypes, ToTypes>...>::value>
 {
 };
 
