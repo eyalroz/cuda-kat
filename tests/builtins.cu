@@ -10,8 +10,6 @@
 #include <kat/on_device/collaboration/block.cuh>
 
 using std::size_t;
-using fake_bool = int8_t; // so as not to have trouble with vector<bool>
-static_assert(sizeof(bool) == sizeof(fake_bool), "unexpected size mismatch");
 
 #if __cplusplus < 201701L
 #include <experimental/optional>

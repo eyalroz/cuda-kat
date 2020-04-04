@@ -1,7 +1,7 @@
 #ifndef CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 #define CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 
-#include <cuda/api/types.hpp>
+#include <cuda/api_wrappers.hpp>
 #include <doctest.h>
 
 #include <algorithm>
@@ -9,6 +9,10 @@
 #include <type_traits>
 #include <iterator>
 #include <utility>
+
+using fake_bool = int8_t; // so as not to have trouble with vector<bool>
+static_assert(sizeof(bool) == sizeof(fake_bool), "unexpected size mismatch");
+
 
 template <typename I>
 constexpr inline I round_up(I x, I quantum) { return (x % quantum) ? (x + (quantum - (x % quantum))) : x; }
@@ -100,11 +104,38 @@ const char* current_test_name() { return doctest::detail::g_cs->currentTest->m_n
 // #ifdef __GNUC__
 template <typename T>
 [[gnu::warning("Artificial warning to print a type name - please ignore")]]
-void print_type() noexcept { return; }
+inline void print_type() noexcept { return; }
 
 template <typename T>
 [[gnu::warning("Artificial warning to print a type name - please ignore")]]
-void print_type_of(T&& x) noexcept{ return; }
+inline void print_type_of(T&& x) noexcept{ return; }
 // #endif
+
+namespace kernels {
+
+template <typename T, typename Size>
+__global__ void fill(T* buffer, T value, Size length)
+{
+	// essentially, grid-level fill
+	Size num_grid_threads = blockDim.x * gridDim.x;
+	for(Size pos = threadIdx.x + blockIdx.x * blockDim.x;
+		pos < length;
+		pos += num_grid_threads)
+	{
+		buffer[pos] = value;
+	}
+}
+
+}
+
+cuda::launch_configuration_t
+make_busy_config(cuda::device_t& device) {
+	auto prop = device.properties();
+	auto sm_busy_factor = 2;
+	auto num_blocks = prop.multiProcessorCount * sm_busy_factor;
+	auto block_busy_factor = 4; // probably not the right number
+	auto num_threads_per_block = cuda::warp_size * block_busy_factor;
+	return cuda::make_launch_config(num_blocks, num_threads_per_block);
+}
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */

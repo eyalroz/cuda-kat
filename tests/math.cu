@@ -360,24 +360,6 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 
 } // namespace kernels
 
-// TODO:
-// * Test between_or_equal and strictly_between with differing types for all 3 arguments
-// * Some floating-point tests
-// * gcd tests with values of different types
-// * Some tests with negative values
-
-#define INSTANTIATE_CONSTEXPR_MATH_TEST(_tp) \
-	compile_time_execution_results<_tp> UNIQUE_IDENTIFIER(test_struct_); \
-
-#define INTEGER_TYPES \
-	int8_t, int16_t, int32_t, int64_t, \
-	uint8_t, uint16_t, uint32_t, uint64_t, \
-	char, short, int, long, long long, \
-	signed char, signed short, signed int, signed long, signed long long, \
-	unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
-
-
-
 TEST_SUITE("math") {
 
 TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)

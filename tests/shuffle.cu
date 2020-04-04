@@ -91,37 +91,6 @@ __global__ void test_arbitrary_shuffle(
 
 } // namespace kernels
 
-// TODO:
-// * Test between_or_equal and strictly_between with differing types for all 3 arguments
-// * Some floating-point tests
-// * gcd tests with values of different types
-// * Some tests with negative values
-
-#define INSTANTIATE_CONSTEXPR_MATH_TEST(_tp) \
-	compile_time_execution_results<_tp> UNIQUE_IDENTIFIER(test_struct_); \
-
-#define INTEGER_TYPES \
-	int8_t, int16_t, \
-	int32_t, int64_t, \
-	uint8_t, uint16_t, uint32_t, uint64_t, \
-	char, short, int, long, long long, \
-	signed char, signed short, signed int, signed long, signed long long, \
-	unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
-
-#define FLOAT_TYPES float, double
-
-#define ARRAY_TYPES_BY_SIZE  \
-	kat::array<uint8_t, 4>, \
-	kat::array<uint8_t, 7>, \
-	kat::array<uint8_t, 8>, \
-	kat::array<uint8_t, 9>, \
-	kat::array<uint8_t, 15>, \
-	kat::array<uint8_t, 16>, \
-	kat::array<uint8_t, 17>, \
-	kat::array<uint8_t, 31>, \
-	kat::array<uint8_t, 32>, \
-	kat::array<uint8_t, 33>
-
 constexpr const auto num_full_warps { 2 }; // this is aribtrary; didn't just want to have 1.
 constexpr const auto block_size { num_full_warps * kat::warp_size };
 
