@@ -68,7 +68,12 @@ template <typename F> KAT_FD F divide(F dividend, F divisor);
  */
 template <typename F> KAT_FD F clamp_to_unit_segment(F x);
 
-template <typename T> KAT_FD T absolute_value(T x);
+template <typename T> KAT_FD T absolute_value(T x)
+{
+	static_assert(std::is_unsigned<T>::value,
+		"There is no generic implementation of absolute value for signed types, only for a few specific ones");
+	return x;
+}
 template <typename T> KAT_FD T minimum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 template <typename T> KAT_FD T maximum(T x, T y) = delete; // don't worry, it's not really deleted for all types
 

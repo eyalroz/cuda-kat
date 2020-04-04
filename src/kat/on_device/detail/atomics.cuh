@@ -37,6 +37,7 @@
 
 #include <kat/on_device/common.cuh>
 #include <kat/on_device/builtins.cuh>
+#include <kat/on_device/math.cuh>
 #include <device_atomic_functions.h>
 #if (CUDART_VERSION >= 8000)
 #include <sm_60_atomic_functions.h>
@@ -247,6 +248,17 @@ KAT_FD T apply(std::true_type, UnaryFunction f, T* __restrict__ address)
 	return newest_value_found_at_addr;
 }
 
+/**
+ * Applies a unary function, essentially-atomically, to a value in memory, returning the value
+ * before the function was applied
+ *
+ * @param address the memory location of the value to apply a function to
+ * @param f unary function to apply to the value at @p address
+ * @return existing value before the application of @p f
+ *
+ * @note Since we can't directly compare-and-set the target value in memory, we'll work on
+ * a slightly larger bit of memory including it.
+ */
 template <typename UnaryFunction, typename T>
 KAT_FD T apply(std::false_type, UnaryFunction f, T* __restrict__ address)
 {
@@ -285,6 +297,14 @@ KAT_FD T apply(std::false_type, UnaryFunction f, T* __restrict__ address)
 } // namespace implementation
 } // namespace detail
 
+/**
+ * Applies a unary function, atomically, to a value in memory, returning the value
+ * before the function was applied
+ *
+ * @param address the memory location of the value to apply a function to
+ * @param f unary function to apply to the value at @p address
+ * @return existing value before the application of @p f
+ */
 template <typename UnaryFunction, typename T>
 KAT_FD T apply(UnaryFunction f, T* __restrict__ address)
 {
@@ -319,11 +339,11 @@ namespace implementation {
 
 template <typename T>
 KAT_FD T increment(
-	std::true_type,
+	std::true_type, // can use a builtin atomic increment
 	T*  address,
 	T   wraparound_value)
 {
-	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
+	static_assert(sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value, "invalid type");
 	return (T) (atomicInc(
 		reinterpret_cast<unsigned int*      >(address),
 		reinterpret_cast<const unsigned int&>(wraparound_value)
@@ -332,11 +352,16 @@ KAT_FD T increment(
 
 template <typename T>
 KAT_FD T increment(
-	std::false_type,
+	std::false_type, // can't use a builtin atomic increment
 	T*  address,
 	T   wraparound_value)
 {
-	auto do_increment = [](T existing_value, T wraparound) -> T { return existing_value >= wraparound ? T{0} : T{existing_value+1}; };
+	auto do_increment = [](T existing_value, T wraparound) -> T {
+		return existing_value >= wraparound ?
+			T{0} :
+			T(existing_value+1);
+				// Note the possibility of overflow here when wraparound_value is std::numeric_limits<T>::max()
+	};
 	return atomic::apply(do_increment, address, wraparound_value);
 }
 
@@ -348,7 +373,8 @@ KAT_FD T increment(
 	T*  address,
 	T   wraparound_value)
 {
-	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
+	constexpr const bool can_act_directly =
+		(sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value);
 
 	return detail::implementation::increment<T>(
 		kat::bool_constant<can_act_directly>{},
@@ -364,10 +390,11 @@ KAT_FD T decrement (
 	T*  address,
 	T   wraparound_value)
 {
-	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
+	static_assert(
+		sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value, "invalid type");
 	return (T) (atomicDec(
-		reinterpret_cast<unsigned int*      >(address),
-		reinterpret_cast<const unsigned int&>(wraparound_value)
+		reinterpret_cast<unsigned int*     >(address),
+		wraparound_value
 	));
 }
 
@@ -378,13 +405,13 @@ KAT_FD T decrement (
 	T   wraparound_value)
 {
 	auto do_decrement =
-		[](auto existing_value, auto wraparound) -> T {
+		[=](T existing_value) -> T {
 			return
-				((existing_value <= 0) or (existing_value >= wraparound)) ?
-				wraparound - 1 :
+				((existing_value <= 0) or (existing_value >= wraparound_value)) ?
+				wraparound_value - 1 :
 				existing_value - 1;
 		};
-	return apply(do_decrement, address, wraparound_value);
+	return kat::atomic::apply(do_decrement, address);
 }
 
 } // namespace implementation
@@ -395,7 +422,8 @@ KAT_FD T decrement (
 	T*  address,
 	T   wraparound_value)
 {
-	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
+	constexpr bool can_act_directly = (
+		sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value);
 
 	return detail::implementation::decrement<T>(
 		kat::bool_constant<can_act_directly>{},
@@ -474,7 +502,7 @@ KAT_FD T min(std::true_type, T*  address, T val)
 template <typename T>
 KAT_FD T min(std::false_type, T* address, T val)
 {
-	auto do_min = [](T existing_value, T x) -> T { return builtins::minimum(existing_value, x); };
+	auto do_min = [](T existing_value, T x) -> T { return kat::minimum(existing_value, x); };
 	return kat::atomic::apply(do_min, address, val);
 }
 
@@ -487,8 +515,14 @@ KAT_FD T max(std::true_type, T*  address, T val)
 template <typename T>
 KAT_FD T max(std::false_type, T* address, T val)
 {
-	auto do_max = [](T existing_value, T x) -> T { return builtins::maximum(existing_value, x); };
+	auto do_max = [](T existing_value, T x) -> T { return kat::maximum(existing_value, x); };
 	return kat::atomic::apply(do_max, address, val);
+}
+
+template <typename T>
+KAT_FD T bitwise_and(std::true_type, T* address, T val)
+{
+	return ::atomicAnd(address, val);
 }
 
 template <typename T>
@@ -499,10 +533,22 @@ KAT_FD T bitwise_and(std::false_type, T* address, T val)
 }
 
 template <typename T>
+KAT_FD T bitwise_or(std::true_type, T* address, T val)
+{
+	return ::atomicOr(address, val);
+}
+
+template <typename T>
 KAT_FD T bitwise_or(std::false_type, T* address, T val)
 {
 	auto do_or = [](T existing_value, T x) -> T { return existing_value | x; };
 	return kat::atomic::apply(do_or, address, val);
+}
+
+template <typename T>
+KAT_FD T bitwise_xor(std::true_type, T* address, T val)
+{
+	return ::atomicXor(address, val);
 }
 
 template <typename T>
@@ -569,6 +615,8 @@ KAT_FD T min (T*  address, T val)
 		   std::is_same< T,int                >::value
 		or std::is_same< T,unsigned           >::value
 #if  CUDA_ARCH >= 350
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
 #endif
@@ -589,6 +637,8 @@ KAT_FD T max (T*  address, T val)
 		   std::is_same< T,int                >::value
 		or std::is_same< T,unsigned           >::value
 #if  CUDA_ARCH >= 350
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
 #endif
@@ -611,6 +661,8 @@ KAT_FD T bitwise_and (T*  address, T val)
 #if  CUDA_ARCH >= 350
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 #endif
 #else
 		false
@@ -631,6 +683,8 @@ KAT_FD T bitwise_or (T*  address, T val)
 #if  CUDA_ARCH >= 350
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 #endif
 #else
 		false
@@ -651,6 +705,8 @@ KAT_FD T bitwise_xor (T*  address, T val)
 #if  CUDA_ARCH >= 350
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 #endif
 #else
 		false
@@ -679,14 +735,14 @@ KAT_FD T logical_or(T* address, T val)
 }
 
 template <typename T>
-KAT_FD T logical_xor(std::false_type, T* address, T val)
+KAT_FD T logical_xor(T* address, T val)
 {
-	auto do_logical_xor = [](T existing_value, T x) -> T { return (existing_value and not x) or (not existing_value and x); };
+	auto do_logical_xor = [](T existing_value, T x) -> T { return (existing_value and (not x)) or ((not existing_value) and x); };
 	return kat::atomic::apply(do_logical_xor, address, val);
 }
 
 template <typename T>
-KAT_FD T logical_not(std::false_type, T* address)
+KAT_FD T logical_not(T* address)
 {
 	auto do_logical_not = [](T existing_value) -> T { return not existing_value; };
 	return kat::atomic::apply(do_logical_not, address);
@@ -702,14 +758,14 @@ KAT_FD T bitwise_not (T* address)
 template <typename T>
 KAT_FD T set_bit (T* address, native_word_t bit_index)
 {
-	auto f = [](T existing_value, native_word_t x) -> T { return existing_value | 1 << x; };
+	auto f = [](T existing_value, native_word_t x) -> T { return existing_value | (T(1) << x); };
 	return apply(f, address, bit_index);
 }
 
 template <typename T>
 KAT_FD T unset_bit (T* address, native_word_t bit_index)
 {
-	auto f = [](T existing_value, native_word_t x) -> T { return existing_value & ~(1 << x); };
+	auto f = [](T existing_value, native_word_t x) -> T { return existing_value & ~(T(1) << x); };
 	return apply(f, address, bit_index);
 }
 
