@@ -75,11 +75,6 @@ template <> KAT_FD long               absolute_value<long               >(long x
 template <> KAT_FD long long          absolute_value<long long          >(long long x)          { return llabs(x); }
 template <> KAT_FD float              absolute_value<float              >(float x)              { return fabsf(x); }
 template <> KAT_FD double             absolute_value<double             >(double x)             { return fabs(x);  }
-template <> KAT_FD unsigned char      absolute_value<unsigned char      >(unsigned char x)      { return x;        }
-template <> KAT_FD unsigned short     absolute_value<unsigned short     >(unsigned short x)     { return x;        }
-template <> KAT_FD unsigned           absolute_value<unsigned           >(unsigned x)           { return x;        }
-template <> KAT_FD unsigned long      absolute_value<unsigned long      >(unsigned long x)      { return x;        }
-template <> KAT_FD unsigned long long absolute_value<unsigned long long >(unsigned long long x) { return x;        }
 
 template <> KAT_FD unsigned           bit_reverse<unsigned          >(unsigned x)           { return __brev(x);   }
 template <> KAT_FD unsigned long long bit_reverse<unsigned long long>(unsigned long long x) { return __brevll(x); }

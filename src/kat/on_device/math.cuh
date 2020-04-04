@@ -139,6 +139,84 @@ KAT_FD unsigned log2(I x) {
 	return I{CHAR_BIT * sizeof(I) - I{1} } - detail::count_leading_zeros<I>(x);
 }
 
+namespace detail {
+
+template <typename T> KAT_FD T minimum(std::integral_constant<bool, false>, T x, T y)
+{
+	return x < y ? x : y;
+}
+
+template <typename T> KAT_FD T minimum(std::integral_constant<bool, true>, T x, T y)
+{
+	return builtins::minimum(x, y);
+}
+
+
+template <typename T> KAT_FD T maximum(std::integral_constant<bool, false>, T x, T y)
+{
+	return x > y ? x : y;
+}
+
+template <typename T> KAT_FD T maximum(std::integral_constant<bool, true>, T x, T y)
+{
+	return builtins::maximum(x, y);
+}
+
+template <typename T> KAT_FD T absolute_value(std::integral_constant<bool, false>, T x)
+{
+	return (std::is_unsigned<T>::value or x >= 0) ? x : -x;
+}
+
+template <typename T> KAT_FD T absolute_value(std::integral_constant<bool, true>, T x)
+{
+	return builtins::absolute_value(x);
+}
+
+} // namespace detail
+
+template <typename T> KAT_FD T minimum(T x, T y)
+{
+	// TODO: Check at compile-time whether the builtin is instantiated or not - without duplication the list of types here
+	return detail::minimum(std::integral_constant<bool,
+		std::is_same<T, int                >::value or
+		std::is_same<T, unsigned int       >::value or
+		std::is_same<T, long               >::value or
+		std::is_same<T, unsigned long      >::value or
+		std::is_same<T, long long          >::value or
+		std::is_same<T, unsigned long long >::value or
+		std::is_same<T, float              >::value or
+		std::is_same<T, double             >::value>{},
+		x, y);
+}
+
+template <typename T> KAT_FD T maximum(T x, T y)
+{
+	// TODO: Check at compile-time whether the builtin is instantiated or not - without duplication the list of types here
+	return detail::maximum(std::integral_constant<bool,
+		std::is_same<T, int                >::value or
+		std::is_same<T, unsigned int       >::value or
+		std::is_same<T, long               >::value or
+		std::is_same<T, unsigned long      >::value or
+		std::is_same<T, long long          >::value or
+		std::is_same<T, unsigned long long >::value or
+		std::is_same<T, float              >::value or
+		std::is_same<T, double             >::value>{},
+		x, y);
+}
+
+template <typename T> KAT_FD T absolute_value(T x)
+{
+	// TODO: Check at compile-time whether the builtin is instantiated or not - without duplication the list of types here
+	return detail::absolute_value(std::integral_constant<bool,
+		std::is_unsigned<T>::value or
+		std::is_same<T, int                >::value or
+		std::is_same<T, long               >::value or
+		std::is_same<T, long long          >::value or
+		std::is_same<T, float              >::value or
+		std::is_same<T, double             >::value>{},
+		x);
+}
+
 } // namespace kat
 
 #endif // CUDA_KAT_ON_DEVICE_MATH_CUH_
