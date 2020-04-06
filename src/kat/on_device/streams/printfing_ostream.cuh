@@ -9,7 +9,7 @@
 #ifndef CUDA_KAT_ON_PRINTFING_STREAM_CUH_
 #define CUDA_KAT_ON_PRINTFING_STREAM_CUH_
 
-#include <kat/on_device/streams/stringstream.hpp>
+#include <kat/on_device/streams/stringstream.cuh>
 #include <kat/on_device/grid_info.cuh>
 
 ///@cond
@@ -37,23 +37,23 @@ public:
 	enum class resolution { thread, warp, block, grid };
 
 	KAT_DEV printfing_ostream(std::size_t initial_buffer_size = cout_initial_buffer_size) : main_buffer(initial_buffer_size) { }
-	STRF_HD printfing_ostream(printfing_ostream&& other) : main_buffer(other.main_buffer) { }
-	STRF_HD printfing_ostream(const printfing_ostream& other) : main_buffer(other.main_buffer) { }
-    STRF_HD ~printfing_ostream();
+	KAT_DEV printfing_ostream(printfing_ostream&& other) : main_buffer(other.main_buffer) { }
+	KAT_DEV printfing_ostream(const printfing_ostream& other) : main_buffer(other.main_buffer) { }
+    KAT_DEV ~printfing_ostream();
 
     // Note: You can also use strf::flush if that exists
 	KAT_DEV void flush()
 	{
 		if (not newline_on_flush and main_buffer.tellp() == 0) {
-			// Note: Returning even though the string here might end up being
-			// non-empty due to the prefix generation.
+			// Note: Returning even though we could have a prefix
 			return;
 		}
 
-		if (not should_act_for_resolution(printing_resolution)) {
-				return;
+		if (not should_act_for_resolution(printing_resolution_)) {
+			return;
 		}
 		if (use_prefix) {
+			// The prefix is re-generated as necessary
 			prefix_generator(prefix);
 			printf(newline_on_flush ? "%*s%*s\n" : "%*s%*s",
 				prefix.tellp(), prefix.c_str(),
@@ -64,7 +64,8 @@ public:
 				main_buffer.tellp(), main_buffer.c_str()
 			);
 		}
-		main_buffer.seekp(0);
+		main_buffer.clear();
+		prefix.clear(); // We're not caching the prefix
 	}
 
 protected:
@@ -84,7 +85,7 @@ public:
 	template <typename T>
 	KAT_DEV printfing_ostream& operator<<(const T& arg)
 	{
-		if (not should_act_for_resolution(printing_resolution)) { return *this; }
+		if (not should_act_for_resolution(printing_resolution_)) { return *this; }
 		strf::print_preview<false, false> no_preview;
 		strf::make_printer<char>(strf::rank<5>(), strf::pack(), no_preview, arg).print_to(main_buffer);
 		return *this;
@@ -101,6 +102,7 @@ public:
 	{
 		use_prefix = false;
 		prefix_generator = nullptr;
+		prefix.clear(); // Maybe we should set it to a stringstream of size 0?
 		return *this;
 	}
 
@@ -123,14 +125,18 @@ public:
 		return *this;
 	}
 
-	// Also clears the prefix - as that's assumed to have been resolution-related
-	KAT_DEV printfing_ostream& set_resolution(resolution new_resolution)
+	// Drops whatever's in the buffer. Also clears the prefix -
+	// as that's assumed to have been resolution-related
+	KAT_DEV printfing_ostream& set_printing_resolution(resolution new_resolution)
 	{
 		main_buffer.clear();
 		no_prefix();
-		printing_resolution = new_resolution;
+		printing_resolution_ = new_resolution;
 		return *this;
 	}
+
+	// Also clears the prefix - as that's assumed to have been resolution-related
+	KAT_DEV resolution printing_resolution() const { return printing_resolution_; }
 
 protected:
 	kat::stringstream main_buffer;
@@ -153,7 +159,7 @@ protected:
 	// By default, all grid threads print; but we may want a printing only once per each warp, or block etc;
 	// that resolution is controlled by this variable.
 
-	resolution printing_resolution { resolution::thread };
+	resolution printing_resolution_ { resolution::thread };
 
 };
 
@@ -174,7 +180,7 @@ KAT_FD kat::printfing_ostream& newline_on_flush( kat::printfing_ostream& os ) { 
 // fails on the host side, but that would be too much of a lie.
 #ifdef __CUDA_ARCH__
 
-STRF_HD printfing_ostream::~printfing_ostream()
+KAT_DEV printfing_ostream::~printfing_ostream()
 {
 	this->flush();
 }
@@ -213,7 +219,7 @@ KAT_DEV printfing_ostream& operator<< (printfing_ostream& os, manipulators::pref
 
 namespace manipulators {
 KAT_DEV auto resolution(printfing_ostream::resolution new_resolution) {
-	return [new_resolution](kat::printfing_ostream& os) { return os.set_resolution(new_resolution); };
+	return [new_resolution](kat::printfing_ostream& os) { return os.set_printing_resolution(new_resolution); };
 }
 } // namespace manipulators
 
@@ -234,5 +240,7 @@ using manipulators::flush;
 using manipulators::endl;
 
 } // namespace kat
+
+#include <kat/on_device/streams/prefix_generators.cuh>
 
 #endif // CUDA_KAT_ON_PRINTFING_STREAM_CUH_

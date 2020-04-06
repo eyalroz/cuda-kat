@@ -1,5 +1,5 @@
 /**
- * @file on_device/string_stream.cuh
+ * @file on_device/streams/stringstream.cuh
  *
  * @brief A string stream class for CUDA device-side code (usable by individual threads).
  *
@@ -17,7 +17,6 @@
 
 // Necessary for printf()'ing in kernel code
 #include <cstdio>
-// #include <cstdarg>
 
 ///@cond
 #include <kat/detail/execution_space_specifiers.hpp>
@@ -62,6 +61,7 @@ public:
 	using pos_type = std::size_t;
 
 protected:
+	// Note: initial_buffer_size + 1 bytes must be allocated
 	STRF_HD stringstream(char_type* initial_buffer, std::size_t initial_buffer_size) :
 		buffer_size(initial_buffer_size),
 		buffer(initial_buffer),
@@ -99,12 +99,15 @@ public:
 
 	KAT_DEV void clear()
 	{
+		set_pos(buffer);
+		flush();
+	}
+
+	KAT_DEV void flush() {
 		if (buffer != nullptr) {
 			*pos() = '\0';
 		}
 	}
-
-	KAT_DEV void flush() { clear(); }
 
 	// should be able to produce an std-string-like proxy supporting a c_str() method, rather
 	// than providing a c_str() directly.
@@ -178,7 +181,6 @@ STRF_HD stringstream::stringstream(std::size_t initial_buffer_size)
 
 KAT_DEV void stringstream::recycle()
 {
-	// printf("recycle()! ... from size buffer_size =  %llu" , buffer_size);
 	std::size_t used_size = (buffer_size == 0) ? 0 : (this->pos() - buffer);
 	// a postcondition of recycle() is that at least so much free space is available.
 	auto new_buffer_size = builtins::maximum(
