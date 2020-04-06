@@ -1,8 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
 #include "util/type_name.hpp"
+#include "util/miscellany.cuh"
 #include <kat/on_device/streams/printfing_ostream.cuh>
 #include <kat/on_device/collaboration/block.cuh>
+#include <kat/on_device/time.cuh>
 
 #include <doctest.h>
 #include <cuda/api_wrappers.hpp>
@@ -18,6 +20,7 @@ KAT_DEV kat::stringstream& operator<<(kat::stringstream& os, const util::constex
 }
 
 namespace kernels {
+
 
 __global__ void stream_different_types_to_stringstream()
 {
@@ -42,6 +45,36 @@ __global__ void stream_to_stringstream_templated()
 	ss << "A default-initialized value of type T (" << util::type_name<T>() << "): " << T{} << '\n';
     printf("The stringstream contents:\n%s", ss.c_str());
 }
+
+__global__ void use_formatting_functions()
+{
+	kat::stringstream ss(stringstream_buffer_size);
+	auto width = 8;
+	ss << "No actual formatting, just wrapping in strf::fmt():\n";
+	ss << strf::fmt(123) << '\n';
+	ss << "Hexadecimal:\n";
+	ss << strf::hex(123) << '\n';
+	ss << "Octal:\n";
+	ss << strf::oct(123) << '\n';
+	ss << "Binary:\n";
+	ss << strf::bin(123) << '\n';
+	ss << "Set fill character, without setting width:\n";
+	ss << strf::fmt(123).fill('0') << '\n';
+	ss << "Set fill character, set width of " << width << ", right alignment; then a space and more text:\n";
+	ss << (strf::fmt(123).fill('0') > width) << " and more text\n";
+	ss << "Set fill character, set width of " << width << ", left alignment; then a space more text:\n";
+	ss << (strf::fmt(123).fill('0') < width) << " and more text\n";
+	ss << "Set fill character, set width of " << width << ", center alignment; then a space more text:\n";
+	ss << (strf::fmt(123).fill('0') ^ width) << " and more text\n";
+	ss << "Set fill character, set width of " << width << ", internal fill using hex; then a space more text:\n";
+	ss << (strf::fmt(123).fill('0').hex() % width) << " and more text\n";
+	// TODO: More strf formatting functions
+
+	ss << "strf::right(0,2,'0') gives " << strf::right(0, 2, '0');
+
+    printf("The stringstream contents: \"%s\"\n\n", ss.c_str());
+}
+
 
 __global__ void use_stringstream()
 {
@@ -153,6 +186,65 @@ __global__ void stream_manipulators_into_printfing_ostream()
 //	cout << strf::join_right(15,'*')("joined right") << '\n' << flush;
 }
 
+
+__device__ const char* to_string(kat::printfing_ostream::resolution res)
+{
+	switch(res) {
+	case kat::printfing_ostream::resolution::thread : return "thread";
+	case kat::printfing_ostream::resolution::warp   : return "warp";
+	case kat::printfing_ostream::resolution::block  : return "block";
+	case kat::printfing_ostream::resolution::grid   : return "grid";
+	}
+	return nullptr;
+}
+
+__global__ void print_at_different_resolutions()
+{
+	kat::printfing_ostream cout;
+	using kat::flush;
+	namespace gi = kat::linear_grid::grid_info;
+
+	cout << kat::manipulators::resolution(kat::printfing_ostream::resolution::grid);
+	cout << "Printing at grid resolution. The printing thread is (" << blockIdx.x << "," << threadIdx.x << ")\n" << flush;
+
+
+
+	cout << kat::manipulators::resolution(kat::printfing_ostream::resolution::warp);
+	cout << "Printing at warp resolution. The printing thread is (" << blockIdx.x << "," << threadIdx.x << ")\n" << flush;
+
+	cout << kat::manipulators::resolution(kat::printfing_ostream::resolution::thread);
+	cout << "Printing at thread resolution. The printing thread is (" << blockIdx.x << "," << threadIdx.x << ")\n" << flush;
+}
+
+__device__ void sipo_for_resolution(kat::printfing_ostream& os, kat::printfing_ostream::resolution res)
+{
+	os
+		<< kat::manipulators::resolution(res)
+		<< kat::linear_grid::manipulators::identify
+		<< "Printing to a self-identifying ostream with resolution "
+		<< to_string(os.printing_resolution())
+		<< kat::endl;
+}
+
+__global__ void self_identifying_printfing_ostream()
+{
+	kat::printfing_ostream cout;
+	using kat::flush;
+	namespace gi = kat::linear_grid::grid_info;
+
+	sipo_for_resolution(cout, kat::printfing_ostream::resolution::grid);
+
+	kat::sleep<kat::sleep_resolution::clock_cycles>(1e8);
+
+	sipo_for_resolution(cout, kat::printfing_ostream::resolution::block);
+	__syncthreads();
+	sipo_for_resolution(cout, kat::printfing_ostream::resolution::warp);
+	__syncthreads();
+	sipo_for_resolution(cout, kat::printfing_ostream::resolution::thread);
+	__syncthreads();
+}
+
+
 } // namespace kernels
 
 TEST_SUITE("printing") {
@@ -160,10 +252,9 @@ TEST_SUITE("printing") {
 	TEST_CASE("use_stringstream")// INTEGER_TYPES)
 	{
 		auto device { cuda::device::current::get() };
-			// TODO: Test shuffles with non-full warps.
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::use_stringstream, launch_config);
+		cuda::launch(kernels::use_stringstream, launch_config);
 		cuda::outstanding_error::ensure_none();
 
 		// TODO: We could redirect the standard output stream into a buffer before launching the kernel,
@@ -175,10 +266,9 @@ TEST_SUITE("printing") {
 	TEST_CASE("use_zero_initialized_stringstream")
 	{
 		auto device { cuda::device::current::get() };
-			// TODO: Test shuffles with non-full warps.
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::use_zero_initialized_stringstream, launch_config);
+		cuda::launch(kernels::use_zero_initialized_stringstream, launch_config);
 		cuda::outstanding_error::ensure_none();
 
 		// TODO: We could redirect the standard output stream into a buffer before launching the kernel,
@@ -190,10 +280,9 @@ TEST_SUITE("printing") {
 	TEST_CASE("stream_different_types_to_stringstream")
 	{
 		auto device { cuda::device::current::get() };
-			// TODO: Test shuffles with non-full warps.
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::stream_different_types_to_stringstream, launch_config);
+		cuda::launch(kernels::stream_different_types_to_stringstream, launch_config);
 		cuda::outstanding_error::ensure_none();
 
 		// TODO: We could redirect the standard output stream into a buffer before launching the kernel,
@@ -205,32 +294,30 @@ TEST_SUITE("printing") {
 	TEST_CASE_TEMPLATE("stream_to_stringstream_templated", T, long long int, short)
 	{
 		auto device { cuda::device::current::get() };
-			// TODO: Test shuffles with non-full warps.
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::stream_to_stringstream_templated<T>, launch_config);
+		cuda::launch(kernels::stream_to_stringstream_templated<T>, launch_config);
 		cuda::outstanding_error::ensure_none();
 
 		device.synchronize();
 	}
 
-	TEST_CASE("use_printfing_ostream")
+	TEST_CASE("use_formatting_functions")
 	{
 		auto device { cuda::device::current::get() };
-			// TODO: Test shuffles with non-full warps.
 		device.reset();
-		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::use_printfing_ostream, launch_config);
+		cuda::launch(kernels::use_formatting_functions, single_thread_launch_config());
 		cuda::outstanding_error::ensure_none();
 		device.synchronize();
 	}
+
 
 	TEST_CASE("use_printfing_ostream")
 	{
 		auto device { cuda::device::current::get() };
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::use_printfing_ostream, launch_config);
+		cuda::launch(kernels::use_printfing_ostream, launch_config);
 		cuda::outstanding_error::ensure_none();
 		device.synchronize();
 	}
@@ -240,7 +327,7 @@ TEST_SUITE("printing") {
 		auto device { cuda::device::current::get() };
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::printfing_ostream_settings, launch_config);
+		cuda::launch(kernels::printfing_ostream_settings, launch_config);
 		cuda::outstanding_error::ensure_none();
 		device.synchronize();
 	}
@@ -250,7 +337,27 @@ TEST_SUITE("printing") {
 		auto device { cuda::device::current::get() };
 		device.reset();
 		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
-		cuda::launch(::kernels::stream_manipulators_into_printfing_ostream, launch_config);
+		cuda::launch(kernels::stream_manipulators_into_printfing_ostream, launch_config);
+		cuda::outstanding_error::ensure_none();
+		device.synchronize();
+	}
+
+	TEST_CASE("print_at_different_resolutions")
+	{
+		auto device { cuda::device::current::get() };
+		device.reset();
+		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
+		cuda::launch(kernels::print_at_different_resolutions, launch_config);
+		cuda::outstanding_error::ensure_none();
+		device.synchronize();
+	}
+
+	TEST_CASE("self-identifying printfing_ostream")
+	{
+		auto device { cuda::device::current::get() };
+		device.reset();
+		auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
+		cuda::launch(kernels::self_identifying_printfing_ostream, launch_config);
 		cuda::outstanding_error::ensure_none();
 		device.synchronize();
 	}
