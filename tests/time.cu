@@ -39,14 +39,14 @@ __global__ void measure_time_and_sleep(
 		(global_thread_id + sleep_elongation_additive_factor ) * sleep_elongation_multiplicative_factor;
 	if (Resolution == kat::sleep_resolution::nanoseconds) {
 #if __CUDA_ARCH__ >= 700
-		kat::sleep<Resolution>(sleep_duration);
+		kat::sleep<kat::sleep_resolution::nanoseconds>(sleep_duration);
 #else
 		// we won't break the compilation; it's up to the host-side test code to not run this.
 		asm("trap;");
 #endif
 	}
 	else {
-		kat::sleep<Resolution>(sleep_duration);
+		kat::sleep<kat::sleep_resolution::clock_cycles>(sleep_duration);
 	}
 	kat::collaborative::block::barrier();
 	auto time_after_sleep = clock64();

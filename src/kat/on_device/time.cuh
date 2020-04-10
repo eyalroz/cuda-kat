@@ -47,7 +47,7 @@ using sleep_unit_t = typename detail::sleep_unit<Resolution>::type;
  *
  */
 template <sleep_resolution Resolution = sleep_resolution::clock_cycles>
-KAT_DEV void sleep(sleep_unit_t<Resolution> num_cycles);
+KAT_DEV void sleep(sleep_unit_t<Resolution> num_cycles) = delete;
 
 template<>
 KAT_DEV void sleep<sleep_resolution::clock_cycles>(
