@@ -40,12 +40,6 @@ inline const char* ordinal_suffix(int n)
 template <typename N = int>
 inline std::string xth(N n) { return std::to_string(n) + ordinal_suffix(n); }
 
-inline cuda::launch_configuration_t single_thread_launch_config()
-{
-	return { cuda::grid::dimensions_t::point(), cuda::grid::dimensions_t::point() };
-}
-
-
 std::ostream& operator<<(std::ostream& os, cuda::grid::dimensions_t dims)
 {
 	return os << '(' << dims.x << "," << dims.y << "," << dims.z << ')';

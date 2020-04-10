@@ -138,4 +138,10 @@ make_busy_config(cuda::device_t& device) {
 	return cuda::make_launch_config(num_blocks, num_threads_per_block);
 }
 
+inline constexpr cuda::launch_configuration_t single_thread_launch_config() noexcept
+{
+	return { cuda::grid::dimensions_t::point(), cuda::grid::dimensions_t::point() };
+}
+
+
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */
