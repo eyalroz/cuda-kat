@@ -143,5 +143,13 @@ inline constexpr cuda::launch_configuration_t single_thread_launch_config() noex
 	return { cuda::grid::dimensions_t::point(), cuda::grid::dimensions_t::point() };
 }
 
+// Poor man's addressof
+template <typename T>
+T* addressof(T& arg)
+{
+	return reinterpret_cast<T*>(&const_cast<char&>(reinterpret_cast<const volatile char&>(arg)));
+}
+
+
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */

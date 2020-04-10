@@ -1,8 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "util/type_name.hpp"
-#include "util/miscellany.cuh"
+#include "common.cuh"
 #include <kat/containers/span.hpp>
-//#include <kat/detail/execution_space_specifiers>
 
 #include <doctest.h>
 #include <cuda/api_wrappers.hpp>
@@ -12,31 +10,6 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
-
-//constexpr const auto num_grid_blocks {  2 };
-//constexpr const auto block_size      {  kat::warp_size + 1 };
-//
-//constexpr const auto sleep_elongation_multiplicative_factor { 10000 };
-//	// we want each sleep command to take a not-insignificant amount of time
-//
-//constexpr const auto sleep_elongation_additive_factor { 10 };
-//	// we want each sleep command to take a not-insignificant amount of time
-
-
-cuda::launch_configuration_t singleton_grid_config()
-{
-	auto num_grid_blocks { 1 };
-	auto block_size { 1 };
-	return cuda::make_launch_config(num_grid_blocks, block_size);
-}
-
-// Poor man's addressof
-template< class T >
-T* addressof(T& arg)
-{
-        return reinterpret_cast<T*>(&const_cast<char&>(reinterpret_cast<const volatile char&>(arg)));
-}
-
 
 namespace detail {
 
@@ -1089,28 +1062,28 @@ TEST_SUITE("span-device-side") {
 TEST_CASE("LWG-3225-constructibility-with-C-array")
 {
 	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::lwg_3225_constructibility_with_c_array, singleton_grid_config());
+	cuda::launch(kernels::lwg_3225_constructibility_with_c_array, single_thread_launch_config());
 	device.synchronize();
 }
 
 TEST_CASE("LWG-3225-constructibility-with-kat-array")
 {
 	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::lwg_3225_constructibility_with_kat_array, singleton_grid_config());
+	cuda::launch(kernels::lwg_3225_constructibility_with_kat_array, single_thread_launch_config());
 	device.synchronize();
 }
 
 TEST_CASE("LWG-3225-constructibility-with-std-array")
 {
 	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::lwg_3225_constructibility_with_std_array, singleton_grid_config());
+	cuda::launch(kernels::lwg_3225_constructibility_with_std_array, single_thread_launch_config());
 	device.synchronize();
 }
 
 TEST_CASE("nothrow-constructibility")
 {
 	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::nothrow_constructibility, singleton_grid_config());
+	cuda::launch(kernels::nothrow_constructibility, single_thread_launch_config());
 	device.synchronize();
 }
 
