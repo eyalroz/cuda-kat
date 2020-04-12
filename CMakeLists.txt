@@ -34,7 +34,7 @@ project(cuda-kat
 # because most of it is host-side only; and it doesn't make sense to bundle a modified
 # half of the standard library just for that. Instead, we use the strf library
 # (available at: https://github.com/robhz786/strf )
-find_package(strf 0.10.2)
+find_package(strf 0.10.4)
 
 ###############
 ##  OPTIONS  ##
