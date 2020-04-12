@@ -114,8 +114,8 @@ namespace pretty_print
                 using std::begin;
                 using std::end;
 
-                auto it = begin(c);
-                const auto the_end = end(c);
+                auto it = std::begin(c);
+                const auto the_end = std::end(c);
 
                 if (it != the_end)
                 {

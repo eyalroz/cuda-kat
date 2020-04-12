@@ -37,6 +37,7 @@
 #define CUDA_KAT_CONTAINERS_ARRAY_HPP_
 
 #include <kat/common.hpp>
+#include <kat/detail/range_access.hpp>
 
 #include <cstddef>
 #include <cstdlib>

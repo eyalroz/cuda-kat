@@ -42,6 +42,8 @@
 #include <kat/containers/array.hpp>
 #include "detail/normal_iterator.hpp"
 #include <kat/detail/execution_space_specifiers.hpp>
+#include <kat/detail/range_access.hpp>
+
 
 #if __cplusplus >= 202001L
 // #include <bits/range_access.h> <- TODO: What replaces this?
