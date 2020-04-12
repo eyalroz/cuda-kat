@@ -39,6 +39,7 @@
 #include <kat/common.hpp>
 
 #include <cstddef>
+#include <cstdlib>
 #include <array>
 #include <tuple>
 #include <utility>
@@ -105,7 +106,7 @@ struct array
 	}
 
 	// Does the noexcept matter here?
-	KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap(array& other) noexcept(noexcept(swap(std::declval<T&>(), std::declval<T&>())))
+	KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap(array& other) noexcept(noexcept(std::swap(std::declval<T&>(), std::declval<T&>())))
 	{
 		// std::swap_ranges(begin(), end(), other.begin());
 		for(size_type i = 0; i < NumElements; i++)
@@ -144,12 +145,30 @@ struct array
 
 	KAT_FHD constexpr const_reference operator[](size_type n) const noexcept { return array_traits_type::reference(elements, n); }
 
-	// Note: no bounds checking.
-	KAT_FHD CONSTEXPR_SINCE_CPP_14 reference at(size_type n) { return array_traits_type::reference(elements, n); }
+	// Note: The bounds checking here is more violent than usual: It will
+	// terminate the execution of the program / the kernel
+	KAT_FHD CONSTEXPR_SINCE_CPP_17 reference at(size_type n) noexcept {
+		if (n > NumElements) {
+#if __CUDA_ARCH__
+			asm("trap;");
+#else
+			throw std::out_of_range("kat::array::at: index n exceeds number of elements");
+#endif
+		}
+		return array_traits_type::reference(elements, n);
+	}
 
-	KAT_FHD constexpr const_reference at(size_type n) const
+	// Note: The bounds checking here is more violent than usual in a kernel
+	// terminate the execution of the program / the kernel
+	KAT_FHD CONSTEXPR_SINCE_CPP_17 const_reference at(size_type n) const
 	{
-		// No bounds checking
+		if (n > NumElements) {
+#if __CUDA_ARCH__
+			asm("trap;");
+#else
+			throw std::out_of_range("kat::array::at: index n exceeds number of elements");
+#endif
+		}
 		return array_traits_type::reference(elements, n);
 	}
 
@@ -179,7 +198,20 @@ template<typename T, size_t NumElements>
 KAT_FHD CONSTEXPR_SINCE_CPP_17
 bool operator==(const array<T, NumElements>& one, const array<T, NumElements>& two)
 {
+#if __cplusplus >= 202001L
+	// We can call it, since it's constexpr
 	return std::equal(one.begin(), one.end(), two.begin());
+#else
+	auto first1 = one.cbegin();
+	const auto last1 = one.cend();
+	auto first2 = two.cbegin();
+    for (; first1 != last1; ++first1, ++first2) {
+        if (!(*first1 == *first2)) {
+            return false;
+        }
+    }
+    return true;
+#endif
 }
 
 template<typename T, size_t NumElements>
@@ -191,7 +223,20 @@ template<typename T, size_t NumElements>
 KAT_FHD bool CONSTEXPR_SINCE_CPP_17
 operator<(const array<T, NumElements>& a, const array<T, NumElements>& b)
 {
-	return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+#if __cplusplus >= 202001L
+	// We can call it, since it's constexpr
+	return std::lexicographical_compare(a.cbegin(), a.cend(), b.cbegin(), b.cend());
+#else
+	auto first1 = a.cbegin();
+	const auto last1 = a.cend();
+	auto first2 = b.cbegin();
+	const auto last2 = b.cend();
+    for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) {
+        if (*first1 < *first2) return true;
+        if (*first2 < *first1) return false;
+    }
+    return (first1 == last1) && (first2 != last2);
+#endif
 }
 
 template<typename T, size_t NumElements>
@@ -255,16 +300,45 @@ namespace kat {
 template<typename T> class tuple_size;
 
 template<typename T, size_t NumElements>
-struct tuple_size<kat::array<T, NumElements>> : public std::integral_constant<kat::size_t, NumElements> { };
+struct tuple_size<array<T, NumElements>> : public std::integral_constant<size_t, NumElements> { };
 
-template<kat::size_t Integer, typename T> class tuple_element;
+template<size_t Integer, typename T> class tuple_element;
 
-template<kat::size_t Integer, typename T, kat::size_t NumElements>
-struct tuple_element<Integer, kat::array<T, NumElements>>
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, array<T, NumElements>>
 {
 	static_assert(Integer < NumElements, "index is out of bounds");
-	typedef T type;
+	using type = T;
 };
+
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, const array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	using type = const T;
+};
+
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, volatile array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	using type = volatile T;
+};
+
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, const volatile array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	using type = const volatile T;
+};
+
+#if __cplusplus >= 201402L
+#ifndef _KAT_TUPLE_ELEMENT_T
+template <size_t I, class T>
+using tuple_element_t = typename tuple_element<I, T>::type;
+#define _KAT_TUPLE_ELEMENT_T
+#endif
+#endif
 
 ///@endcond
 
@@ -289,7 +363,28 @@ struct tuple_element<Integer, kat::array<T, NumElements>>
 	typedef T type;
 };
 
-} // namespace kat
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, const kat::array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	using type = const T;
+};
+
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, volatile kat::array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	using type = volatile T;
+};
+
+template<size_t Integer, typename T, size_t NumElements>
+struct tuple_element<Integer, const volatile kat::array<T, NumElements>>
+{
+	static_assert(Integer < NumElements, "index is out of bounds");
+	using type = const volatile T;
+};
+
+} // namespace std
 
 ///@endcond
 
