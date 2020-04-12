@@ -35,7 +35,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -46,7 +46,7 @@ namespace ptx {
  *
  */
 #define DEFINE_SHIFT_AND_OP(direction, second_op) \
-__fd__ uint32_t \
+KAT_FD uint32_t \
 vsh##direction##_##second_op ( \
 	uint32_t x, \
 	uint32_t shift_amount, \
@@ -75,9 +75,5 @@ DEFINE_SHIFT_AND_OP(r,max) // vshr_max
 
 
 #include "detail/undefine_macros.cuh"
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_PTX_VIDEO_INSTRUCTIONS_CUH_

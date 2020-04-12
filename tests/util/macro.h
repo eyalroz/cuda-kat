@@ -41,19 +41,22 @@
 #define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
 #endif /* COUNTER */
 
+#define COUNT_THIS_LINE static_assert(__COUNTER__ + 1, "");
+#define START_COUNTING_LINES(count_name) enum { EXPAND_THEN_CONCATENATE(count_name,_start) = __COUNTER__ };
+#define FINISH_COUNTING_LINES(count_name) enum { count_name = __COUNTER__ - EXPAND_THEN_CONCATENATE(count_name,_start) - 1 };
 
 
-/**
- * This macro expands into a different identifier in every expansion.
- * Note that you _can_ clash with an invocation of UNIQUE_IDENTIFIER
- * by manually using the same identifier elsewhere; or by carefully
- * choosing another prefix etc.
- */
-#ifdef __COUNTER__
-#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __COUNTER__)
-#else
-#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
-#endif /* COUNTER */
+///**
+// * This macro expands into a different identifier in every expansion.
+// * Note that you _can_ clash with an invocation of UNIQUE_IDENTIFIER
+// * by manually using the same identifier elsewhere; or by carefully
+// * choosing another prefix etc.
+// */
+//#ifdef __COUNTER__
+//#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __COUNTER__)
+//#else
+//#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
+//#endif /* COUNTER */
 
 
 /**
@@ -137,5 +140,50 @@
 
 #define _IF_1_ELSE(...)
 #define _IF_0_ELSE(...) __VA_ARGS__
+
+/**
+ * Use this macro to instantiate tests for all integer types.
+ */
+#define INTEGER_TYPES \
+	char, short, int, long, long long, \
+	unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
+
+// These:
+//
+//  signed char, signed short, signed int, signed long, signed long long
+//
+// are the same as:
+//
+//   char, short, int, long, long long
+//
+// and these should be covered by the native types:
+//
+//   int8_t, int16_t, int32_t, int64_t,
+//   uint8_t, uint16_t, uint32_t, uint64_t
+//
+// so the above should be sufficient
+
+
+
+/**
+ * Use this macro to instantiate tests for all floating-point types.
+ */
+#define FLOAT_TYPES float, double
+
+#define ARRAY_TYPES_BY_SIZE  \
+	kat::array<uint8_t, 4>, \
+	kat::array<uint8_t, 7>, \
+	kat::array<uint8_t, 8>, \
+	kat::array<uint8_t, 9>, \
+	kat::array<uint8_t, 15>, \
+	kat::array<uint8_t, 16>, \
+	kat::array<uint8_t, 17>, \
+	kat::array<uint8_t, 31>, \
+	kat::array<uint8_t, 32>, \
+	kat::array<uint8_t, 33>
+
+#define debug_print(x) do { std::cout << STRINGIZE(x) << " = " << x << std::endl; } while(0);
+
+
 
 #endif // TESTS_UTIL_MACRO_H_

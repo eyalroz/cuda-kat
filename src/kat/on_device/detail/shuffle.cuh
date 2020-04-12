@@ -10,14 +10,14 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
 namespace detail {
 
 template<typename InputIterator, typename OutputIterator, class UnaryOperation>
-__fd__ OutputIterator transform(
+KAT_FD OutputIterator transform(
 	InputIterator input_it, InputIterator input_sentinel,
 	OutputIterator output_it, UnaryOperation unary_op)
 {
@@ -29,7 +29,7 @@ __fd__ OutputIterator transform(
 }
 
 template<int s>
-__fd__ static void shuffle_arbitrary(
+KAT_FD static void shuffle_arbitrary(
 	const kat::array<int, s>&  in,
 	kat::array<int, s>&        result,
 	const int                  source_lane)
@@ -40,7 +40,7 @@ __fd__ static void shuffle_arbitrary(
 }
 
 template<int s>
-__fd__
+KAT_FD
 static void shuffle_down(
 	const kat::array<int, s>&  in,
 	kat::array<int, s>&        result,
@@ -52,7 +52,7 @@ static void shuffle_down(
 }
 
 template<int s>
-__fd__ static void shuffle_up(
+KAT_FD static void shuffle_up(
 	const kat::array<int, s>&  in,
 	kat::array<int, s>&        result,
 	const unsigned int         delta)
@@ -63,7 +63,7 @@ __fd__ static void shuffle_up(
 }
 
 template<int s>
-__fd__ static void shuffle_xor(
+KAT_FD static void shuffle_xor(
 	const kat::array<int, s>&  in,
 	kat::array<int, s>&        result,
 	const int                  mask)
@@ -76,7 +76,7 @@ __fd__ static void shuffle_xor(
 } // namespace detail
 
 template<typename T>
-__fd__ T shuffle_arbitrary(const T& t, int source_lane) {
+KAT_FD T shuffle_arbitrary(const T& t, int source_lane) {
 	static_assert(sizeof(int) == 4 && sizeof(short) == 2 && sizeof(char) == 1, "Sizes sanity check failed");
 	T result;
 	constexpr auto num_full_int_shuffles = sizeof(T)/sizeof(int);
@@ -106,7 +106,7 @@ __fd__ T shuffle_arbitrary(const T& t, int source_lane) {
 }
 
 template<typename T>
-__fd__ T shuffle_down(const T& t, unsigned int delta) {
+KAT_FD T shuffle_down(const T& t, unsigned int delta) {
 	static_assert(sizeof(int) == 4 && sizeof(short) == 2 && sizeof(char) == 1, "Sizes sanity check failed");
 	T result;
 	constexpr auto num_full_int_shuffles = sizeof(T)/sizeof(int);
@@ -136,7 +136,7 @@ __fd__ T shuffle_down(const T& t, unsigned int delta) {
 }
 
 template<typename T>
-__fd__ T shuffle_up(const T& t, unsigned int delta) {
+KAT_FD T shuffle_up(const T& t, unsigned int delta) {
 	static_assert(sizeof(int) == 4 && sizeof(short) == 2 && sizeof(char) == 1, "Sizes sanity check failed");
 	T result;
 	constexpr auto num_full_int_shuffles = sizeof(T)/sizeof(int);
@@ -166,7 +166,7 @@ __fd__ T shuffle_up(const T& t, unsigned int delta) {
 }
 
 template<typename T>
-__fd__ T shuffle_xor(const T& t, int mask) {
+KAT_FD T shuffle_xor(const T& t, int mask) {
 	static_assert(sizeof(int) == 4 && sizeof(short) == 2 && sizeof(char) == 1, "Sizes sanity check failed");
 	T result;
 	constexpr auto num_full_int_shuffles = sizeof(T)/sizeof(int);
@@ -196,10 +196,5 @@ __fd__ T shuffle_xor(const T& t, int mask) {
 }
 
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_TEMPLATED_SHUFFLE_DETAIL_CUH_

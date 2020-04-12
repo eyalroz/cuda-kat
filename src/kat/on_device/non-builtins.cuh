@@ -12,7 +12,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -25,19 +25,39 @@ namespace non_builtins {
  * @return If @p x is 0, returns 0; otherwise, returns the 1-based index of the
  * first non-zero bit in @p x
  */
-template <typename I> __fd__ int find_first_set(I x) = delete;
-template <> __fd__ int find_first_set< int                >(int x)                { return __ffs(x);   }
-template <> __fd__ int find_first_set< unsigned int       >(unsigned int x)       { return __ffs(x);   }
-template <> __fd__ int find_first_set< long long          >(long long x)          { return __ffsll(x); }
-template <> __fd__ int find_first_set< unsigned long long >(unsigned long long x) { return __ffsll(x); }
+template <typename I> KAT_FD int find_first_set(I x)
+{
+	static_assert(std::is_integral<I>::value, "Only integral types are supported");
+	static_assert(sizeof(I) <= sizeof(long long), "Unexpectedly large type");
+
+	using ffs_type = typename std::conditional< sizeof(I) <= sizeof(int), int, long long >::type;
+	return find_first_set<ffs_type>(x);
+}
+template <> KAT_FD int find_first_set< int               >(int                x) { return __ffs(x);                       }
+template <> KAT_FD int find_first_set< long long         >(long long          x) { return __ffsll(x);                     }
 
 /**
  * @brief counts the number of initial zeros when considering the binary representation
  * of a number from least to most significant digit
- * @param x the number whose representation is to be counted
- * @return the number of initial zero bits before the first 1; if x is 0, -1 is returned
+ * 
+ * @tparam FixSemanticsForZero the simpler implementation of this function uses the
+ * @ref `find_first_set()` builtin. Unfortunately, that one returns -1 rather than 0
+ * if no bits are set. Fixing this requires a couple of extra instructions. By default,
+ * we'll use them, but one might be interested just skipping them and taking -1
+ * instead of 32 (= warp_size) for the no-1's case.
+ *
+ * @param x the number whose binary representation is to be counted
+ * @return the number of initial zero bits before the first 1; if x is 0, the full
+ * number of bits is returned (or -1, depending on @tparam FixSemanticsForZero).
  */
-template <typename I> __fd__ int count_trailing_zeros(I x) { return find_first_set<I>(x) - 1; }
+template <typename I, bool FixSemanticsForZero = true>
+KAT_FD int count_trailing_zeros(I x)
+{
+	if (FixSemanticsForZero and x == 0) {
+		return size_in_bits<I>();
+	}
+	return find_first_set<I>(x) - 1;
+}
 
 /**
  * @brief counts the number of initial zeros when considering the binary representation
@@ -45,7 +65,7 @@ template <typename I> __fd__ int count_trailing_zeros(I x) { return find_first_s
  * @param x the number whose representation is to be counted
  * @return the counted number of 0 bits; if x is 0, 32 is returned
  */
-template <typename I> __fd__ int count_leading_zeros(I x)
+template <typename I> KAT_FD int count_leading_zeros(I x)
 {
 	static_assert(std::is_integral<I>::value, "Only integral types are supported");
 	static_assert(sizeof(I) <= sizeof(long long), "Unexpectedly large type");
@@ -56,13 +76,7 @@ template <typename I> __fd__ int count_leading_zeros(I x)
 	return builtins::count_leading_zeros<native_clz_type>(static_cast<native_clz_type>(x)) - width_difference_in_bits;
 }
 
-
 } // namespace non_builtins
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_

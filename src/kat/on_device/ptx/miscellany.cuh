@@ -10,16 +10,33 @@
 #include <kat/on_device/common.cuh>
 
 #include <cstdint>
+#include <cassert>
 #include <type_traits>
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
 
 namespace ptx {
+
+/**
+ * @brief Aborts execution (of the entire kernel grid) and generates an interrupt to the host CPU.
+ */
+KAT_FD  void trap()
+{
+	asm("trap;");
+}
+
+/**
+ * Ends execution of the current thread of this kernel/grid
+ */
+KAT_FD void exit()
+{
+	asm("exit;");
+}
 
 /**
  * @brief Load data through the read-only data cache
@@ -32,12 +49,12 @@ namespace ptx {
  * through the usual (read-write) caches
  */
 template <typename T>
-__fd__ T ldg(const T* ptr)
+KAT_FD T ldg(const T* ptr)
 {
 #if __CUDA_ARCH__ >= 320
 	return __ldg(ptr);
 #else
-	return *ptr; // maybe we should ld.cg or ld.cs here?
+	assert(false);
 #endif
 }
 
@@ -46,7 +63,7 @@ __fd__ T ldg(const T* ptr)
  * of the CUDA PTX reference for details on these instructions.
  */
 #define DEFINE_IS_IN_MEMORY_SPACE(_which_space) \
-__fd__ int32_t is_in_ ## _which_space ## _memory (const void *ptr) \
+KAT_FD int32_t is_in_ ## _which_space ## _memory (const void *ptr) \
 { \
 	int32_t result; \
 	asm ("{\n\t" \
@@ -77,14 +94,14 @@ DEFINE_IS_IN_MEMORY_SPACE(shared) // is_in_shared_memory
  * sign bits (i.e. if it's 0 or if its type is signed and its bits are all 1) - the value 0xFFFFFFFF (-1) is returned
  */
 
-#define DEFINE_BFIND(ptx_value_type) \
-__fd__ uint32_t \
-bfind(CPP_TYPE_BY_PTX_TYPE(ptx_value_type) val) \
+#define DEFINE_BFIND(ptx_type) \
+KAT_FD uint32_t \
+bfind(CPP_TYPE_BY_PTX_TYPE(ptx_type) val) \
 { \
 	uint32_t ret;  \
 	asm ( \
-		"bfind." PTX_STRINGIFY(ptx_value_type) " %0, %1;" \
-		: "=r"(ret) : SIZE_CONSTRAINT(ptx_value_type) (val)); \
+		"bfind." PTX_STRINGIFY(ptx_type) " %0, %1;" \
+		: "=r"(ret) : SIZE_CONSTRAINT(ptx_type) (val)); \
 	return ret; \
 }
 
@@ -96,7 +113,7 @@ DEFINE_BFIND(u64) // bfind
 #undef DEFINE_BFIND
 
 #define DEFINE_PRMT_WITH_MODE(selection_mode_name, selection_mode) \
-__fd__  uint32_t prmt_ ## selection_mode_name (uint32_t first, uint32_t second, uint32_t control_bits) \
+KAT_FD  uint32_t prmt_ ## selection_mode_name (uint32_t first, uint32_t second, uint32_t control_bits) \
 { \
 	uint32_t result; \
 	asm("prmt.b32." PTX_STRINGIFY(selection_mode) " %0, %1, %2, %3;" \
@@ -116,22 +133,6 @@ DEFINE_PRMT_WITH_MODE( replicate_16,       rc16 ) // prmt_replicate_16
 DEFINE_PRMT_WITH_MODE( edge_clam_left,     ecl  ) // prmt_edge_clam_left
 DEFINE_PRMT_WITH_MODE( edge_clam_right,    ecl  ) // prmt_edge_clam_right
 
-/**
- * @brief Aborts execution (of the entire kernel grid) and generates an interrupt to the host CPU.
- */
-__fd__  void trap()
-{
-	asm("trap");
-}
-
-/**
- * Ends execution of the current thread of this kernel/grid
- */
-__fd__ void exit()
-{
-	asm("exit");
-}
-
 
 /**
  * @brief See: <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-prmt">relevant section</a>
@@ -149,7 +150,7 @@ __fd__ void exit()
  * @note Only the lower 16 bits of byte_selectors are used.
  * @note "prmt" stands for "permute"
  */
-__fd__ uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
+KAT_FD uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
 {
 	uint32_t result;
 	asm("prmt.b32 %0, %1, %2, %3;"
@@ -168,18 +169,18 @@ __fd__ uint32_t prmt(uint32_t first, uint32_t second, uint32_t byte_selectors)
  * TODO: CUB 1.5.2's BFE wrapper seems kind of fishy. Why does Duane Merill not use PTX for extraction from 64-bit fields?
  * I'll take a different route.
  */
-#define DEFINE_BFE(ptx_value_type) \
-__fd__ CPP_TYPE_BY_PTX_TYPE(ptx_value_type) \
+#define DEFINE_BFE(ptx_type) \
+KAT_FD CPP_TYPE_BY_PTX_TYPE(ptx_type) \
 bfe( \
-	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) bits, \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type) bits, \
 	uint32_t start_position, \
 	uint32_t num_bits) \
 { \
-	CPP_TYPE_BY_PTX_TYPE(ptx_value_type) extracted_bits;  \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type) extracted_bits;  \
 	asm ( \
-		"bfe." PTX_STRINGIFY(ptx_value_type) " %0, %1, %2, %3;" \
-		: "=" SIZE_CONSTRAINT(ptx_value_type) (extracted_bits) \
-		: SIZE_CONSTRAINT(ptx_value_type) (bits) \
+		"bfe." PTX_STRINGIFY(ptx_type) " %0, %1, %2, %3;" \
+		: "=" SIZE_CONSTRAINT(ptx_type) (extracted_bits) \
+		: SIZE_CONSTRAINT(ptx_type) (bits) \
 		, "r" (start_position) \
 		, "r" (num_bits) \
 	);\
@@ -193,7 +194,7 @@ DEFINE_BFE(u64) // bfe
 
 #undef DEFINE_BFE
 
-__fd__ uint32_t
+KAT_FD uint32_t
 bfi(
 	uint32_t  bits_to_insert,
 	uint32_t  existing_bit_field,
@@ -212,7 +213,7 @@ bfi(
 	return ret;
 }
 
-__fd__ uint64_t
+KAT_FD uint64_t
 bfi(
 	uint64_t  bits_to_insert,
 	uint64_t  existing_bit_field,
@@ -231,15 +232,48 @@ bfi(
 	return ret;
 }
 
+/**
+ * @brief Adds the absolute difference of two values to a base value
+ *
+ * @param x value from which to subtract @p y
+ * @param y value to subtract from @p x
+ * @param addend base value to which to add `|x-y|`
+ *
+ * @return `addend + |x - y|`
+ */
+#define DEFINE_SAD(ptx_type_1, unsigned_ptx_type_1) \
+KAT_FD CPP_TYPE_BY_PTX_TYPE(unsigned_ptx_type_1) sad( \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type_1) x, \
+	CPP_TYPE_BY_PTX_TYPE(ptx_type_1) y, \
+	CPP_TYPE_BY_PTX_TYPE(unsigned_ptx_type_1) addend) \
+{ \
+	CPP_TYPE_BY_PTX_TYPE(unsigned_ptx_type_1) result;  \
+	asm ( \
+		"sad." PTX_STRINGIFY(ptx_type_1) " %0, %1, %2, %3;" \
+		: "=" SIZE_CONSTRAINT(unsigned_ptx_type_1) (result) \
+		: SIZE_CONSTRAINT(ptx_type_1) (x) \
+		, SIZE_CONSTRAINT(ptx_type_1) (y) \
+		, SIZE_CONSTRAINT(unsigned_ptx_type_1) (addend) \
+	);\
+	return result; \
+}
+
+#define DEFINE_SAD_(x) DEFINE_SAD(x, MAKE_UNSIGNED(x));
+DEFINE_SAD_(u16);
+DEFINE_SAD_(u32);
+DEFINE_SAD_(u64);
+DEFINE_SAD_(s16);
+DEFINE_SAD_(s32);
+DEFINE_SAD_(s64);
+
+#undef DEFINE_SAD_
+#undef DEFINE_SAD
+
 } // namespace ptx
 } // namespace kat
 
 
 #include "detail/undefine_macros.cuh"
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_PTX_MISCELLANY_CUH_
 

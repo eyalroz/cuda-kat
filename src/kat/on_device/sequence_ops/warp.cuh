@@ -33,7 +33,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -48,65 +48,27 @@ struct plus {
 	using second_argument_type = RHS;
 	using result_type = Result;
 
-	__fhd__ Result operator() (const LHS& x, const RHS& y) const noexcept { return x + y; }
+	KAT_FHD Result operator() (const LHS& x, const RHS& y) const noexcept { return x + y; }
 	struct accumulator {
-		__fhd__ Result operator()(
+		KAT_FHD Result operator()(
 			typename std::enable_if<std::is_same<LHS, RHS>::value, Result>::type& x,
 			const RHS& y) const noexcept { return x += y; }
 		struct atomic {
 #ifdef __CUDA_ARCH__
-			__fd__ Result operator()(
+			KAT_FD Result operator()(
 				typename std::enable_if<std::is_same<LHS,RHS>::value, Result>::type& x,
 				const RHS& y) const noexcept { return kat::atomic::add(&x,y); }
 #endif // __CUDA_ARCH__
 		};
-		__fhd__ static Result neutral_value() noexcept { return 0; };
+		KAT_FHD static Result neutral_value() noexcept { return 0; };
 	};
-	__fhd__ static Result neutral_value() noexcept { return 0; };
+	KAT_FHD static Result neutral_value() noexcept { return 0; };
 };
 
 } // namespace detail
 
 /**
- * Performs a reduction (e.g. a summation of multiplication) of all elements passed into
- * the function by the threads of a block.
- *
- * @note This ignores overflow! Make sure you use a roomy type. Alternatively, you
- * could implement a two-type version which takes input in one type and works on a
- * bigger one.
- */
-template <typename ReductionOp>
-__fd__ typename ReductionOp::result_type reduce(typename ReductionOp::first_argument_type value)
-{
-	static_assert(std::is_same<
-		typename ReductionOp::first_argument_type,
-		typename ReductionOp::second_argument_type>::value, "A reduction operation "
-			"must have the same types for its LHS and RHS");
-	static_assert(std::is_same<
-		typename ReductionOp::first_argument_type,
-		typename ReductionOp::result_type>::value, "The warp shuffle primitive "
-			"can only be applied with a reduction op having the same result and "
-			"argument types");
-	typename ReductionOp::accumulator op_acc;
-	// Let's cross our fingers and hope this next variable gets optimized
-	// away with return-value optimization (and that the same register is used
-	// for everything in the case of
-	//
-	//   x = reduce<ReductionOp>(x);
-	//
-	for (int shuffle_mask = warp_size/2; shuffle_mask > 0; shuffle_mask >>= 1)
-		op_acc(value, shuffle_xor(value, shuffle_mask));
-	return value;
-}
-
-template <typename Datum>
-__fd__ Datum sum(Datum value)
-{
-	return reduce<detail::plus<Datum>>(value);
-}
-
-/**
- * Performs a reduction (e.g. a summation of multiplication) of all elements passed into
+ * Performs a reduction (e.g. a summation or a multiplication) of all elements passed into
  * the function by the threads of a block - but with each thread ending up with the reduction
  * result for all threads upto itself.
  *
@@ -114,48 +76,143 @@ __fd__ Datum sum(Datum value)
  *
  * @todo offer both an inclusive and an exclusive versionn
  */
-template <
-	typename ReductionOp,
-	typename InputDatum,
-	inclusivity_t Inclusivity = inclusivity_t::Inclusive>
-__fd__ typename ReductionOp::result_type scan(InputDatum value)
+template<typename T, typename AccumulationOp>
+KAT_FD T reduce(T value, AccumulationOp op)
 {
-	using result_type = typename ReductionOp::result_type;
-	ReductionOp op;
-	typename ReductionOp::accumulator acc_op;
+	auto partial_result { value };
+	for (int shuffle_mask = warp_size/2; shuffle_mask > 0; shuffle_mask >>= 1)
+		op(partial_result, shuffle_xor(partial_result, shuffle_mask));
+	return partial_result;
+}
 
-	result_type x;
+template <typename T>
+KAT_FD T sum(T value)
+{
+	const auto plus = [](T& x, T y) { x += y; };
+	return reduce(value, plus);
+}
+
+
+template <
+	typename T,
+	typename AccumulationOp,
+	inclusivity_t Inclusivity = inclusivity_t::Inclusive,
+	T NeutralValue = T{}
+>
+KAT_FD T scan(T value, AccumulationOp op)
+{
+	T x;
 
 	if (Inclusivity == inclusivity_t::Exclusive) {
-		InputDatum preshuffled = shuffle_up(value, 1);
+		T preshuffled = shuffle_up(value, 1);
 		// ... and now we can pretend to be doing an inclusive shuffle
-		x = lane::is_first() ? op.neutral_value() : preshuffled;
+		x = lane::is_first() ? NeutralValue : preshuffled;
 	}
 	else { x = value; }
 
 	// x of lane i holds the reduction of values of
-	// the lanes i - 2*(offset) ... i - offset , and initially offset = 0
+	// the lanes i - 2*(offset) ... i - offset , and we've already
+	// taken care of the iteration for offset = 0 , above.
 	#pragma unroll
 	for (int offset = 1; offset < warp_size; offset <<= 1) {
-		result_type shuffled = shuffle_up(x, offset);
-		if(lane::index() >= offset) { acc_op(x, shuffled); }
+		T shuffled = shuffle_up(x, offset);
+		if(lane::id() >= offset) { op(x, shuffled); }
 	}
 	return x;
 }
 
+
 // TODO: Need to implement a scan-and-reduce warp primitive
 
-template <typename T, inclusivity_t Inclusivity = inclusivity_t::Inclusive, typename Result = T>
-__fd__ T prefix_sum(T value)
+template <
+	typename T,
+	inclusivity_t Inclusivity = inclusivity_t::Inclusive,
+	T NeutralValue = T{}
+>
+KAT_FD T prefix_sum(T value)
 {
-	return scan<detail::plus<Result>, T, Inclusivity>(value);
+	const auto plus = [](T& x, T y) { x += y; };
+	return scan<T, decltype(plus), Inclusivity, NeutralValue>(value, plus);
 }
 
-template <typename T, typename Result = T>
-__fd__ T exclusive_prefix_sum(T value)
+template <typename T, T NeutralValue = T{}>
+KAT_FD T exclusive_prefix_sum(T value)
 {
-	return prefix_sum<T, inclusivity_t::Exclusive, Result>(value);
+	return prefix_sum<T, inclusivity_t::Exclusive, NeutralValue>(value);
 }
+
+
+//--------------------------------------------------
+
+template <typename RandomAccessIterator, typename Size, typename T>
+KAT_FD void fill_n(RandomAccessIterator start, Size count, const T& value)
+{
+	auto f = [=](promoted_size_t<Size> pos) {
+		start[pos] = value;
+	};
+	at_warp_stride(count, f);
+}
+
+template <typename RandomAccessIterator, typename T, typename Size = decltype(std::declval<RandomAccessIterator>() - std::declval<RandomAccessIterator>())>
+KAT_FD void fill(RandomAccessIterator start, RandomAccessIterator end, const T& value)
+{
+    Size count = end - start;
+    return fill_n(start, count, value);
+}
+
+template <typename RandomAccessIterator, typename Size>
+KAT_FD void memzero_n(RandomAccessIterator start, Size count)
+{
+	using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
+    return fill_n(start, count, value_type{0});
+}
+
+template <typename RandomAccessIterator, typename Size = decltype(std::declval<RandomAccessIterator>() - std::declval<RandomAccessIterator>())>
+KAT_FD void memzero(RandomAccessIterator start, RandomAccessIterator end)
+{
+	auto count = end - start;
+    return memzero_n(start, count);
+}
+
+/**
+ * @brief apply a transformation to each element of an array, placing the results
+ * in another array.
+ *
+ * @param source The (block-common) origin of the data
+ * @param target The (block-common) destination into which to write the converted elements
+ * @param length The (block-common) number of elements available (for reading?] at the
+ * source
+ */
+template <typename T, typename S, typename UnaryOperation, typename Size>
+KAT_FD void transform_n(
+	const S*  __restrict__  source,
+	Size                    length,
+	T*        __restrict__  target,
+	UnaryOperation          unary_op)
+{
+	auto f = [&](promoted_size_t<Size> pos) {
+		target[pos] = unary_op(source[pos]);
+	};
+	at_warp_stride(length, f);
+}
+
+/**
+ * @note Prefer `copy_n()`; this will force the size to `ptrdiff_t`, which unnecessarily large.
+ */
+template <typename S, typename T, typename UnaryOperation, typename Size = std::ptrdiff_t>
+KAT_FD void transform(
+	const S*  __restrict__  source_start,
+	const S*  __restrict__  source_end,
+	T*        __restrict__  target,
+	UnaryOperation          unary_op)
+{
+	Size length = source_end - source_start;
+	return transform_n(source_start, length, target, unary_op);
+}
+
+//-----------------------------------
+
+
 
 /**
  * Have all warp threads collaborate in copying
@@ -167,37 +224,25 @@ __fd__ T exclusive_prefix_sum(T value)
  * @param length The number of elements available (for reading?] at the
  * source
  */
-template <typename T, typename U, typename Size>
-__fd__ void cast_and_copy_n(
-	T*        __restrict__  target,
-	const U*  __restrict__  source,
-	Size                    length)
+template <typename S, typename T, typename Size>
+KAT_FD void cast_and_copy_n(
+	const S*  __restrict__  source,
+	Size                    length,
+	T*        __restrict__  target)
 {
-	using namespace linear_grid::grid_info;
-	// sometimes this next loop can be unrolled (when length is known
-	// at compile time; since the function is inlined)
-	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::index(); pos < length; pos += warp_size) {
-		target[pos] = source[pos];
-	}
+	auto op = [](S x) -> T { return T(x);} ;
+	return transform_n(source, length, target, op);
 }
 
-template <typename T, typename U>
-__fd__ void cast_and_copy(
-	T*        __restrict__  target,
+template <typename T, typename U, typename Size = std::ptrdiff_t>
+KAT_FD void cast_and_copy(
 	const U*  __restrict__  source_start,
-	const U*  __restrict__  source_end)
+	const U*  __restrict__  source_end,
+	T*        __restrict__  target)
 {
-	auto length = source_end - source_start;
-	return cast_and_copy_n<T, U, decltype(length)>(target, source_start, source_end - source_start);
+	Size length = source_end - source_start;
+	return cast_and_copy_n(source_start, length, target);
 }
-/*
-template <typename T>
-__fd__ void single_write(T* __restrict__  target, T&& x)
-{
-	target[lane::index()] = std::forward(x);
-}
-*/
 
 namespace detail {
 
@@ -210,19 +255,18 @@ namespace detail {
  * @param length
  */
 template <typename T, typename Size>
-__fd__ void naive_copy(
-	T*        __restrict__  target,
+KAT_FD void naive_copy(
 	const T*  __restrict__  source,
-	Size                    length)
+	Size                    length,
+	T*        __restrict__  target)
 {
-	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::index(); pos < length; pos += warp_size)
-	{
+	auto f = [&](promoted_size_t<Size> pos) {
 		target[pos] = source[pos];
-	}
+	};
+	at_warp_stride(length, f);
 }
 
-template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
+template <typename T> constexpr KAT_FHD  T clear_lower_bits(T x, unsigned k)
 {
 	return x & ~((1 << k) - 1);
 }
@@ -253,10 +297,10 @@ template <typename T> constexpr __fhd__  T clear_lower_bits(T x, unsigned k)
  * @param[in]  length  number of elements (of type T) to copy
  */
 template <typename T, typename Size, bool MayHaveSlack = true>
-__fd__ void copy_n(
-	T*        __restrict__  target,
+KAT_FD void copy_n(
 	const T*  __restrict__  source,
-	Size                    length)
+	Size                    length,
+	T*        __restrict__  target)
 {
 	using namespace linear_grid::grid_info;
 	enum {
@@ -268,7 +312,7 @@ __fd__ void copy_n(
 	    not (sizeof(T) == 1 or sizeof(T) == 2 or sizeof(T) == 4 or sizeof(T) == 8) or
 	    not std::is_trivially_copy_constructible<T>::value)
 	{
-		detail::naive_copy(target, source, length);
+		detail::naive_copy<T, Size>(source, length, target);
 	}
 	else {
 		// elements_per_lane_in_full_warp_write is either 1, 2...
@@ -308,103 +352,87 @@ __fd__ void copy_n(
 	}
 }
 
-template <typename T, bool MayHaveSlack = true>
-__fd__ void copy(
+template <typename T, bool MayHaveSlack = true, typename Size = std::ptrdiff_t>
+KAT_FD void copy(
 	const T*  __restrict__  source_start,
 	const T*  __restrict__  source_end,
 	T*        __restrict__  target_start)
 {
-	auto length = source_end - source_start;
-	return copy_n<T, sizeof(length), MayHaveSlack>(target_start, source_start, length);
+	Size length = source_end - source_start;
+	return copy_n(source_start, length, target_start);
 }
 
-// TODO: Check whether writing this with a forward iterator and std::advance
-// yields the same PTX code (in which case we'll prefer that)
-template <typename RandomAccessIterator, typename Size, typename T>
-inline __device__ void fill_n(RandomAccessIterator start, Size count, const T& value)
-{
-	T tmp = value;
-	for(promoted_size_t<Size> index = lane::index();
-		index < count;
-		index += warp_size)
-	{
-		start[index] = tmp;
-	}
-}
-
-template <typename ForwardIterator, typename T>
-inline __device__ void fill(ForwardIterator start, ForwardIterator end, const T& value)
-{
-    const T tmp = value;
-	auto iter = start + lane::index();
-    for (; iter < end; iter += warp_size)
-    {
-		*iter = tmp;
-    }
-}
 
 /**
  * Use a lookup table to convert numeric indices to a sequence
  * of values of any type
  */
 template <typename T, typename I, typename Size, typename U = T>
-__fd__ void lookup(
+KAT_FD void lookup(
 	T*       __restrict__  target,
 	const U* __restrict__  lookup_table,
 	const I* __restrict__  indices,
 	Size                   num_indices)
 {
-	using namespace linear_grid::grid_info;
-	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::index(); pos < num_indices; pos += warp_size) {
+	auto f = [=](promoted_size_t<Size> pos) {
 		target[pos] = lookup_table[indices[pos]];
-	}
+	};
+	at_warp_stride(num_indices, f);
 }
 
 /**
- * @note If you call this for multiple warps and the same destination,
- * you'd better use an atomic accumulator op...
+ * Perform an accumulation operation (e.g. addition) between equal-sized arrays -
+ * with either regular or atomic semantics. Usable with memory locations which
+ * the entire block has the same view of and accessibility to (mostly shared
+ * and global, but not just those).
+ *
+ * @note
+ * 1. Assumes a linear block.
+ * 2. The operation is supposed to have the signature:
+ *      WhateverWeDontCare operation(D& accumulator_element, S value)
+ *    otherwise it might be a no-op here.
+ * 3. If you're having multiple blocks calling this function with the same
+ *    destination, it will have to be atomic (as you cannot guarantee these blocks will
+ *    not execute simultaneously, either on different multiprocessors or on the same
+ *    multiprocessor). Also, if you want to use a global-mem source, you will
+ *    need to pass this function block-specific offsets; remember it is not
+ *    a kernel!
+ *
+ * @tparam D Destination data type
+ * @tparam S Source data type
+ * @tparam AccumulatingOperation Typically, one of the 'accumulator' substructures of
+ * the functors in liftedfunctions.hpp ; but it may very well be an accumulator::atomic
+ * substructure
+ * @tparam Size ... so that you don't have to decide whether you want to specify your
+ * number of elements as an int, uint, long long int, ulong long etc.
+ * @param[inout] destination The array into which we accumulate; holds existing data
+ * and is not simply overwritten.
+ * @param[in] source The array of partial data to integrate via accumulation.
+ * @param[in] length the length in elements of @p destination and @p source
+ *
+ * @todo consider taking a GSL-span-like parameter isntead of a ptr+length
+ *
+ * @todo Some inclusions in the block-primitives might only be relevant to the
+ * functions here; double-check.
+ *
+ * @todo consider using elementwise_apply for this.
+ *
  */
-
 template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
+KAT_FD void elementwise_accumulate(
+	AccumulatingOperation  op,
 	D*       __restrict__  destination,
 	const S* __restrict__  source,
 	Size                   length)
 {
-	AccumulatingOperation op;
-	for(promoted_size_t<Size> pos = lane::index(); pos < length; pos += warp_size) {
+	auto accumulate_in_element = [&](promoted_size_t<Size> pos) {
 		op(destination[pos], source[pos]);
-	}
-}
-
-/**
- * A variant of elementwise_accumulate for when the length <= warp_size,
- * in which case each thread will get just one source element (possibly
- * a junk or default-constructed element) to work with
- *
- * @note If you call this for multiple warps and the same destination,
- * you'd better use an atomic accumulator op...
- */
-template <typename D, typename S, typename AccumulatingOperation, typename Size>
-__fd__ void elementwise_accumulate(
-	D*       __restrict__  destination,
-	const S&               source_element,
-	Size                   length)
-{
-	AccumulatingOperation op;
-	if (lane::index() < length) {
-		op(destination[lane::index()], source_element);
-	}
+	};
+	at_warp_stride(length, accumulate_in_element);
 }
 
 } // namespace warp
 } // namespace collaborative
 } // namespace kat
-
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
 
 #endif // CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_

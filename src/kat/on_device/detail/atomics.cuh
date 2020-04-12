@@ -37,6 +37,7 @@
 
 #include <kat/on_device/common.cuh>
 #include <kat/on_device/builtins.cuh>
+#include <kat/on_device/math.cuh>
 #include <device_atomic_functions.h>
 #if (CUDART_VERSION >= 8000)
 #include <sm_60_atomic_functions.h>
@@ -50,7 +51,7 @@
 
 
 ///@cond
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
 ///@endcond
 
 namespace kat {
@@ -75,7 +76,7 @@ using uint_t = typename uint_helper<NBytes>::type;
  * for integral types of sizes which are a power of 2.
  */
 template <typename Smaller, typename Larger, typename Offset>
-__fhd__ Smaller extract_value(Larger larger_value ,Offset offset_into_larger_value)
+KAT_FHD Smaller extract_value(Larger larger_value ,Offset offset_into_larger_value)
 {
 	static_assert(std::is_trivial<Smaller>::value, "Cannot extract non-trivially-copyable values");
 	static_assert(std::is_trivial<Larger>::value, "Cannot extract from non-trivially-copyable values");
@@ -89,10 +90,10 @@ template <typename T>
 struct tag { };
 
 template <typename U, typename I>
-constexpr U __fhd__ ones(I num_ones) { return (U{1} << num_ones) - I{1}; }
+constexpr U KAT_FHD ones(I num_ones) { return (U{1} << num_ones) - I{1}; }
 
 template <typename Larger, typename Smaller, typename Offset>
-uint_t<sizeof(Larger)> __fhd__ bitmask_for_value_at_offset(Offset offset_into_larger_value)
+uint_t<sizeof(Larger)> KAT_FHD bitmask_for_value_at_offset(Offset offset_into_larger_value)
 {
     using larger_uint_type      = uint_t<sizeof(Larger)>;
 
@@ -102,13 +103,13 @@ uint_t<sizeof(Larger)> __fhd__ bitmask_for_value_at_offset(Offset offset_into_la
 }
 
 template <typename Larger, typename Smaller, typename Offset>
-uint_t<sizeof(Larger)> __fhd__ bitmask_for_padding_before_value_at_offset(Offset offset_into_larger_value)
+uint_t<sizeof(Larger)> KAT_FHD bitmask_for_padding_before_value_at_offset(Offset offset_into_larger_value)
 {
     return ~bitmask_for_value_at_offset(offset_into_larger_value);
 }
 
 template <typename Larger, typename Smaller, typename Offset>
-Larger __fhd__ generate_value_at_offset(Smaller small_value, Offset offset_into_larger_value)
+Larger KAT_FHD generate_value_at_offset(Smaller small_value, Offset offset_into_larger_value)
 {
     static_assert(sizeof(Larger) > sizeof(Smaller), "invalid sizes");
     static_assert(std::is_trivial<Larger>::value, "Larger must be a trivial type");
@@ -123,7 +124,7 @@ Larger __fhd__ generate_value_at_offset(Smaller small_value, Offset offset_into_
 }
 
 template <typename Larger, typename Smaller, typename Offset>
-Larger __fhd__ replace_bytes_at_offset(Larger larger_value, Smaller replacement, Offset offset_into_larger_value)
+Larger KAT_FHD replace_bytes_at_offset(Larger larger_value, Smaller replacement, Offset offset_into_larger_value)
 {
     auto clearing_mask { ~bitmask_for_value_at_offset<Larger, Smaller>(offset_into_larger_value) };
     return (larger_value & clearing_mask ) | generate_value_at_offset<Larger>(replacement, offset_into_larger_value);
@@ -133,7 +134,7 @@ Larger __fhd__ replace_bytes_at_offset(Larger larger_value, Smaller replacement,
 namespace implementation {
 
 template <typename T>
-__fd__ T compare_and_swap(std::true_type, T* __restrict__ address, T compare, T val)
+KAT_FD T compare_and_swap(std::true_type, T* __restrict__ address, T compare, T val)
 {
 	static_assert(sizeof(T) == sizeof(int) or sizeof(T) == sizeof(long long int),
 		"Cannot compare_and_swap directly with the requested type");
@@ -163,7 +164,7 @@ __fd__ T compare_and_swap(std::true_type, T* __restrict__ address, T compare, T 
 
 
 template <typename T>
-__fd__ T compare_and_swap(std::false_type, T* __restrict__ address, T compare, T val)
+KAT_FD T compare_and_swap(std::false_type, T* __restrict__ address, T compare, T val)
 {
 	// The idea is to apply compare-and-swap on more memory than the T type actually takes
 	// up. However, we can't just have that larger stretch of memory start at `address`, since
@@ -210,7 +211,7 @@ __fd__ T compare_and_swap(std::false_type, T* __restrict__ address, T compare, T
 } // namespace detail
 
 template <typename T>
-__fd__ T compare_and_swap(T* address, T compare, T val)
+KAT_FD T compare_and_swap(T* address, T compare, T val)
 {
 	static_assert(sizeof(T) <= sizeof(long long int),
 		"nVIDIA GPUs do not support atomic operations on data larger than long long int");
@@ -224,7 +225,7 @@ __fd__ T compare_and_swap(T* address, T compare, T val)
 		(sizeof(T) == sizeof(int)) or (sizeof(T) == sizeof(unsigned long long int));
 
 	return detail::implementation::compare_and_swap<T>(
-		std::integral_constant<bool, can_cas_directly>{},
+		kat::bool_constant<can_cas_directly>{},
 		address, compare, val);
 }
 
@@ -233,7 +234,7 @@ namespace detail {
 namespace implementation {
 
 template <typename UnaryFunction, typename T>
-__fd__ T apply(std::true_type, UnaryFunction f, T* __restrict__ address)
+KAT_FD T apply(std::true_type, UnaryFunction f, T* __restrict__ address)
 {
 	T newest_value_found_at_addr { *address };
 	T value_expected_at_addr;
@@ -247,8 +248,19 @@ __fd__ T apply(std::true_type, UnaryFunction f, T* __restrict__ address)
 	return newest_value_found_at_addr;
 }
 
+/**
+ * Applies a unary function, essentially-atomically, to a value in memory, returning the value
+ * before the function was applied
+ *
+ * @param address the memory location of the value to apply a function to
+ * @param f unary function to apply to the value at @p address
+ * @return existing value before the application of @p f
+ *
+ * @note Since we can't directly compare-and-set the target value in memory, we'll work on
+ * a slightly larger bit of memory including it.
+ */
 template <typename UnaryFunction, typename T>
-__fd__ T apply(std::false_type, UnaryFunction f, T* __restrict__ address)
+KAT_FD T apply(std::false_type, UnaryFunction f, T* __restrict__ address)
 {
 	// Similar to the no-primitive-available compare_and_swap, except that we don't have a "compare"
 	// value, i.e. we don't condition our action on a specific existing value - we'll go with whatever
@@ -285,8 +297,16 @@ __fd__ T apply(std::false_type, UnaryFunction f, T* __restrict__ address)
 } // namespace implementation
 } // namespace detail
 
+/**
+ * Applies a unary function, atomically, to a value in memory, returning the value
+ * before the function was applied
+ *
+ * @param address the memory location of the value to apply a function to
+ * @param f unary function to apply to the value at @p address
+ * @return existing value before the application of @p f
+ */
 template <typename UnaryFunction, typename T>
-__fd__ T apply(UnaryFunction f, T* __restrict__ address)
+KAT_FD T apply(UnaryFunction f, T* __restrict__ address)
 {
 	static_assert(sizeof(T) <= sizeof(long long int),
 		"nVIDIA GPUs do not support atomic operations on data larger than long long int");
@@ -299,11 +319,11 @@ __fd__ T apply(UnaryFunction f, T* __restrict__ address)
 		(sizeof(T) == sizeof(int)) or (sizeof(T) == sizeof(unsigned long long int));
 
 	return detail::implementation::apply<UnaryFunction, T>(
-		std::integral_constant<bool, can_cas_directly>{}, f, address);
+		kat::bool_constant<can_cas_directly>{}, f, address);
 }
 
 template <typename Function, typename T, typename... Ts>
-__fd__ T apply(
+KAT_FD T apply(
 	Function                f,
 	T*       __restrict__   address,
 	const Ts...             xs)
@@ -318,12 +338,12 @@ namespace detail {
 namespace implementation {
 
 template <typename T>
-__fd__ T increment(
-	std::true_type,
+KAT_FD T increment(
+	std::true_type, // can use a builtin atomic increment
 	T*  address,
 	T   wraparound_value)
 {
-	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
+	static_assert(sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value, "invalid type");
 	return (T) (atomicInc(
 		reinterpret_cast<unsigned int*      >(address),
 		reinterpret_cast<const unsigned int&>(wraparound_value)
@@ -331,12 +351,17 @@ __fd__ T increment(
 }
 
 template <typename T>
-__fd__ T increment(
-	std::false_type,
+KAT_FD T increment(
+	std::false_type, // can't use a builtin atomic increment
 	T*  address,
 	T   wraparound_value)
 {
-	auto do_increment = [](T existing_value, T wraparound) -> T { return existing_value >= wraparound ? T{0} : T{existing_value+1}; };
+	auto do_increment = [](T existing_value, T wraparound) -> T {
+		return existing_value >= wraparound ?
+			T{0} :
+			T(existing_value+1);
+				// Note the possibility of overflow here when wraparound_value is std::numeric_limits<T>::max()
+	};
 	return atomic::apply(do_increment, address, wraparound_value);
 }
 
@@ -344,14 +369,15 @@ __fd__ T increment(
 } // namespace detail
 
 template <typename T>
-__fd__ T increment(
+KAT_FD T increment(
 	T*  address,
 	T   wraparound_value)
 {
-	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
+	constexpr const bool can_act_directly =
+		(sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value);
 
 	return detail::implementation::increment<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, wraparound_value);
 }
 
@@ -359,46 +385,48 @@ namespace detail {
 namespace implementation {
 
 template <typename T>
-__fd__ T decrement (
+KAT_FD T decrement (
 	std::true_type,
 	T*  address,
 	T   wraparound_value)
 {
-	static_assert(sizeof(T) == sizeof(unsigned int), "invalid type");
+	static_assert(
+		sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value, "invalid type");
 	return (T) (atomicDec(
-		reinterpret_cast<unsigned int*      >(address),
-		reinterpret_cast<const unsigned int&>(wraparound_value)
+		reinterpret_cast<unsigned int*     >(address),
+		wraparound_value
 	));
 }
 
 template <typename T>
-__fd__ T decrement (
+KAT_FD T decrement (
 	std::false_type,
 	T*  address,
 	T   wraparound_value)
 {
 	auto do_decrement =
-		[](auto existing_value, auto wraparound) -> T {
+		[=](T existing_value) -> T {
 			return
-				((existing_value <= 0) or (existing_value >= wraparound)) ?
-				wraparound - 1 :
+				((existing_value <= 0) or (existing_value >= wraparound_value)) ?
+				wraparound_value - 1 :
 				existing_value - 1;
 		};
-	return apply(do_decrement, address, wraparound_value);
+	return kat::atomic::apply(do_decrement, address);
 }
 
 } // namespace implementation
 } // namespace detail
 
 template <typename T>
-__fd__ T decrement (
+KAT_FD T decrement (
 	T*  address,
 	T   wraparound_value)
 {
-	constexpr bool can_act_directly = (sizeof(T) == sizeof(unsigned int));
+	constexpr bool can_act_directly = (
+		sizeof(T) == sizeof(unsigned int) and std::is_integral<T>::value);
 
 	return detail::implementation::decrement<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, wraparound_value);
 }
 
@@ -406,13 +434,13 @@ namespace detail {
 namespace implementation {
 
 template <typename T>
-__fd__ T add(std::true_type, T* address, T val)
+KAT_FD T add(std::true_type, T* address, T val)
 {
 	return ::atomicAdd(address, val);
 }
 
 template <typename T>
-__fd__ T add(std::false_type, T* address, T val)
+KAT_FD T add(std::false_type, T* address, T val)
 {
 	auto do_addition = [](T existing_value, T x) -> T { return static_cast<T>(existing_value + x); };
 	return kat::atomic::apply(do_addition, address, val);
@@ -423,20 +451,20 @@ __fd__ T add(std::false_type, T* address, T val)
 
 
 template <typename T>
-__fd__ T subtract(std::true_type, T*  address, T val)
+KAT_FD T subtract(std::true_type, T*  address, T val)
 {
 	return ::atomicSub(address, val);
 }
 
 template <typename T>
-__fd__ T subtract(std::false_type, T* address, T val)
+KAT_FD T subtract(std::false_type, T* address, T val)
 {
 	auto do_subtraction = [](T existing_value, T x) -> T { return static_cast<T>(existing_value - x); };
 	return kat::atomic::apply(do_subtraction, address, val);
 }
 
 template <typename T>
-__fd__ T exchange(std::true_type, T*  address, T val)
+KAT_FD T exchange(std::true_type, T*  address, T val)
 {
 	// Note: We know there are implementations available for int, unsigned, unsigned long long and float;
 	// but the only thing we should really care about here is the size.
@@ -459,54 +487,72 @@ __fd__ T exchange(std::true_type, T*  address, T val)
 }
 
 template <typename T>
-__fd__ T exchange(std::false_type, T* address, T val)
+KAT_FD T exchange(std::false_type, T* address, T val)
 {
 	auto do_exchange = [](T existing_value, T x) -> T { return x; };
 	return kat::atomic::apply(do_exchange, address, val);
 }
 
 template <typename T>
-__fd__ T min(std::true_type, T*  address, T val)
+KAT_FD T min(std::true_type, T*  address, T val)
 {
 	return ::atomicMin(address, val);
 }
 
 template <typename T>
-__fd__ T min(std::false_type, T* address, T val)
+KAT_FD T min(std::false_type, T* address, T val)
 {
-	auto do_min = [](T existing_value, T x) -> T { return builtins::minimum(existing_value, x); };
+	auto do_min = [](T existing_value, T x) -> T { return kat::minimum(existing_value, x); };
 	return kat::atomic::apply(do_min, address, val);
 }
 
 template <typename T>
-__fd__ T max(std::true_type, T*  address, T val)
+KAT_FD T max(std::true_type, T*  address, T val)
 {
 	return ::atomicMax(address, val);
 }
 
 template <typename T>
-__fd__ T max(std::false_type, T* address, T val)
+KAT_FD T max(std::false_type, T* address, T val)
 {
-	auto do_max = [](T existing_value, T x) -> T { return builtins::maximum(existing_value, x); };
+	auto do_max = [](T existing_value, T x) -> T { return kat::maximum(existing_value, x); };
 	return kat::atomic::apply(do_max, address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_and(std::false_type, T* address, T val)
+KAT_FD T bitwise_and(std::true_type, T* address, T val)
+{
+	return ::atomicAnd(address, val);
+}
+
+template <typename T>
+KAT_FD T bitwise_and(std::false_type, T* address, T val)
 {
 	auto do_and = [](T existing_value, T x) -> T { return existing_value & x; };
 	return kat::atomic::apply(do_and, address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_or(std::false_type, T* address, T val)
+KAT_FD T bitwise_or(std::true_type, T* address, T val)
+{
+	return ::atomicOr(address, val);
+}
+
+template <typename T>
+KAT_FD T bitwise_or(std::false_type, T* address, T val)
 {
 	auto do_or = [](T existing_value, T x) -> T { return existing_value | x; };
 	return kat::atomic::apply(do_or, address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_xor(std::false_type, T* address, T val)
+KAT_FD T bitwise_xor(std::true_type, T* address, T val)
+{
+	return ::atomicXor(address, val);
+}
+
+template <typename T>
+KAT_FD T bitwise_xor(std::false_type, T* address, T val)
 {
 	auto do_xor = [](T existing_value, T x) -> T { return existing_value ^ x; };
 	return kat::atomic::apply(do_xor, address, val);
@@ -519,7 +565,7 @@ __fd__ T bitwise_xor(std::false_type, T* address, T val)
 } // namespace detail
 
 template <typename T>
-__fd__ T add(T*  address, T val)
+KAT_FD T add(T*  address, T val)
 {
 	constexpr bool can_act_directly =
 		   std::is_same< T,int                >::value
@@ -535,40 +581,42 @@ __fd__ T add(T*  address, T val)
 #endif
 		;
 	return detail::implementation::add<T>(
-		std::integral_constant<bool, can_act_directly>{},
-		//std::integral_constant<bool, false>{},
+		kat::bool_constant<can_act_directly>{},
+		//kat::bool_constant<false>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T subtract (T*  address, T val)
+KAT_FD T subtract (T*  address, T val)
 {
 	constexpr bool can_act_directly =
 		   std::is_same< T,int                >::value
 		or std::is_same< T,unsigned           >::value
 		;
 	return detail::implementation::subtract<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T exchange (T*  address, T val)
+KAT_FD T exchange (T*  address, T val)
 {
 	constexpr bool can_act_directly = (sizeof(T) == 4) or (sizeof(T) == 8);
 	return detail::implementation::exchange<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T min (T*  address, T val)
+KAT_FD T min (T*  address, T val)
 {
 	constexpr bool can_act_directly =
 #if CUDA_ARCH >= 320
 		   std::is_same< T,int                >::value
 		or std::is_same< T,unsigned           >::value
 #if  CUDA_ARCH >= 350
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
 #endif
@@ -577,18 +625,20 @@ __fd__ T min (T*  address, T val)
 #endif
 		;
 	return detail::implementation::min<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T max (T*  address, T val)
+KAT_FD T max (T*  address, T val)
 {
 	constexpr bool can_act_directly =
 #if CUDA_ARCH >= 320
 		   std::is_same< T,int                >::value
 		or std::is_same< T,unsigned           >::value
 #if  CUDA_ARCH >= 350
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
 #endif
@@ -597,12 +647,12 @@ __fd__ T max (T*  address, T val)
 #endif
 		;
 	return detail::implementation::max<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_and (T*  address, T val)
+KAT_FD T bitwise_and (T*  address, T val)
 {
 	constexpr bool can_act_directly =
 #if CUDA_ARCH >= 320
@@ -611,18 +661,20 @@ __fd__ T bitwise_and (T*  address, T val)
 #if  CUDA_ARCH >= 350
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 #endif
 #else
 		false
 #endif
 		;
 	return detail::implementation::bitwise_and<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_or (T*  address, T val)
+KAT_FD T bitwise_or (T*  address, T val)
 {
 	constexpr bool can_act_directly =
 #if CUDA_ARCH >= 320
@@ -631,18 +683,20 @@ __fd__ T bitwise_or (T*  address, T val)
 #if  CUDA_ARCH >= 350
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 #endif
 #else
 		false
 #endif
 		;
 	return detail::implementation::bitwise_or<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
 template <typename T>
-__fd__ T bitwise_xor (T*  address, T val)
+KAT_FD T bitwise_xor (T*  address, T val)
 {
 	constexpr bool can_act_directly =
 #if CUDA_ARCH >= 320
@@ -651,13 +705,15 @@ __fd__ T bitwise_xor (T*  address, T val)
 #if  CUDA_ARCH >= 350
 		or std::is_same< T,unsigned long      >::value
 		or std::is_same< T,unsigned long long >::value
+		or std::is_same< T,long               >::value
+		or std::is_same< T,long long          >::value
 #endif
 #else
 		false
 #endif
 		;
 	return detail::implementation::bitwise_xor<T>(
-		std::integral_constant<bool, can_act_directly>{},
+		kat::bool_constant<can_act_directly>{},
 		address, val);
 }
 
@@ -665,61 +721,55 @@ __fd__ T bitwise_xor (T*  address, T val)
 // so that they can only be implemented using apply()
 
 template <typename T>
-__fd__ T logical_and(T* address, T val)
+KAT_FD T logical_and(T* address, T val)
 {
 	auto do_logical_and = [](T existing_value, T x) -> T { return existing_value and x; };
 	return kat::atomic::apply(do_logical_and, address, val);
 }
 
 template <typename T>
-__fd__ T logical_or(T* address, T val)
+KAT_FD T logical_or(T* address, T val)
 {
 	auto do_logical_or = [](T existing_value, T x) -> T { return existing_value or x; };
 	return kat::atomic::apply(do_logical_or, address, val);
 }
 
 template <typename T>
-__fd__ T logical_xor(std::false_type, T* address, T val)
+KAT_FD T logical_xor(T* address, T val)
 {
-	auto do_logical_xor = [](T existing_value, T x) -> T { return (existing_value and not x) or (not existing_value and x); };
+	auto do_logical_xor = [](T existing_value, T x) -> T { return (existing_value and (not x)) or ((not existing_value) and x); };
 	return kat::atomic::apply(do_logical_xor, address, val);
 }
 
 template <typename T>
-__fd__ T logical_not(std::false_type, T* address)
+KAT_FD T logical_not(T* address)
 {
 	auto do_logical_not = [](T existing_value) -> T { return not existing_value; };
 	return kat::atomic::apply(do_logical_not, address);
 }
 
 template <typename T>
-__fd__ T bitwise_not (T* address)
+KAT_FD T bitwise_not (T* address)
 {
 	constexpr const T all_ones { ~T{0} };
 	return bitwise_xor(address, all_ones);
 }
 
 template <typename T>
-__fd__ T set_bit (T* address, native_word_t bit_index)
+KAT_FD T set_bit (T* address, native_word_t bit_index)
 {
-	auto f = [](T existing_value, native_word_t x) -> T { return existing_value | 1 << x; };
+	auto f = [](T existing_value, native_word_t x) -> T { return existing_value | (T(1) << x); };
 	return apply(f, address, bit_index);
 }
 
 template <typename T>
-__fd__ T unset_bit (T* address, native_word_t bit_index)
+KAT_FD T unset_bit (T* address, native_word_t bit_index)
 {
-	auto f = [](T existing_value, native_word_t x) -> T { return existing_value & ~(1 << x); };
+	auto f = [](T existing_value, native_word_t x) -> T { return existing_value & ~(T(1) << x); };
 	return apply(f, address, bit_index);
 }
 
 } // namespace atomic
 } // namespace kat
-
-///@cond
-#include <kat/undefine_specifiers.hpp>
-///@endcond
-
-///@endcond
 
 #endif // CUDA_KAT_ON_DEVICE_ATOMICS_DETAIL_CUH_

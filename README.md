@@ -1,6 +1,13 @@
 # cuda-kat: CUDA Kernel Author's Tools
 
-An install-less, header-only library of small, self-contained **nuggets of utility code** for writing device-side CUDA functions and kernels.
+An install-less, header-only library of small, self-contained **nuggets of utility code** for writing device-side CUDA functions and kernels. These allow us to:
+
+* Write templated device-side code in those "hard to reach" corners.
+* Write code imbued with clearer semantics.
+* Use less magic numbers.
+* Not repeat ourselves as much (the DRY principle)
+
+... while not committing to any particular framework, library, paradigm or class hierarchy.
 
 
 | Table of contents|
@@ -13,23 +20,23 @@ An install-less, header-only library of small, self-contained **nuggets of utili
 
 The various utility functions (and occasional other constructs) available in the `cuda-kat` package are accessed through the files in the following table. Each of these may be used independently of the others (although internally there are some dependencies); and no file imposes any particular abstraction or constraint on the rest of your code.
 
-| Header(s)                        | Description                                                             |
+| Header(s)                        | Examples and description                                                |
 |----------------------------------|-------------------------------------------------------------------------|
-| [`grid_info.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/grid_info.cuh)         |  Shorthands/mnemonics for information about positions and sizes of lanes, threads, warps and blocks within warps, blocks and grids (particularly for one-dimensional/linear grids). See also the [motivational section below](#the-patterns-that-repeat). |
-| [`ptx.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/ptx.cuh)               | C++ bindings for PTX instructions which are not made available by CUDA itself: Special registers, [`bfind`](https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#integer-arithmetic-instructions-bfind), [`prmt`](https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-prmt) and so on. Functions here are all non-templated and type-specific; the generic versions appear in `builtins.cuh` |
-| [`shared_memory.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shared_memory.cuh)               | A gadget for accessing templated dynamic shared memory (which is not directly possible in CUDA!); shared memory size getters; and code to divvy up shared memory among the thread blocks. |
-| [`atomics.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/atomics.cuh)  | Uniform, templated, zero-overhead invocation of all CUDA-supported atomic operations; compare-and-swap-based implementation for often-atomic operations not supported by CUDA or your specific GPU; and a generic `apply_atomically()` function for any kind of computation.  |
-| [`builtins.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/builtins.cuh)  | A uniform, templated zero-overhead way to execute any (non-atomic) operations which involves a single PTX instructions and are not C++ language builtins - similarly to the host-side compiler builtins: bit operations; warp balloting, conjunction and disjunction, intra-warp shuffles and lane mask manipulation. |
+| [`grid_info.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/grid_info.cuh)         |`lane::index()`<br>`block::num_warps()`<br><br>Shorthands/mnemonics for information about positions and sizes of lanes, threads, warps and blocks within warps, blocks and grids (particularly for one-dimensional/linear grids). See also the [motivational section below](#the-patterns-that-repeat). |
+| [`ptx.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/ptx.cuh)               | `ptx::is_in_shared_memory(const void* ptr)`<br>`ptx::bfind(uint32_t val)`<br>`ptx::special_registers::gridid()`<br><br>C++ bindings for PTX instructions which are not made available by CUDA itself. (Templatized versions of some of these appear in `builtins.cuh`.) |
+| [`shared_memory.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shared_memory.cuh)               | `shared_memory::proxy<T>()`<br><br>Access and size-determination gadgets for templated dynamic shared memory (which is not directly possible in CUDA!). |
+| [`atomics.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/atomics.cuh)  | `atomic::increment(T* address)`<br>`atomic::apply_atomically<T, F>(T* address, F invokable)`<br><br>Uniform, templated, zero-overhead invocation of all CUDA-supported atomic operations; and compare-and-swap-based implementation for operations without atomic primitives on your GPU.  |
+| [`builtins.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/builtins.cuh)  | `builtins::population_count()`<br>`builtins::maximum(T x, T y)`<br>`builtins::warp::some_lanes_satisfy(int condition)`<br><br> Uniform, templated, zero-overhead invocation of all (non-atomic) operations involving a single PTX instructions, which are C++ language builtins. |
 | [`shuffle.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shuffle.cuh)  | Exchange arbitrary-type (and arbitrarily large) values using intra-warp shuffles. |
 | [`math.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/math.cuh)  | Templated mathmetical functions - some `constexpr`, some using special GPU capabilities which cannot be exeucted at compile time even when data is available, and more efficient runtime implementation of compile-time-executable functions. |
 | [`constexpr_math.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/constexpr_math.cuh)    | The part of `math.cuh` which can be `constexpr`-evaluated, i.e. executed at compile-time. |
-| [`printing.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/printing.cuh)          | More elaborate functionality on top of CUDA's device-side `printf()`, such as: Printing once in every warp, block or the entire grid; printing bit-resolution values; printing with the thread/warp/block identifiers prefixed. |
-| [`unaligned.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/unaligned.cuh)         | Access multi-byte values at unaligned non-naturally-aligned addressed (something the GPU hardware itself will _not_ do directly). Caveat: Mostly Untested. |
-| [`miscellany.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/miscellany.cuh)        | A proxy for shared memory for use in templated code (avoiding name clashes); an alternative `memcpy()`; a swap function; etc. |
+| [`printing.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/printing.cuh)          | `printf_32_bits(x)`<br>`thread_printf(format_str,...)`<br>`block_printf(format_str,...)`<br><br>More elaborate functionality on top of CUDA's device-side `printf()`. |
+| [`unaligned.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/unaligned.cuh)         | `read_unaligned_safe(const uint32_t* ptr)`<br><br>Read access to multi-byte values at non-naturally-aligned addresses (the GPU hardware _cannot_ directly read these). |
 | [`collaboration/warp.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/collaboration/warp.cuh)  | Warp-level computational primitives (i.e. ones in which the lanes in a warp have a common task to perform rather than per-lane tasks). Examples: Copying, reduction, complex balloting operations (which require more than merely a single builtin).  |
 | [`collaboration/block.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/collaboration/block.cuh)  | Block-level computational primitives (i.e. ones in which the threads in a block have a common task to perform rather than per-thread or per-warp tasks). Examples: copying, reduction, certain patters of sharing data among threads in different warps.   |
 | [`collaboration/grid.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/collaboration/grid.cuh)  | Patterns of covering a sequence of data with a grid, given a per-element function; Consolidation primitives for per-warp and per-block data into global (per-grid) data.   |
 | [`c_standard_library/string.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/c_standard_library/string.cuh)  | Implementations of (almost) all functions in the C standard library's `<string.h>` header, to be executed at the single-thread level.   |
+| [`miscellany.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/miscellany.cuh)        | `swap(T& x, T&y)`<br><br>Functionality not otherwise cateogrized, but of sufficient worth to have available. |
 
 For further details you can either explore the files themselves or read the Doxygen-genereated [official documentation](https://codedocs.xyz/eyalroz/cuda-kat/). Note The toolbox is not complete (especially the bottom items in the listing above), so expect some additions of files, and within files.
 

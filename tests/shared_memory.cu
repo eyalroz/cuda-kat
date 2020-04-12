@@ -119,7 +119,7 @@ TEST_CASE("correctly determining static and dynamic sizes")
 
 TEST_CASE_TEMPLATE("allocations of per-warp shared memory do not intersect", I, int32_t, int64_t)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	auto max_shared_mem = device.properties().sharedMemPerBlock;
 	auto num_warps = device.properties().max_warps_per_block();
 	shmem_size_t shared_mem_per_warp = max_shared_mem / num_warps;

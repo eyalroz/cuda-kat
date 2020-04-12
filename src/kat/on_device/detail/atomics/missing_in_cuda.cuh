@@ -33,22 +33,28 @@
 #define CUDA_CUDA_KAT_ON_DEVICE_ATOMICS_MISSING_FROM_CUDA_CUH_
 
 #include <device_atomic_functions.h>
+#include <kat/common.hpp>
 
 static_assert(sizeof (unsigned long int) == sizeof(unsigned long long int), "Unexpected size of unsigned long int");
 
-// Annoyingly, CUDA - upto and including version 10.0 - provide atomic
+// Annoyingly, CUDA - upto and including version 10.2 - provide atomic
 // operation wrappers for unsigned int and unsigned long long int, but
-// not for the in-between type of unsigned long int. So - we
-// have to make our own.
+// not for the in-between type of unsigned long int. Also, some atomic
+// operations are provided for ints, i.e. not just for unsigned types,
+// but not consistently, i.e. int yes, long long int no, despite being
+// provided for unsigned long long int. So - we have to fill the gap.
 //
 // TODO: On CUDA devices, sizeof(long) is 8, like sizeof(long long). However,
 // that's not true on Windows host-side code. Need to double check this discrepancy
 // doesn't mess this code's correctness up somehow.
 
 #define CUDA_KAT_DEFINE_MISSING_ATOMIC(arg_type, op) \
-__forceinline__ __device__ arg_type atomic ## op(arg_type *address, arg_type val) \
+KAT_FD arg_type atomic ## op(arg_type *address, arg_type val) \
 { \
-	return ::atomicAdd(reinterpret_cast<unsigned long long int*>(address), reinterpret_cast<arg_type&>(val)); \
+	static_assert(sizeof(long) == sizeof(int) or sizeof(long) == sizeof(long long int), "Unexpected sizeof(long)"); \
+	return (sizeof(arg_type) == sizeof(unsigned int)) ? \
+		::atomic ## op(reinterpret_cast<unsigned int*>(address), reinterpret_cast<unsigned int&>(val)) : \
+		::atomic ## op(reinterpret_cast<unsigned long long int*>(address), reinterpret_cast<arg_type&>(val)); \
 }
 
 #define CUDA_KAT_DEFINE_MISSING_ATOMICS_FOR_OP(op) \

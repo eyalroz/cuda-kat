@@ -1,6 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
-#include <kat/on_device/printing.cuh>
 #include <kat/on_device/shuffle.cuh>
 #include <kat/containers/array.hpp>
 
@@ -9,19 +8,20 @@
 
 // TODO: Also test behavior with warps with some inactive/exited lanes
 
-#include <kat/define_specifiers.hpp>
+#include <kat/detail/execution_space_specifiers.hpp>
+
 
 namespace kernels {
 
 template <typename T, std::size_t N>
-__fhd__  kat::array<T, N>& operator++(::kat::array<T, N>& x)
+KAT_FHD  kat::array<T, N>& operator++(::kat::array<T, N>& x)
 {
 	for(auto& e : x) { e++; }
 	return x;
 }
 
 template <typename T, std::size_t N>
-__fhd__ kat::array<T, N> operator++(::kat::array<T, N>& x, int)
+KAT_FHD kat::array<T, N> operator++(::kat::array<T, N>& x, int)
 {
 	kat::array<T, N> copy;
 	for(auto& e : x) { e++; }
@@ -91,37 +91,6 @@ __global__ void test_arbitrary_shuffle(
 
 } // namespace kernels
 
-// TODO:
-// * Test between_or_equal and strictly_between with differing types for all 3 arguments
-// * Some floating-point tests
-// * gcd tests with values of different types
-// * Some tests with negative values
-
-#define INSTANTIATE_CONSTEXPR_MATH_TEST(_tp) \
-	compile_time_execution_results<_tp> UNIQUE_IDENTIFIER(test_struct_); \
-
-#define INTEGER_TYPES \
-	int8_t, int16_t, \
-	int32_t, int64_t, \
-	uint8_t, uint16_t, uint32_t, uint64_t, \
-	char, short, int, long, long long, \
-	signed char, signed short, signed int, signed long, signed long long, \
-	unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
-
-#define FLOAT_TYPES float, double
-
-#define ARRAY_TYPES_BY_SIZE  \
-	kat::array<uint8_t, 4>, \
-	kat::array<uint8_t, 7>, \
-	kat::array<uint8_t, 8>, \
-	kat::array<uint8_t, 9>, \
-	kat::array<uint8_t, 15>, \
-	kat::array<uint8_t, 16>, \
-	kat::array<uint8_t, 17>, \
-	kat::array<uint8_t, 31>, \
-	kat::array<uint8_t, 32>, \
-	kat::array<uint8_t, 33>
-
 constexpr const auto num_full_warps { 2 }; // this is aribtrary; didn't just want to have 1.
 constexpr const auto block_size { num_full_warps * kat::warp_size };
 
@@ -130,7 +99,7 @@ TEST_SUITE("shuffle") {
 
 TEST_CASE_TEMPLATE("up", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
@@ -187,7 +156,7 @@ TEST_CASE_TEMPLATE("up", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE
 
 TEST_CASE_TEMPLATE("down", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
@@ -244,7 +213,7 @@ TEST_CASE_TEMPLATE("down", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SI
 
 TEST_CASE_TEMPLATE("xor", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZE)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 		// TODO: Test shuffles with non-full warps.
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
@@ -311,7 +280,5 @@ TEST_CASE_TEMPLATE("xor", I, INTEGER_TYPES, FLOAT_TYPES ) //, ARRAY_TYPES_BY_SIZ
 		}
 	}
 }
-
-#include <kat/undefine_specifiers.hpp>
 
 } // TEST_SUITE("shuffle")

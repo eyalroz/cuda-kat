@@ -1,6 +1,6 @@
 
-#ifndef CONSTEXPR_BY_CPP_VERSION_HPP_
-#define CONSTEXPR_BY_CPP_VERSION_HPP_
+#ifndef CUDA_KAT_CONSTEXPR_BY_CPP_VERSION_HPP_
+#define CUDA_KAT_CONSTEXPR_BY_CPP_VERSION_HPP_
 
 ///@cond
 
@@ -24,6 +24,6 @@
 #endif
 #endif
 
-///@nocond
+///@endcond
 
-#endif // CONSTEXPR_BY_CPP_VERSION_HPP_
+#endif // CUDA_KAT_CONSTEXPR_BY_CPP_VERSION_HPP_

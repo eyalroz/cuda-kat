@@ -1,11 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
 #include <kat/on_device/math.cuh>
-#include <kat/on_device/printing.cuh>
 
 namespace kernels {
-
-
 
 template <typename I>
 __global__ void try_out_integral_math_functions(I* results, I* __restrict expected)
@@ -363,29 +360,11 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 
 } // namespace kernels
 
-// TODO:
-// * Test between_or_equal and strictly_between with differing types for all 3 arguments
-// * Some floating-point tests
-// * gcd tests with values of different types
-// * Some tests with negative values
-
-#define INSTANTIATE_CONSTEXPR_MATH_TEST(_tp) \
-	compile_time_execution_results<_tp> UNIQUE_IDENTIFIER(test_struct_); \
-
-#define INTEGER_TYPES \
-	int8_t, int16_t, int32_t, int64_t, \
-	uint8_t, uint16_t, uint32_t, uint64_t, \
-	char, short, int, long, long long, \
-	signed char, signed short, signed int, signed long, signed long long, \
-	unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
-
-
-
 TEST_SUITE("math") {
 
 TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
 {
-	cuda::device_t<> device { cuda::device::current::get() };
+	cuda::device_t device { cuda::device::current::get() };
 	auto block_size { 1 };
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
@@ -410,4 +389,4 @@ TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
 	}
 }
 
-} // TEST_SUITE("constexpr_math")
+} // TEST_SUITE("math")
