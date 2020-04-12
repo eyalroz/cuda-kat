@@ -60,6 +60,8 @@ constexpr KAT_FHD auto exchange (T& x, U&& new_value) // TODO: A noexcept clause
  * @note  Is this enough, without the multiple specializations for std::swap?
  * @todo How does EASTL swap work? Should I incorporate its specializations?
  *
+ * @note Some kat types overload this default implementation.
+ *
  */
 template <typename T>
 KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap( T& a, T& b )
