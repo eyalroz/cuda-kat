@@ -58,6 +58,7 @@ set_target_properties(
 )
 
 set(tests
+	array
 	shared_memory
 	math
 	shuffle
