@@ -340,7 +340,7 @@ TEST_CASE("more typed get")
 	const bool& constRef = get<bool>(aConstTuple);
 	CHECK( constRef == true );
 
-	const bool&& constRval = get<bool>(kat::move(a_tuple_with_repeated_type));
+	const bool&& constRval = get<bool>(std::move(a_tuple_with_repeated_type));
 	CHECK( constRval == true );
 }
 
@@ -432,7 +432,7 @@ TEST_CASE("forward_as_tuple")
 {
 	auto forward_test = [](tuple<move_only_type&&, move_only_type&&> x) -> tuple<move_only_type, move_only_type>
 	{
-		return tuple<move_only_type, move_only_type>(move(x));
+		return tuple<move_only_type, move_only_type>(std::move(x));
 	};
 
 	tuple<move_only_type, move_only_type> a_movable_tuple(

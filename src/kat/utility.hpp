@@ -21,6 +21,7 @@
 
 namespace kat {
 
+#ifdef KAT_DEFINE_MOVE_AND_FORWARD
 template<typename T>
 constexpr KAT_FHD typename std::remove_reference<T>::type&& move(T&& v) noexcept
 {
@@ -38,11 +39,16 @@ constexpr KAT_FHD T&& forward(typename std::remove_reference<T>::type&& v) noexc
 {
 	return static_cast<T&&>(v);
 }
+#endif
 
 #if __cplusplus >= 201401L
 template <typename T, typename U = T>
 constexpr KAT_FHD auto exchange (T& x, U&& new_value) // TODO: A noexcept clause?
 {
+#ifndef KAT_DEFINE_MOVE_AND_FORWARD
+	using std::move;
+	using std::forward;
+#endif
 	auto old_value = move(x);
 	x = forward<T>(new_value);
 	return old_value;
@@ -70,6 +76,9 @@ KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap( T& a, T& b )
 	    std::is_nothrow_move_assignable<T>::value
 	)
 {
+#ifndef KAT_DEFINE_MOVE_AND_FORWARD
+	using std::move;
+#endif
 	T tmp ( move(a) );
 	a = move(b);
 	b = move(tmp);
