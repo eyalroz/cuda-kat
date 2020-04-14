@@ -129,7 +129,7 @@ template <> KAT_FD uint64_t replace_bits(uint64_t bits_to_insert, uint64_t exist
 
 } // namespace bit_field
 
-KAT_FD unsigned prmt(unsigned first, unsigned second, unsigned byte_selectors)
+KAT_FD unsigned permute_bytes(unsigned first, unsigned second, unsigned byte_selectors)
 {
 	return ptx::prmt(first, second, byte_selectors);
 }
