@@ -874,7 +874,8 @@ TEST_CASE_TEMPLATE("find_leading_non_sign_bit", I, int, unsigned, long, unsigned
 		values.data());
 }
 
-// Not testing ldg / load_global_with_non_coherent_cache
+// Not testing ldg/load_global_with_non_coherent_cache here, since such a test is too dissimilar from the
+// rest of the builtin tests.
 
 TEST_CASE("select_bytes")
 {

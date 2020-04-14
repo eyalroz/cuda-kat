@@ -8,6 +8,7 @@
 #define CUDA_KAT_ON_DEVICE_BUILTINS_DETAIL_CUH_
 
 #include <kat/on_device/ptx.cuh>
+#include <kat/common.hpp>
 
 #if ! __CUDA_ARCH__ >= 300
 #error "This code can only target devices of compute capability 3.0 or higher."
@@ -258,8 +259,28 @@ template <>  KAT_FD uint32_t find_leading_non_sign_bit<unsigned long     >(unsig
 template <>  KAT_FD uint32_t find_leading_non_sign_bit<long long         >(long long x)            { return ptx::bfind((int64_t) x);  }
 template <>  KAT_FD uint32_t find_leading_non_sign_bit<unsigned long long>(unsigned long long  x)  { return ptx::bfind((uint64_t) x); }
 
+#if __CUDA_ARCH__ >= 320
+/**
+ * @brief Load data through the read-only data cache
+ *
+ * @note See the <a href="http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#ldg-function">relevant section</a>
+ * of the CUDA C Programming guide for details on using this instruction for loading.
+ *
+ * @param ptr The global memory location from which to load
+ * @return the value at location @p ptr , loaded through the read-only data cache rather than
+ * through the usual (read-write) caches
+ */
 template <typename T>
-KAT_FD T load_global_with_non_coherent_cache(const T* ptr)  { return ptx::ldg(ptr); }
+KAT_FD T load_global_with_non_coherent_cache(const T* ptr)
+{
+	static_assert(is_any_of<T, long, unsigned char, signed short, int long, char2, char4, short2, short4, int2, int4, longlong2, float, double, float2, float4, double2>
+		"type not directly supported for non-coherent loading (ldg)");
+	return __ldg(ptr);
+}
+
+template <> KAT_FD int load_global_with_non_coherent_cache<int>(const int* ptr);
+
+#endif
 
 // Note: We can't generalize clz to an arbitrary type, without subtracting the size difference from the result of the builtin clz instruction.
 
