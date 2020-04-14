@@ -1,7 +1,13 @@
 /**
  * @file on_device/builtins.cuh
  *
- * @brief C++ wrappers for single PTX instructions (in the `builtins` namespace).
+ * @brief Templated, uniformly-named C++ functions wrapping single PTX
+ * instructions (in a dedicated `builtins` namespace).
+ *
+ * CUDA provides C functions corresponding to many PTX instructions, which are
+ * not otherwise easy, obvious or possible to generate with plain C or C++ code.
+ * However - it doesn't provide such functions for all PTX instructions; nor
+ * does it provide them in a type-generic way, for use in templated C++ code.
  *
  * @note
  * 1. This obviously doesn't include those built-ins which are inherent
@@ -19,8 +25,8 @@
  *    fundamental C++ types (and never for aggregate types); other files
  *    utilize these actual built-ins to generalize them to a richer set
  *    of types.
- * 5. This file (and its implementation) has _no_ PTX code. PTX function
- *    wrappers are to be found under the `ptx/` directory, and are not
+ * 5. This file (and its implementation) has _no_ PTX code. PTX instructions
+ *    are wrapped in functions under the `ptx/` directory, which are not
  *    templated.
  */
 #ifndef CUDA_KAT_ON_DEVICE_BUILTINS_CUH_
@@ -158,7 +164,7 @@ template <typename I> KAT_FD I replace_bits(I original_bit_field, I bits_to_inse
  *@note If you don't use the sign-related bits, you could call this function "gather bytes" or "select bytes"
  *
  */
-KAT_FD unsigned prmt(unsigned first, unsigned second, unsigned byte_selectors);
+KAT_FD unsigned permute_bytes(unsigned first, unsigned second, unsigned byte_selectors);
 
 /**
  * Use this to select which variant of the funnel shift intrinsic to use

@@ -1,18 +1,24 @@
 /**
  * @file on_device/math.cuh
  *
- * @brief Mathematical function definitions for our troubled world
+ * @brief Templatized mathematical function definitions for integer and floating-point types.
+ *
+ * CUDA has many mathematical primitives - which are already found in @ref `builtins.cuh`.
+ * However, they are often not defined for all types; and - some functions are missing
+ * (e.g. @ref `gcd()`) or can benefit from specialization (e.g. division by a power of 2).
+ * This file has the wider selection of functions, utilizing a primitive (from `builtins::`)
+ * when relevant, and multi-instruction implementation otherwise.
+ *
+ * @note Including this file is sufficient for accessing all functions in
+ * @ref `constexpr_math.cuh`.
  */
 #pragma once
 #ifndef CUDA_KAT_ON_DEVICE_MATH_CUH_
 #define CUDA_KAT_ON_DEVICE_MATH_CUH_
 
-// Though this is an include file, it should not be visible outside
-// the op store's implementation
 #include "common.cuh"
 #include "constexpr_math.cuh"
 #include <kat/on_device/builtins.cuh>
-	// for absolute_value(), sum_of_absolute_differences(), minimum(), maximum() etc...
 
 
 ///@cond
