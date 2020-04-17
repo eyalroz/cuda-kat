@@ -111,6 +111,13 @@ struct addressof_impl
 
 } // namespace detail
 
+/**
+ * @brief Obtains the actual address of the object or function arg, even in presence of overloaded `operator&()`
+ *
+ * @note In the standard library, this function is somehow in @ref `<memory>`.
+ *
+ * @{
+ */
 template<class T>
 KAT_FHD T* addressof( T& v ) {
 	// Note the complex implementation details are due to some objects
@@ -118,6 +125,7 @@ KAT_FHD T* addressof( T& v ) {
 	return detail::addressof_impl<T>::f( detail::addr_impl_ref<T>( v ), 0 );
 }
 
+/** @} */
 template <class T>
 const KAT_FHD T* addressof(const T&&) = delete;
 
