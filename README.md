@@ -22,7 +22,7 @@ The various utility functions (and occasional other constructs) available in the
 
 | Header(s)                        | Examples and description                                                |
 |----------------------------------|-------------------------------------------------------------------------|
-| [`grid_info.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/grid_info.cuh)         |`lane::index()`<br>`block::num_warps()`<br><br>Shorthands/mnemonics for information about positions and sizes of lanes, threads, warps and blocks within warps, blocks and grids (particularly for one-dimensional/linear grids). See also the [motivational section below](#the-patterns-that-repeat). |
+| [`grid_info.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/grid_info.cuh)         |`lane::id()`<br>`block::num_warps()`<br><br>Shorthands/mnemonics for information about positions and sizes of lanes, threads, warps and blocks within warps, blocks and grids (particularly for one-dimensional/linear grids). See also the [motivational section below](#the-patterns-that-repeat). |
 | [`ptx.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/ptx.cuh)               | `ptx::is_in_shared_memory(const void* ptr)`<br>`ptx::bfind(uint32_t val)`<br>`ptx::special_registers::gridid()`<br><br>C++ bindings for PTX instructions which are not made available by CUDA itself. (Templatized versions of some of these appear in `builtins.cuh`.) |
 | [`shared_memory.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/shared_memory.cuh)               | `shared_memory::proxy<T>()`<br><br>Access and size-determination gadgets for templated dynamic shared memory (which is not directly possible in CUDA!). |
 | [`atomics.cuh`](https://github.com/eyalroz/cuda-kat/blob/master/src/kat/on_device/atomics.cuh)  | `atomic::increment(T* address)`<br>`atomic::apply_atomically<T, F>(T* address, F invokable)`<br><br>Uniform, templated, zero-overhead invocation of all CUDA-supported atomic operations; and compare-and-swap-based implementation for operations without atomic primitives on your GPU.  |
@@ -47,13 +47,13 @@ To illustrate the motivation for `cuda-kat` and the spirit in which it's written
 
 ### <a name="an-obvious-example">You know you've written this before...</a>
 
-As you write more CUDA kernels - for an application or a library - you likely begin to notice yourself repeating many small patterns of code. A popular one would be  computing the global index of a thread in a linear grid:
+As you write more CUDA kernels - for an application or a library - you likely begin to notice yourself repeating many small patterns of code. A popular one would be  computing the global id of a thread in a linear grid:
 ```
-auto global_thread_index = threadIdx.x + blockIdx.x * blockDim.x;
+auto global_thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 ```
 we've all been using that again and again, right? Many of us find ourselves writing a small utility function for this pattern. Perhaps it's something like:
 ```
-auto global_thread_index() { return threadIdx.x + blockIdx.x * blockDim.x; }
+auto global_thread_id() { return threadIdx.x + blockIdx.x * blockDim.x; }
 ```
 In fact, some of those end up having written this same function several times, in several projects we've worked on. This is irksome, especially when you know that about every other CUDA library probably has this function, or uses this pattern, somewhere in its bowels. thrust does. cub does. cudf does. (moderngpu, weirdly, doesn't) and so on.
 
@@ -63,7 +63,7 @@ Well, this is what `cuda-kat` is for.
 
 ### <a name="making-your-kernel-code-more-natural-language-like"> Say it with natural-language-like mnemonics</a>
 
-The example of `global_thread_index()` is quite obvious in that it involves multiple operations and writing the function name is more terse than spelling out the computation. But naming this pattern is attractive just as much due to our giving of a **meaningful name** to the computation, regardless of its length. It's also an application of the  [DRY principle](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself); and it removes numerous repetitive calculations, which divert attention from the more meaningful computational work you're actually carrying out in your kernel.
+The example of `global_thread_id()` is quite obvious in that it involves multiple operations and writing the function name is more terse than spelling out the computation. But naming this pattern is attractive just as much due to our giving of a **meaningful name** to the computation, regardless of its length. It's also an application of the  [DRY principle](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself); and it removes numerous repetitive calculations, which divert attention from the more meaningful computational work you're actually carrying out in your kernel.
 
 But let's make that more concrete. Consider the following statements:
 ```
@@ -74,7 +74,7 @@ auto bar = blockDim.x / warpSize;
 when you write them, what you _really_ mean to be saying is:
 ```
 if (this_thread_is_the_last_in_its_block()) { do_stuff(); }
-auto foo = lane_index_within_warp();
+auto foo = lane_id_within_warp();
 auto bar = num_full_warps_in_grid_block();
 ```
 and these, while longer to type, are clearer to the reader and less prone to typos.
@@ -83,24 +83,25 @@ and these, while longer to type, are clearer to the reader and less prone to typ
 
 Instead of a flat collection of rather long-named functions:
 ```
-global_thread_index()
-lane_index_within_warp()
+global_thread_id()
+lane_id_within_warp()
 this_thread_is_the_last_in_its_block()
 num_full_warps_in_grid_block()
 ```
 the library groups these (and many other related) functions into relevant namespaces. We thus have:
 ```
-linear_grid::grid_info::thread::global_index()
-grid_info::lane::index()
+linear_grid::grid_info::thread::global_id()
+grid_info::lane::id()
 linear_grid::grid_info::thread::is_last_in_block()
 linear_grid::grid_info::block::num_full_warps()
 ```
-which is easier to browse through if you use auto-complete. The order comes at the expense of brevity... but we can fix this by issuing the appropriate `namespace` or `using namespace` commands. The above can then become simply:
+which is easier to browse through if you use auto-complete. The order comes at the expense of brevity... but we can alleviate this with an appropriate `namespace`. The above can then become simply:
 ```
-thread::global_index()
-lane::index()
-thread::is_last_in_block()
-block::num_full_warps()
+namespace gi = kat::linear_grid::grid_info;
+gi::thread::global_id()
+gi::lane::id()
+gi::thread::is_last_in_block()
+gi::block::num_full_warps()
 ```
 in your code. Now _this_ is how I want to write my kernels!
 
