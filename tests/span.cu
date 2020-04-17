@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "common.cuh"
 #include <kat/containers/span.hpp>
+#include <kat/utility.hpp> // for kat::addressof
 
 #include <doctest.h>
 #include <cuda/api_wrappers.hpp>
@@ -10,6 +11,114 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
+#include <cassert> // for device-side assertions
+
+struct result_of_check {
+	bool result;
+	kat::size_t line_number;
+};
+
+namespace kernels {
+
+template <typename F>
+__global__ void run_simple_test(
+	F                             test_function,
+	result_of_check*  __restrict  results = nullptr,
+	kat::size_t                   num_checks = 0
+	)
+{
+	assert(not(results == nullptr and num_checks != 0));
+	test_function(results, num_checks);
+}
+
+} // namespace kernels
+
+#define KAT_HD_CHECK(check_expression) \
+do { \
+	results[check_index++] = result_of_check{ ( check_expression ) , __LINE__ }; \
+} while(false);
+
+// Note: Want more arguments? Define another macro. It's not trivial to have the same
+// macro for the no-extra-args case without VA_OPT; it requires some macro voodoo
+// which I'd rather not get into
+//
+#define HD_TEST_FUNCTOR_START(identifier) \
+struct identifier { \
+KAT_HD void operator()( \
+	result_of_check* results, \
+	kat::size_t   num_checks) \
+{ \
+	kat::size_t check_index { 0 }; \
+	(void) check_index;
+
+#define HD_TEST_FUNCTOR_END } \
+};
+
+// TODO: Don't pass the number of checks, have the device function return
+// a dynamically-allocated std-vector-like object, and carefull copy it to
+// the host side (first its size, then its data after corresponding allocation
+// on the host side). Perhaps with thrust device_vector? Or roll my own?
+template <typename F>
+auto execute_simple_testcase_on_gpu(
+	F                                testcase_device_function,
+	size_t                           num_checks = 0)
+{
+	cuda::device_t device { cuda::device::current::get() };
+	auto host_side_results { std::vector<result_of_check>(num_checks) };
+	if (num_checks == 0) {
+		cuda::launch(
+			kernels::run_simple_test<F>,
+			single_thread_launch_config(),
+			testcase_device_function,
+			nullptr,
+			num_checks
+			);
+	}
+	else {
+		auto device_side_results { cuda::memory::device::make_unique<result_of_check[]>(device, num_checks) };
+		cuda::memory::device::zero(device_side_results.get(), num_checks * sizeof(result_of_check)); // just to be on the safe side
+
+		cuda::launch(
+			kernels::run_simple_test<F>,
+			single_thread_launch_config(),
+			testcase_device_function,
+			device_side_results.get(),
+			num_checks
+			);
+
+		cuda::memory::copy(host_side_results.data(), device_side_results.get(), sizeof(result_of_check) * num_checks);
+	}
+	device.synchronize(); // Probably unnecessary, but let's just be on the safe side
+	return host_side_results;
+}
+
+void check_results(
+	std::string             test_or_testcase_name,
+	const result_of_check*  results,
+	kat::size_t             num_checks)
+{
+	std::stringstream ss;
+	// Note that it's possible for there to be _no_ results
+	for(kat::size_t i = 0; i < num_checks; i++) {
+		ss.str("");
+		ss << test_or_testcase_name << " failed check #" << (i+1) << " (1-based) at source line " << results[i].line_number;
+		auto message = ss.str();
+		CHECK_MESSAGE(results[i].result, message);
+	}
+}
+
+void check_results(
+	const result_of_check*  results,
+	kat::size_t             num_checks)
+{
+	check_results(doctest::current_test_name(), results, num_checks);
+}
+
+template <typename ContiguousContainer>
+void check_results(const ContiguousContainer& results)
+{
+	check_results(results.data(), results.size());
+}
 
 namespace detail {
 
@@ -28,7 +137,8 @@ enum everything_checks {
 	, num_checks
 };
 
-__host__ __device__ void lwg_3225_constructibility_with_c_array()
+struct lwg_3225_constructibility_with_c_array {
+KAT_HD void operator()(result_of_check* = nullptr, kat::size_t = 0)
 {
 	static_assert( std::is_constructible<kat::span<int, 1>, int(&)[1]>::value, "");
 	static_assert( std::is_constructible<kat::span<const int, 1>, int(&)[1]>::value, "");
@@ -42,8 +152,10 @@ __host__ __device__ void lwg_3225_constructibility_with_c_array()
 	static_assert( std::is_constructible<kat::span<const int>, int(&)[2]>::value, "");
 	static_assert( std::is_constructible<kat::span<const int>, const int(&)[2]>::value, "");
 }
+};
 
-__host__ __device__ void lwg_3225_constructibility_with_kat_array()
+struct lwg_3225_constructibility_with_kat_array {
+KAT_HD void operator()(result_of_check* = nullptr, kat::size_t = 0)
 {
 	static_assert( std::is_constructible<kat::span<const int* const>, kat::array<int*, 2>>::value, "");
 	static_assert( std::is_constructible<kat::span<const int>, kat::array<const int, 4>>::value, "");
@@ -78,8 +190,10 @@ __host__ __device__ void lwg_3225_constructibility_with_kat_array()
 	static_assert( not std::is_constructible<kat::span<int>, const kat::array<int, 2>&>::value, "");
 	static_assert( not std::is_constructible<kat::span<int>, const kat::array<const int, 2>&>::value, "");
 }
+};
 
-__host__ __device__ void lwg_3225_constructibility_with_std_array()
+struct lwg_3225_constructibility_with_std_array {
+KAT_HD void operator()(result_of_check* = nullptr, kat::size_t = 0)
 {
 	static_assert( std::is_constructible<kat::span<const int* const>, std::array<int*, 2>>::value, "");
 	static_assert( std::is_constructible<kat::span<const int>, std::array<const int, 4>>::value, "");
@@ -114,9 +228,10 @@ __host__ __device__ void lwg_3225_constructibility_with_std_array()
 	static_assert( not std::is_constructible<kat::span<int>, const std::array<int, 2>&>::value, "");
 	static_assert( not std::is_constructible<kat::span<int>, const std::array<const int, 2>&>::value, "");
 }
+};
 
 
-namespace nothrow_construcitibility {
+namespace nothrow_construcitibility_ {
 template<bool DoesntThrow>
 struct sentinel { int* p; };
 
@@ -130,10 +245,11 @@ template<bool DoesntThrow>
 std::ptrdiff_t operator-(int* p, sentinel<DoesntThrow> s) noexcept { return p - s.p; }
 }
 
-__host__ __device__ void nothrow_constructibility()
-	{
+struct nothrow_constructibility {
+KAT_HD void operator()(result_of_check* = nullptr, kat::size_t = 0)
+{
 	using kat::span;
-	using namespace nothrow_construcitibility;
+	using namespace nothrow_construcitibility_;
 
 	static_assert( std::is_nothrow_constructible< kat::span<int>>::value, "" );
 	static_assert( std::is_nothrow_constructible< kat::span<int, 0>>::value, "" );
@@ -165,222 +281,199 @@ __host__ __device__ void nothrow_constructibility()
 	static_assert(not std::is_nothrow_constructible< kat::span<int>, int*, sentinel<throws_exceptions>>::value, "");
 #endif
 }
+};
 
-__host__ __device__ void everything(bool* results)
+
+struct everything {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
-	struct alignas(256) strawman
-	// struct strawman
-	  {
-	    int x;
-	    int y;
-	    bool z;
-	    int w;
-	  };
+	auto check_index { 0 };
 
-	  struct naked_span
-	  {
-	    char* p;
-	    std::size_t n;
-	  };
+	struct alignas(256) strawman {
+		int x;
+		int y;
+		bool z;
+		int w;
+	};
 
-	  struct strawman_span
-	  {
-	    strawman* p;
-	    std::size_t n;
-	  };
+	struct naked_span
+	{
+	char* p;
+	std::size_t n;
+	};
+
+	struct strawman_span
+	{
+	strawman* p;
+	std::size_t n;
+	};
 
 #if __cplusplus >= 202001L
-	  // In C++20, span's Extent is allowed to not take up any space if it's an empty struct -
-	  // and have the same starting address as the next field; this uses [[no_unique_address]
-	  // but ... we don't have that (unless we swap the span implementation for GSL's :-(
-	  //
-	  static_assert(sizeof(kat::span<char, 0>) <= sizeof(char*), "");
-	  static_assert(sizeof(kat::span<const char, 0>) <= sizeof(const char*), "");
-	  static_assert(sizeof(kat::span<strawman, 0>) <= sizeof(strawman*), "");
-	  static_assert(sizeof(kat::span<strawman, 1>) <= sizeof(strawman*), "");
+	// In C++20, span's Extent is allowed to not take up any space if it's an empty struct -
+	// and have the same starting address as the next field; this uses [[no_unique_address]
+	// but ... we don't have that (unless we swap the span implementation for GSL's :-(
+	//
+	static_assert(sizeof(kat::span<char, 0>) <= sizeof(char*), "");
+	static_assert(sizeof(kat::span<const char, 0>) <= sizeof(const char*), "");
+	static_assert(sizeof(kat::span<strawman, 0>) <= sizeof(strawman*), "");
+	static_assert(sizeof(kat::span<strawman, 1>) <= sizeof(strawman*), "");
 #endif
-	  static_assert(sizeof(kat::span<char>) <= sizeof(naked_span), "");
-	  static_assert(sizeof(kat::span<strawman>) <= sizeof(strawman_span), "");
+	static_assert(sizeof(kat::span<char>) <= sizeof(naked_span), "");
+	static_assert(sizeof(kat::span<strawman>) <= sizeof(strawman_span), "");
 
-	  constexpr static const kat::array<int, 9> arr_data{ 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-	  constexpr auto arr_data_span = kat::span<const int, sizeof(arr_data) / sizeof(int)>(arr_data);
-	  static_assert(arr_data_span.size() == 9, "");
-	  static_assert(arr_data_span.size_bytes() == 9 * sizeof(int), "");
-	  static_assert(*arr_data_span.begin() == 0, "");
-	  static_assert(*arr_data_span.data() == 0, "");
-	  static_assert(arr_data_span.front() == 0, "");
-	  static_assert(arr_data_span.back() == 8, "");
-	  static_assert(arr_data_span[0] == 0, "");
-	  static_assert(arr_data_span[1] == 1, "");
-	  static_assert(arr_data_span[2] == 2, "");
-	  static_assert(arr_data_span[3] == 3, "");
-	  static_assert(arr_data_span[4] == 4, "");
-	  static_assert(arr_data_span[5] == 5, "");
-	  static_assert(arr_data_span[6] == 6, "");
-	  static_assert(arr_data_span[7] == 7, "");
-	  static_assert(arr_data_span[8] == 8, "");
-	  static_assert(!arr_data_span.empty(), "");
-	  static_assert(decltype(arr_data_span)::extent == 9, "");
+	constexpr static const kat::array<int, 9> arr_data{ 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+	constexpr auto arr_data_span = kat::span<const int, sizeof(arr_data) / sizeof(int)>(arr_data);
+	static_assert(arr_data_span.size() == 9, "");
+	static_assert(arr_data_span.size_bytes() == 9 * sizeof(int), "");
+	static_assert(*arr_data_span.begin() == 0, "");
+	static_assert(*arr_data_span.data() == 0, "");
+	static_assert(arr_data_span.front() == 0, "");
+	static_assert(arr_data_span.back() == 8, "");
+	static_assert(arr_data_span[0] == 0, "");
+	static_assert(arr_data_span[1] == 1, "");
+	static_assert(arr_data_span[2] == 2, "");
+	static_assert(arr_data_span[3] == 3, "");
+	static_assert(arr_data_span[4] == 4, "");
+	static_assert(arr_data_span[5] == 5, "");
+	static_assert(arr_data_span[6] == 6, "");
+	static_assert(arr_data_span[7] == 7, "");
+	static_assert(arr_data_span[8] == 8, "");
+	static_assert(!arr_data_span.empty(), "");
+	static_assert(decltype(arr_data_span)::extent == 9, "");
 
-	  constexpr static int data[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-	  constexpr auto data_span    = kat::span<const int, sizeof(data) / sizeof(int)>(data);
-	  static_assert(data_span.size() == 9, "");
-	  static_assert(data_span.size_bytes() == 9 * sizeof(int), "");
-	  static_assert(*data_span.begin() == 0, "");
-	  static_assert(*data_span.data() == 0, "");
-	  static_assert(data_span.front() == 0, "");
-	  static_assert(data_span.back() == 8, "");
-	  static_assert(data_span[0] == 0, "");
-	  static_assert(data_span[1] == 1, "");
-	  static_assert(data_span[2] == 2, "");
-	  static_assert(data_span[3] == 3, "");
-	  static_assert(data_span[4] == 4, "");
-	  static_assert(data_span[5] == 5, "");
-	  static_assert(data_span[6] == 6, "");
-	  static_assert(data_span[7] == 7, "");
-	  static_assert(data_span[8] == 8, "");
-	  static_assert(!data_span.empty(), "");
-	  static_assert(decltype(data_span)::extent == 9, "");
+	constexpr static int data[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+	constexpr auto data_span    = kat::span<const int, sizeof(data) / sizeof(int)>(data);
+	static_assert(data_span.size() == 9, "");
+	static_assert(data_span.size_bytes() == 9 * sizeof(int), "");
+	static_assert(*data_span.begin() == 0, "");
+	static_assert(*data_span.data() == 0, "");
+	static_assert(data_span.front() == 0, "");
+	static_assert(data_span.back() == 8, "");
+	static_assert(data_span[0] == 0, "");
+	static_assert(data_span[1] == 1, "");
+	static_assert(data_span[2] == 2, "");
+	static_assert(data_span[3] == 3, "");
+	static_assert(data_span[4] == 4, "");
+	static_assert(data_span[5] == 5, "");
+	static_assert(data_span[6] == 6, "");
+	static_assert(data_span[7] == 7, "");
+	static_assert(data_span[8] == 8, "");
+	static_assert(!data_span.empty(), "");
+	static_assert(decltype(data_span)::extent == 9, "");
 
-	  constexpr auto data_span_first = data_span.first<3>();
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_first)>::type, kat::span<const int, 3>>::value, "");
-	  static_assert(decltype(data_span_first)::extent == 3, "");
-	  static_assert(data_span_first.size() == 3, "");
-	  static_assert(data_span_first.front() == 0, "");
-	  static_assert(data_span_first.back() == 2, "");
-	  static_assert(std::tuple_size<decltype(data_span_first)>::value == 3, "");
-	  static_assert(std::is_same<std::tuple_element_t<0, decltype(data_span_first)>, const int>::value, "");
+	constexpr auto data_span_first = data_span.first<3>();
+	static_assert(
+	std::is_same<typename std::remove_cv<decltype(data_span_first)>::type, kat::span<const int, 3>>::value, "");
+	static_assert(decltype(data_span_first)::extent == 3, "");
+	static_assert(data_span_first.size() == 3, "");
+	static_assert(data_span_first.front() == 0, "");
+	static_assert(data_span_first.back() == 2, "");
+	static_assert(std::tuple_size<decltype(data_span_first)>::value == 3, "");
+	static_assert(std::is_same<std::tuple_element_t<0, decltype(data_span_first)>, const int>::value, "");
 
-	  constexpr auto data_span_first_dyn = data_span.first(4);
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_first_dyn)>::type, kat::span<const int>>::value, "");
-	  static_assert(decltype(data_span_first_dyn)::extent == kat::dynamic_extent, "");
-	  static_assert(data_span_first_dyn.size() == 4, "");
-	  static_assert(data_span_first_dyn.front() == 0, "");
-	  static_assert(data_span_first_dyn.back() == 3, "");
+	constexpr auto data_span_first_dyn = data_span.first(4);
+	static_assert(
+	std::is_same<typename std::remove_cv<decltype(data_span_first_dyn)>::type, kat::span<const int>>::value, "");
+	static_assert(decltype(data_span_first_dyn)::extent == kat::dynamic_extent, "");
+	static_assert(data_span_first_dyn.size() == 4, "");
+	static_assert(data_span_first_dyn.front() == 0, "");
+	static_assert(data_span_first_dyn.back() == 3, "");
 
-	  constexpr auto data_span_last = data_span.last<5>();
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_last)>::type, kat::span<const int, 5>>::value, "");
-	  static_assert(decltype(data_span_last)::extent == 5, "");
-	  static_assert(data_span_last.size() == 5, "");
-	  static_assert(data_span_last.front() == 4, "");
-	  static_assert(data_span_last.back() == 8, "");
-	  static_assert(std::tuple_size<decltype(data_span_last)>::value == 5, "");
-	  static_assert(std::is_same<std::tuple_element_t<0, decltype(data_span_last)>, const int>::value, "");
+	constexpr auto data_span_last = data_span.last<5>();
+	static_assert(
+	std::is_same<typename std::remove_cv<decltype(data_span_last)>::type, kat::span<const int, 5>>::value, "");
+	static_assert(decltype(data_span_last)::extent == 5, "");
+	static_assert(data_span_last.size() == 5, "");
+	static_assert(data_span_last.front() == 4, "");
+	static_assert(data_span_last.back() == 8, "");
+	static_assert(std::tuple_size<decltype(data_span_last)>::value == 5, "");
+	static_assert(std::is_same<std::tuple_element_t<0, decltype(data_span_last)>, const int>::value, "");
 
-	  constexpr auto data_span_last_dyn = data_span.last(6);
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_last_dyn)>::type, kat::span<const int>>::value, "");
-	  static_assert(decltype(data_span_last_dyn)::extent == kat::dynamic_extent, "");
-	  static_assert(data_span_last_dyn.size() == 6, "");
-	  static_assert(data_span_last_dyn.front() == 3, "");
-	  static_assert(data_span_last_dyn.back() == 8, "");
+	constexpr auto data_span_last_dyn = data_span.last(6);
+	static_assert(
+	  std::is_same<typename std::remove_cv<decltype(data_span_last_dyn)>::type, kat::span<const int>>::value, "");
+	static_assert(decltype(data_span_last_dyn)::extent == kat::dynamic_extent, "");
+	static_assert(data_span_last_dyn.size() == 6, "");
+	static_assert(data_span_last_dyn.front() == 3, "");
+	static_assert(data_span_last_dyn.back() == 8, "");
 
-	  constexpr auto data_span_subspan = data_span.subspan<1, 3>();
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_subspan)>::type, kat::span<const int, 3>>::value, "");
-	  static_assert(decltype(data_span_subspan)::extent == 3, "");
-	  static_assert(data_span_subspan.size() == 3, "");
-	  static_assert(data_span_subspan.front() == 1, "");
-	  static_assert(data_span_subspan.back() == 3, "");
+	constexpr auto data_span_subspan = data_span.subspan<1, 3>();
+	static_assert(
+	  std::is_same<typename std::remove_cv<decltype(data_span_subspan)>::type, kat::span<const int, 3>>::value, "");
+	static_assert(decltype(data_span_subspan)::extent == 3, "");
+	static_assert(data_span_subspan.size() == 3, "");
+	static_assert(data_span_subspan.front() == 1, "");
+	static_assert(data_span_subspan.back() == 3, "");
 
-	  //		  constexpr auto data_span_subspan_offset = data_span.subspan<8>();
-	    constexpr auto data_span_subspan_offset = data_span.subspan<8, 1>();
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_subspan_offset)>::type, kat::span<const int, 1>>::value, "");
-	  static_assert(decltype(data_span_subspan_offset)::extent == 1, "");
-	  static_assert(data_span_subspan_offset.size() == 1, "");
-	  static_assert(data_span_subspan_offset.front() == 8, "");
-	  static_assert(data_span_subspan_offset.back() == 8, "");
+	//		constexpr auto data_span_subspan_offset = data_span.subspan<8>();
+	  constexpr auto data_span_subspan_offset = data_span.subspan<8, 1>();
+	static_assert(
+	  std::is_same<typename std::remove_cv<decltype(data_span_subspan_offset)>::type, kat::span<const int, 1>>::value, "");
+	static_assert(decltype(data_span_subspan_offset)::extent == 1, "");
+	static_assert(data_span_subspan_offset.size() == 1, "");
+	static_assert(data_span_subspan_offset.front() == 8, "");
+	static_assert(data_span_subspan_offset.back() == 8, "");
 
-	  constexpr auto data_span_subspan_empty = data_span.subspan(9, 0);
-	  static_assert(
-	    std::is_same<typename std::remove_cv<decltype(data_span_subspan_empty)>::type, kat::span<const int>>::value, "");
-	  static_assert(decltype(data_span_subspan_empty)::extent == kat::dynamic_extent, "");
-	  static_assert(data_span_subspan_empty.size() == 0, "");
+	constexpr auto data_span_subspan_empty = data_span.subspan(9, 0);
+	static_assert(
+	  std::is_same<typename std::remove_cv<decltype(data_span_subspan_empty)>::type, kat::span<const int>>::value, "");
+	static_assert(decltype(data_span_subspan_empty)::extent == kat::dynamic_extent, "");
+	static_assert(data_span_subspan_empty.size() == 0, "");
 
-	  // TODO: The following line should work, i.e. deduction should give us
-	  // the second template argument as Extent - Offset, but somehow it doesn't.
-	  // Perhaps it's because I broke a method up into two cases to avoid if constexpr;
-	  // perhaps it's because of NVCC - who knows.
-	  //
-	  // constexpr auto data_span_subspan_empty_static = data_span.subspan<9>();
-	  //
-	  // instead, well use the following line:
-	  constexpr auto data_span_subspan_empty_static = data_span.subspan<9,0>();
-	  static_assert(std::is_same<typename std::remove_cv<decltype(data_span_subspan_empty_static)>::type,
-	    kat::span<const int, 0>>::value, "");
-//		  std::cout << std::hash<decltype(data_span_subspan_empty_static)>() << std::endl;
-	  static_assert(decltype(data_span_subspan_empty_static)::extent == 0, "");
-	  static_assert(data_span_subspan_empty.size() == 0, "");
+	// TODO: The following line should work, i.e. deduction should give us
+	// the second template argument as Extent - Offset, but somehow it doesn't.
+	// Perhaps it's because I broke a method up into two cases to avoid if constexpr;
+	// perhaps it's because of NVCC - who knows.
+	//
+	// constexpr auto data_span_subspan_empty_static = data_span.subspan<9>();
+	//
+	// instead, well use the following line:
+	constexpr auto data_span_subspan_empty_static = data_span.subspan<9,0>();
+	static_assert(std::is_same<typename std::remove_cv<decltype(data_span_subspan_empty_static)>::type,
+	  kat::span<const int, 0>>::value, "");
+//		std::cout << std::hash<decltype(data_span_subspan_empty_static)>() << std::endl;
+	static_assert(decltype(data_span_subspan_empty_static)::extent == 0, "");
+	static_assert(data_span_subspan_empty.size() == 0, "");
 
-	  kat::span<short> shorts{};
-	  results[shorts_is_empty] = shorts.empty();
+	kat::span<short> shorts{};
+	KAT_HD_CHECK(shorts.empty());
 
 #if __cplusplus >= 201703L
-	  results[shorts_is_std_empty] = std::empty(shorts);
+	results[shorts_is_std_empty] = std::empty(shorts);
 #else
 #endif
-	  results[shorts_data_is_null] = shorts.data() == nullptr;
-	  results[shorts_begin_equal_to_end]  = shorts.begin() == shorts.end();
-	  results[shorts_cbegin_equal_to_cend]  = shorts.cbegin() == shorts.cend();
+	KAT_HD_CHECK(shorts.data() == nullptr);
+	KAT_HD_CHECK(shorts.begin() == shorts.end());
+	KAT_HD_CHECK(shorts.cbegin() == shorts.cend());
 
 #if __cplusplus >= 202001L
-	  std::vector<std::int_least32_t> value{ 0 };
-	  kat::span<int32_t> muh_span(value);
-	  VERIFY(muh_span.size() == 1);
-	  std::byte* original_bytes                  = reinterpret_cast<std::byte*>(value.data());
-	  original_bytes[0]                          = static_cast<std::byte>(1);
-	  original_bytes[1]                          = static_cast<std::byte>(2);
-	  original_bytes[2]                          = static_cast<std::byte>(3);
-	  original_bytes[3]                          = static_cast<std::byte>(4);
-	  kat::span<const std::byte> muh_byte_span   = std::as_bytes(muh_span);
-	  kat::span<std::byte> muh_mutable_byte_span = std::as_writable_bytes(muh_span);
-	  kat::span<std::byte> muh_original_byte_span(original_bytes, original_bytes + 4);
-	  bool definitely_reinterpret_casted0 = std::equal(muh_byte_span.cbegin(), muh_byte_span.cend(),
-	    muh_original_byte_span.cbegin(), muh_original_byte_span.cend());
-	  bool definitely_reinterpret_casted1 = std::equal(muh_mutable_byte_span.cbegin(),
-	    muh_mutable_byte_span.cend(), muh_original_byte_span.cbegin(), muh_original_byte_span.cend());
-	  results[definitely_reinterpret_casted] =
-	    definitely_reinterpret_casted0 && definitely_reinterpret_casted1;
+	std::vector<std::int_least32_t> value{ 0 };
+	kat::span<int32_t> muh_span(value);
+	VERIFY(muh_span.size() == 1);
+	std::byte* original_bytes                  = reinterpret_cast<std::byte*>(value.data());
+	original_bytes[0]                          = static_cast<std::byte>(1);
+	original_bytes[1]                          = static_cast<std::byte>(2);
+	original_bytes[2]                          = static_cast<std::byte>(3);
+	original_bytes[3]                          = static_cast<std::byte>(4);
+	kat::span<const std::byte> muh_byte_span   = std::as_bytes(muh_span);
+	kat::span<std::byte> muh_mutable_byte_span = std::as_writable_bytes(muh_span);
+	kat::span<std::byte> muh_original_byte_span(original_bytes, original_bytes + 4);
+	bool definitely_reinterpret_casted0 = std::equal(muh_byte_span.cbegin(), muh_byte_span.cend(),
+	  muh_original_byte_span.cbegin(), muh_original_byte_span.cend());
+	bool definitely_reinterpret_casted1 = std::equal(muh_mutable_byte_span.cbegin(),
+	  muh_mutable_byte_span.cend(), muh_original_byte_span.cbegin(), muh_original_byte_span.cend());
+	KAT_HD_CHECK(definitely_reinterpret_casted0 && definitely_reinterpret_casted1);
 
-	  kat::span<std::byte> muh_original_byte_span_ptr_size(original_bytes, 4);
-	  results[definitely_equivalent] =
-	    std::equal(muh_original_byte_span_ptr_size.cbegin(), muh_original_byte_span_ptr_size.cend(),
-		 muh_original_byte_span.cbegin(), muh_original_byte_span.cend());
+	kat::span<std::byte> muh_original_byte_span_ptr_size(original_bytes, 4);
+	KAT_HD_CHECK(
+	  std::equal(muh_original_byte_span_ptr_size.cbegin(), muh_original_byte_span_ptr_size.cend(),
+		 muh_original_byte_span.cbegin(), muh_original_byte_span.cend()) );
 
 #endif
-
 }
+};
 
 } // namespace detail
-
-namespace kernels {
-
-__global__ void lwg_3225_constructibility_with_c_array()
-{
-	detail::lwg_3225_constructibility_with_c_array();
-}
-
-__global__ void lwg_3225_constructibility_with_kat_array()
-{
-	detail::lwg_3225_constructibility_with_kat_array();
-}
-
-__global__ void lwg_3225_constructibility_with_std_array()
-{
-	detail::lwg_3225_constructibility_with_std_array();
-}
-
-__global__ void nothrow_constructibility()
-{
-	detail::nothrow_constructibility();
-}
-
-} // namespace kernels
-
 
 template <typename T, T Value>
 struct value_as_type {
@@ -399,37 +492,27 @@ TEST_SUITE("span-host-side-libstdcxx") {
 
 TEST_CASE("LWG-3225-constructibility-with-C-array")
 {
-	detail::lwg_3225_constructibility_with_c_array();
+	detail::lwg_3225_constructibility_with_c_array{}(nullptr, 0);
 }
 
 TEST_CASE("LWG-3225-constructibility-with-kat-array")
 {
-	detail::lwg_3225_constructibility_with_kat_array();
+	detail::lwg_3225_constructibility_with_kat_array{}();
 }
 
 TEST_CASE("LWG-3225-constructibility-with-std-array")
 {
-	detail::lwg_3225_constructibility_with_std_array();
+	detail::lwg_3225_constructibility_with_std_array{}();
 }
 
 TEST_CASE("nothrow-construcitibility") {
-	detail::nothrow_constructibility();
+	detail::nothrow_constructibility{}();
 }
 
 TEST_CASE("everything") {
-	bool results[detail::num_checks] = {};
-	detail::everything(results);
-	CHECK(results[detail::shorts_is_empty]);
-#if __cplusplus >= 201703L
-	CHECK(shorts_is_std_empty);
-#endif
-	CHECK(results[detail::shorts_data_is_null]);
-	CHECK(results[detail::shorts_begin_equal_to_end]);
-	CHECK(results[detail::shorts_cbegin_equal_to_cend]);
-#if __cplusplus >= 202001L
-	CHECK(results[detail::definitely_reinterpret_casted);
-	CHECK(results[detail::definitely_equivalent]);
-#endif
+	result_of_check results[detail::num_checks] = {};
+	detail::everything{}(results, detail::num_checks);
+	check_results(results, detail::num_checks);
 }
 
 } // TEST_SUITE("host-side")
@@ -446,7 +529,6 @@ TEST_CASE("everything") {
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-TEST_SUITE("span-host-side-gsl") {
 
 using kat::span;
 using kat::make_span;
@@ -461,42 +543,56 @@ struct AddressOverloaded {
 	}
 };
 
-
-TEST_CASE("constructors")
+struct constructors {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
 	span<int> s;
-	CHECK(s.size() == 0);
-	CHECK(s.data() == nullptr);
+	KAT_HD_CHECK(s.size() == 0);
+	KAT_HD_CHECK(s.data() == nullptr);
 
 	span<const int> cs;
-	CHECK(cs.size() == 0);
-	CHECK(cs.data() == nullptr);
+	KAT_HD_CHECK(cs.size() == 0);
+	KAT_HD_CHECK(cs.data() == nullptr);
 }
+};
 
-TEST_CASE("constructors_with_extent")
+struct constructors_with_extent {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
+
 	span<int, 0> s;
-	CHECK(s.size() == 0);
-	CHECK(s.data() == nullptr);
+	KAT_HD_CHECK(s.size() == 0);
+	KAT_HD_CHECK(s.data() == nullptr);
 
 	span<const int, 0> cs;
-	CHECK(cs.size() == 0);
-	CHECK(cs.data() == nullptr);
+	KAT_HD_CHECK(cs.size() == 0);
+	KAT_HD_CHECK(cs.data() == nullptr);
 }
+};
 
-TEST_CASE("constructors_with_bracket_init")
+struct constructors_with_bracket_init {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
+
 	span<int> s {};
-	CHECK(s.size() == 0);
-	CHECK(s.data() == nullptr);
+	KAT_HD_CHECK(s.size() == 0);
+	KAT_HD_CHECK(s.data() == nullptr);
 
 	span<const int> cs {};
-	CHECK(cs.size() == 0);
-	CHECK(cs.data() == nullptr);
+	KAT_HD_CHECK(cs.size() == 0);
+	KAT_HD_CHECK(cs.data() == nullptr);
 }
+};
 
-TEST_CASE("from_pointer_length_constructor")
+
+struct from_pointer_length_constructor {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
+
 	int arr[4] = {1, 2, 3, 4};
 
 	{
@@ -504,15 +600,15 @@ TEST_CASE("from_pointer_length_constructor")
 		{
 			{
 				span<int> s = {&arr[0], std::size_t {i}};
-				CHECK(s.size() == i);
-				CHECK(s.data() == &arr[0]);
-				CHECK(s.empty() == (i == 0));
+				KAT_HD_CHECK(s.size() == i);
+				KAT_HD_CHECK(s.data() == &arr[0]);
+				KAT_HD_CHECK(s.empty() == (i == 0));
 				for (int j = 0; j < i; ++j)
 				{
-					CHECK(arr[j] == s[j]);
+					KAT_HD_CHECK(arr[j] == s[j]);
 					// These are supported in GSL, but not by our span
-					// CHECK(arr[j] == s.at(j));
-					// CHECK(arr[j] == s(j));
+					// KAT_HD_CHECK(arr[j] == s.at(j));
+					// KAT_HD_CHECK(arr[j] == s(j));
 				}
 			}
 		}
@@ -520,160 +616,426 @@ TEST_CASE("from_pointer_length_constructor")
 
 	{
 		span<int, 2> s {&arr[0], 2};
-		CHECK(s.size() == 2);
-		CHECK(s.data() == &arr[0]);
-		CHECK(s[0] == 1);
-		CHECK(s[1] == 2);
+		KAT_HD_CHECK(s.size() == 2);
+		KAT_HD_CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s[0] == 1);
+		KAT_HD_CHECK(s[1] == 2);
 	}
 
 	{
 		auto s = kat::make_span(&arr[0], 2);
-		CHECK(s.size() == 2);
-		CHECK(s.data() == &arr[0]);
-		CHECK(s[0] == 1);
-		CHECK(s[1] == 2);
+		KAT_HD_CHECK(s.size() == 2);
+		KAT_HD_CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s[0] == 1);
+		KAT_HD_CHECK(s[1] == 2);
 	}
-
 }
+};
 
-TEST_CASE("from_pointer_pointer_construction")
+
+struct from_pointer_pointer_construction {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
+
 	int arr[4] = {1, 2, 3, 4};
 
 	{
 		span<int> s {&arr[0], &arr[2]};
-		CHECK(s.size() == 2);
-		CHECK(s.data() == &arr[0]);
-		CHECK(s[0] == 1);
-		CHECK(s[1] == 2);
+		KAT_HD_CHECK(s.size() == 2);
+		KAT_HD_CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s[0] == 1);
+		KAT_HD_CHECK(s[1] == 2);
 	}
 	{
 		span<int, 2> s {&arr[0], &arr[2]};
-		CHECK(s.size() == 2);
-		CHECK(s.data() == &arr[0]);
-		CHECK(s[0] == 1);
-		CHECK(s[1] == 2);
+		KAT_HD_CHECK(s.size() == 2);
+		KAT_HD_CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s[0] == 1);
+		KAT_HD_CHECK(s[1] == 2);
 	}
 
 	{
 		span<int> s {&arr[0], &arr[0]};
-		CHECK(s.size() == 0);
-		CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s.size() == 0);
+		KAT_HD_CHECK(s.data() == &arr[0]);
 	}
 
 	{
 		span<int, 0> s {&arr[0], &arr[0]};
-		CHECK(s.size() == 0);
-		CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s.size() == 0);
+		KAT_HD_CHECK(s.data() == &arr[0]);
 	}
 
 	{
 		int* p = nullptr;
 		span<int> s {p, p};
-		CHECK(s.size() == 0);
-		CHECK(s.data() == nullptr);
+		KAT_HD_CHECK(s.size() == 0);
+		KAT_HD_CHECK(s.data() == nullptr);
 	}
 
 	{
 		int* p = nullptr;
 		span<int, 0> s {p, p};
-		CHECK(s.size() == 0);
-		CHECK(s.data() == nullptr);
+		KAT_HD_CHECK(s.size() == 0);
+		KAT_HD_CHECK(s.data() == nullptr);
 	}
 
 	{
 		auto s = make_span(&arr[0], &arr[2]);
-		CHECK(s.size() == 2);
-		CHECK(s.data() == &arr[0]);
-		CHECK(s[0] == 1);
-		CHECK(s[1] == 2);
+		KAT_HD_CHECK(s.size() == 2);
+		KAT_HD_CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s[0] == 1);
+		KAT_HD_CHECK(s[1] == 2);
 	}
 
 	{
 		auto s = make_span(&arr[0], &arr[0]);
-		CHECK(s.size() == 0);
-		CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s.size() == 0);
+		KAT_HD_CHECK(s.data() == &arr[0]);
 	}
 
 	{
 		int* p = nullptr;
 		auto s = make_span(p, p);
-		CHECK(s.size() == 0);
-		CHECK(s.data() == nullptr);
+		KAT_HD_CHECK(s.size() == 0);
+		KAT_HD_CHECK(s.data() == nullptr);
 	}
 }
+};
 
-TEST_CASE("from_array_constructor")
+struct from_array_constructor {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
+
 	int arr[5] = {1, 2, 3, 4, 5};
 
 	{
 		const span<int> s {arr};
-		CHECK(s.size() == 5);
-		CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s.size() == 5);
+		KAT_HD_CHECK(s.data() == &arr[0]);
 	}
 
 	{
 		const span<int, 5> s {arr};
-		CHECK(s.size() == 5);
-		CHECK(s.data() == &arr[0]);
+		KAT_HD_CHECK(s.size() == 5);
+		KAT_HD_CHECK(s.data() == &arr[0]);
 	}
 
 	int arr2d[2][3] = {1, 2, 3, 4, 5, 6};
 
 	{
-		const span<int[3]> s {addressof(arr2d[0]), 1};
-		CHECK(s.size() == 1);
-		CHECK(s.data() == addressof(arr2d[0]));
+		const span<int[3]> s {kat::addressof(arr2d[0]), 1};
+		KAT_HD_CHECK(s.size() == 1);
+		KAT_HD_CHECK(s.data() == kat::addressof(arr2d[0]));
 	}
 
 	int arr3d[2][3][2] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 	{
-		const span<int[3][2]> s {addressof(arr3d[0]), 1};
-		CHECK(s.size() == 1);
+		const span<int[3][2]> s {kat::addressof(arr3d[0]), 1};
+		KAT_HD_CHECK(s.size() == 1);
 	}
 
 	{
 		const auto s = make_span(arr);
-		CHECK(s.size() == 5);
-		CHECK(s.data() == addressof(arr[0]));
+		KAT_HD_CHECK(s.size() == 5);
+		KAT_HD_CHECK(s.data() == kat::addressof(arr[0]));
 	}
 
 	{
-		const auto s = make_span(addressof(arr2d[0]), 1);
-		CHECK(s.size() == 1);
-		CHECK(s.data() == addressof(arr2d[0]));
+		const auto s = make_span(kat::addressof(arr2d[0]), 1);
+		KAT_HD_CHECK(s.size() == 1);
+		KAT_HD_CHECK(s.data() == kat::addressof(arr2d[0]));
 	}
 
 	{
-		const auto s = make_span(addressof(arr3d[0]), 1);
-		CHECK(s.size() == 1);
-		CHECK(s.data() == addressof(arr3d[0]));
+		const auto s = make_span(kat::addressof(arr3d[0]), 1);
+		KAT_HD_CHECK(s.size() == 1);
+		KAT_HD_CHECK(s.data() == kat::addressof(arr3d[0]));
 	}
+
 }
+};
 
-TEST_CASE("from_dynamic_array_constructor")
+struct from_dynamic_array_constructor {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 {
+	auto check_index { 0 };
+
 	double(*arr)[3][4] = new double[100][3][4];
 
 	{
 		span<double> s(&arr[0][0][0], 10);
-		CHECK(s.size() == 10);
-		CHECK(s.data() == &arr[0][0][0]);
+		KAT_HD_CHECK(s.size() == 10);
+		KAT_HD_CHECK(s.data() == &arr[0][0][0]);
 	}
 
 	{
 		auto s = make_span(&arr[0][0][0], 10);
-		CHECK(s.size() == 10);
-		CHECK(s.data() == &arr[0][0][0]);
+		KAT_HD_CHECK(s.size() == 10);
+		KAT_HD_CHECK(s.data() == &arr[0][0][0]);
 	}
 
 	delete[] arr;
 }
+};
+
+struct from_convertible_span_constructor {
+KAT_HD void operator()(result_of_check*, kat::size_t)
+{
+	{
+		struct BaseClass { };
+		struct DerivedClass : BaseClass { };
+
+		span<DerivedClass> avd;
+		span<const DerivedClass> avcd = avd;
+		static_cast<void>(avcd);
+	}
+}
+};
+
+struct copy_move_and_assignment {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
+{
+	auto check_index { 0 };
+
+    span<int> s1;
+    KAT_HD_CHECK(s1.empty());
+
+    int arr[] = {3, 4, 5};
+
+    span<const int> s2 = arr;
+    KAT_HD_CHECK(s2.size() ==  3);
+    KAT_HD_CHECK(s2.data() == &arr[0]);
+
+    s2 = s1;
+    KAT_HD_CHECK(s2.empty());
+
+    auto get_temp_span = [&]() -> span<int> { return {&arr[1], 2}; };
+    auto use_span = [&](span<const int> s) {
+        KAT_HD_CHECK(s.size() ==  2);
+        KAT_HD_CHECK(s.data() == &arr[1]);
+    }; use_span(get_temp_span());
+
+    s1 = get_temp_span();
+    KAT_HD_CHECK(s1.size() ==  2);
+    KAT_HD_CHECK(s1.data() == &arr[1]);
+}
+};
+
+struct first {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
+{
+	auto check_index { 0 };
+
+    int arr[5] = {1, 2, 3, 4, 5};
+
+    {
+        span<int, 5> av = arr;
+        KAT_HD_CHECK(av.first<2>().size() == 2);
+        KAT_HD_CHECK(av.first(2).size() == 2);
+    }
+
+    {
+        span<int, 5> av = arr;
+        KAT_HD_CHECK(av.first<0>().size() == 0);
+        KAT_HD_CHECK(av.first(0).size() == 0);
+    }
+
+    {
+        span<int, 5> av = arr;
+        KAT_HD_CHECK(av.first<5>().size() == 5);
+        KAT_HD_CHECK(av.first(5).size() == 5);
+    }
+
+    {
+        span<int, 5> av = arr;
+    }
+
+    {
+        span<int> av;
+        KAT_HD_CHECK(av.first<0>().size() == 0);
+        KAT_HD_CHECK(av.first(0).size() == 0);
+    }
+}
+};
+
+struct last {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
+{
+	auto check_index { 0 };
+
+    int arr[5] = {1, 2, 3, 4, 5};
+
+    {
+        span<int, 5> av = arr;
+        KAT_HD_CHECK(av.last<2>().size() == 2);
+        KAT_HD_CHECK(av.last(2).size() == 2);
+    }
+
+    {
+        span<int, 5> av = arr;
+        KAT_HD_CHECK(av.last<0>().size() == 0);
+        KAT_HD_CHECK(av.last(0).size() == 0);
+    }
+
+    {
+        span<int, 5> av = arr;
+        KAT_HD_CHECK(av.last<5>().size() == 5);
+        KAT_HD_CHECK(av.last(5).size() == 5);
+    }
+
+    {
+        span<int, 5> av = arr;
+    }
+
+    {
+        span<int> av;
+        KAT_HD_CHECK(av.last<0>().size() == 0);
+        KAT_HD_CHECK(av.last(0).size() == 0);
+    }
+}
+};
+
+struct subspan {
+KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
+{
+	auto check_index { 0 };
+
+	int arr[5] = {1, 2, 3, 4, 5};
+
+	{
+		span<int, 5> av = arr;
+		KAT_HD_CHECK((av.subspan<2, 2>().size()) == 2);
+		KAT_HD_CHECK(decltype(av.subspan<2, 2>())::extent == 2);
+		KAT_HD_CHECK(av.subspan(2, 2).size() == 2);
+		KAT_HD_CHECK(av.subspan(2, 3).size() == 3);
+	}
+
+	{
+		span<int, 5> av = arr;
+		KAT_HD_CHECK((av.subspan<0, 0>().size()) == 0);
+		KAT_HD_CHECK(decltype(av.subspan<0, 0>())::extent == 0);
+		KAT_HD_CHECK(av.subspan(0, 0).size() == 0);
+	}
+
+	{
+		span<int, 5> av = arr;
+		KAT_HD_CHECK((av.subspan<0, 5>().size()) == 5);
+		KAT_HD_CHECK(decltype(av.subspan<0, 5>())::extent == 5);
+		KAT_HD_CHECK(av.subspan(0, 5).size() == 5);
+
+	}
+
+	{
+		span<int, 5> av = arr;
+		KAT_HD_CHECK((av.subspan<4, 0>().size()) == 0);
+		KAT_HD_CHECK(decltype(av.subspan<4, 0>())::extent == 0);
+		KAT_HD_CHECK(av.subspan(4, 0).size() == 0);
+		KAT_HD_CHECK(av.subspan(5, 0).size() == 0);
+	}
+
+	{
+		span<int, 5> av = arr;
+		// TODO: This should work without specifying the extent!
+		// KAT_HD_CHECK(av.subspan<1>().size() == 4);
+		// KAT_HD_CHECK(decltype(av.subspan<1>())::extent == 4);
+		KAT_HD_CHECK((av.subspan<1,4>().size() == 4));
+		KAT_HD_CHECK(decltype(av.subspan<1,4>())::extent == 4);
+	}
+
+	{
+		span<int> av;
+		KAT_HD_CHECK((av.subspan<0, 0>().size()) == 0);
+		KAT_HD_CHECK(decltype(av.subspan<0, 0>())::extent == 0);
+		KAT_HD_CHECK(av.subspan(0, 0).size() == 0);
+	}
+
+	{
+		span<int> av;
+		KAT_HD_CHECK(av.subspan(0).size() == 0);
+	}
+
+	{
+		span<int> av = arr;
+		KAT_HD_CHECK(av.subspan(0).size() == 5);
+		KAT_HD_CHECK(av.subspan(1).size() == 4);
+		KAT_HD_CHECK(av.subspan(4).size() == 1);
+		KAT_HD_CHECK(av.subspan(5).size() == 0);
+		const auto av2 = av.subspan(1);
+		for (int i = 0; i < 4; ++i) KAT_HD_CHECK(av2[i] == i + 2);
+	}
+
+	{
+		span<int, 5> av = arr;
+		KAT_HD_CHECK(av.subspan(0).size() == 5);
+		KAT_HD_CHECK(av.subspan(1).size() == 4);
+		KAT_HD_CHECK(av.subspan(4).size() == 1);
+		KAT_HD_CHECK(av.subspan(5).size() == 0);
+		const auto av2 = av.subspan(1);
+		for (int i = 0; i < 4; ++i) KAT_HD_CHECK(av2[i] == i + 2);
+	}
+
+}
+};
+
+TEST_SUITE("span-host-side-gsl") {
+
+TEST_CASE("constructors")
+{
+	constexpr const auto num_checks { 4 };
+	result_of_check results[num_checks] = {};
+	constructors{}(results, num_checks);
+}
+
+TEST_CASE("constructors_with_extent")
+{
+	constexpr const auto num_checks { 4 };
+	result_of_check results[num_checks] = {};
+	constructors_with_extent{}(results, num_checks);
+}
+
+TEST_CASE("constructors_with_bracket_init")
+{
+	constexpr const auto num_checks { 4 };
+	result_of_check results[num_checks] = {};
+	constructors_with_bracket_init{}(results, num_checks);
+}
+
+TEST_CASE("from_pointer_length_constructor")
+{
+	constexpr const auto num_checks { 26 };
+	result_of_check results[num_checks] = {};
+	from_pointer_length_constructor{}(results, num_checks);
+}
+
+TEST_CASE("from_pointer_pointer_construction")
+{
+	constexpr const auto num_checks { 24 };
+	result_of_check results[num_checks] = {};
+	from_pointer_pointer_construction{}(results, num_checks);
+}
+
+TEST_CASE("from_array_constructor")
+{
+	constexpr const auto num_checks { 13 };
+	result_of_check results[num_checks] = {};
+	from_array_constructor{}(results, num_checks);
+}
+
+TEST_CASE("from_dynamic_array_constructor")
+{
+	constexpr const auto num_checks { 4 };
+	result_of_check results[num_checks] = {};
+	from_dynamic_array_constructor{}(results, num_checks);
+}
 
 TEST_CASE("from_std_array_constructor")
 {
+	// Not using a host-device functor for this one - as std::array is only host-side
+
 	std::array<int, 4> arr = {1, 2, 3, 4};
 
 	{
@@ -737,6 +1099,8 @@ TEST_CASE("from_std_array_constructor")
 
 TEST_CASE("from_const_std_array_constructor")
 {
+	// Not using a host-device functor for this one - as std::array is only host-side
+
 	const std::array<int, 4> arr = {1, 2, 3, 4};
 
 	{
@@ -775,6 +1139,8 @@ TEST_CASE("from_const_std_array_constructor")
 
 TEST_CASE("from_std_array_const_constructor")
 {
+	// Not using a host-device functor for this one - as std::array is only host-side
+
 	std::array<const int, 4> arr = {1, 2, 3, 4};
 
 	{
@@ -796,10 +1162,12 @@ TEST_CASE("from_std_array_const_constructor")
 	}
 }
 
-// TODO: These don't work- but doesn't. And we don't have a Container& constructor, either... and
+// TODO: These don't work. And we don't have a Container& constructor, either... and
 // if we enable one (lifted from GSL), this still doesn't pass.
 TEST_CASE("from_container_constructor" * doctest::skip())
 {
+	// Not using a host-device functor for this one - as std::vector is only host-side
+
 	std::vector<int> v = {1, 2, 3};
 	const std::vector<int> cv = v;
 //
@@ -861,230 +1229,120 @@ TEST_CASE("from_container_constructor" * doctest::skip())
 
 TEST_CASE("from_convertible_span_constructor")
 {
-	{
-		struct BaseClass { };
-		struct DerivedClass : BaseClass { };
-
-		span<DerivedClass> avd;
-		span<const DerivedClass> avcd = avd;
-		static_cast<void>(avcd);
-	}
-
+	from_convertible_span_constructor{}(nullptr, 0);
 }
 
 TEST_CASE("copy_move_and_assignment")
  {
-     span<int> s1;
-     CHECK(s1.empty());
-
-     int arr[] = {3, 4, 5};
-
-     span<const int> s2 = arr;
-     CHECK(s2.size() ==  3);
-     CHECK(s2.data() == &arr[0]);
-
-     s2 = s1;
-     CHECK(s2.empty());
-
-     auto get_temp_span = [&]() -> span<int> { return {&arr[1], 2}; };
-     auto use_span = [&](span<const int> s) {
-         CHECK(s.size() ==  2);
-         CHECK(s.data() == &arr[1]);
-     }; use_span(get_temp_span());
-
-     s1 = get_temp_span();
-     CHECK(s1.size() ==  2);
-     CHECK(s1.data() == &arr[1]);
+	constexpr const auto num_checks { 7 };
+	result_of_check results[num_checks] = {};
+	copy_move_and_assignment{}(results, num_checks);
+	check_results(results, num_checks);
  }
 
 TEST_CASE("first")
- {
-     int arr[5] = {1, 2, 3, 4, 5};
-
-     {
-         span<int, 5> av = arr;
-         CHECK(av.first<2>().size() == 2);
-         CHECK(av.first(2).size() == 2);
-     }
-
-     {
-         span<int, 5> av = arr;
-         CHECK(av.first<0>().size() == 0);
-         CHECK(av.first(0).size() == 0);
-     }
-
-     {
-         span<int, 5> av = arr;
-         CHECK(av.first<5>().size() == 5);
-         CHECK(av.first(5).size() == 5);
-     }
-
-     {
-         span<int, 5> av = arr;
-     }
-
-     {
-         span<int> av;
-         CHECK(av.first<0>().size() == 0);
-         CHECK(av.first(0).size() == 0);
-     }
- }
+{
+	constexpr const auto num_checks { 8 };
+	result_of_check results[num_checks] = {};
+	first{}(results, num_checks);
+	check_results(results, num_checks);
+}
 
 TEST_CASE("last")
- {
-    std::set_terminate([] {
-        std::cerr << "Expected Death. last";
-        std::abort();
-    });
-     int arr[5] = {1, 2, 3, 4, 5};
-
-     {
-         span<int, 5> av = arr;
-         CHECK(av.last<2>().size() == 2);
-         CHECK(av.last(2).size() == 2);
-     }
-
-     {
-         span<int, 5> av = arr;
-         CHECK(av.last<0>().size() == 0);
-         CHECK(av.last(0).size() == 0);
-     }
-
-     {
-         span<int, 5> av = arr;
-         CHECK(av.last<5>().size() == 5);
-         CHECK(av.last(5).size() == 5);
-     }
-
-     {
-         span<int, 5> av = arr;
-     }
-
-     {
-         span<int> av;
-         CHECK(av.last<0>().size() == 0);
-         CHECK(av.last(0).size() == 0);
-     }
- }
+{
+//    std::set_terminate([] {
+//        std::cerr << "Expected Death. last";
+//        std::abort();
+//    });
+	constexpr const auto num_checks { 8 };
+	result_of_check results[num_checks] = {};
+	last{}(results, num_checks);
+	check_results(results, num_checks);
+}
 
 TEST_CASE("subspan")
 {
-	int arr[5] = {1, 2, 3, 4, 5};
-
-	{
-		span<int, 5> av = arr;
-		CHECK((av.subspan<2, 2>().size()) == 2);
-		CHECK(decltype(av.subspan<2, 2>())::extent == 2);
-		CHECK(av.subspan(2, 2).size() == 2);
-		CHECK(av.subspan(2, 3).size() == 3);
-	}
-
-	{
-		span<int, 5> av = arr;
-		CHECK((av.subspan<0, 0>().size()) == 0);
-		CHECK(decltype(av.subspan<0, 0>())::extent == 0);
-		CHECK(av.subspan(0, 0).size() == 0);
-	}
-
-	{
-		span<int, 5> av = arr;
-		CHECK((av.subspan<0, 5>().size()) == 5);
-		CHECK(decltype(av.subspan<0, 5>())::extent == 5);
-		CHECK(av.subspan(0, 5).size() == 5);
-
-	}
-
-	{
-		span<int, 5> av = arr;
-		CHECK((av.subspan<4, 0>().size()) == 0);
-		CHECK(decltype(av.subspan<4, 0>())::extent == 0);
-		CHECK(av.subspan(4, 0).size() == 0);
-		CHECK(av.subspan(5, 0).size() == 0);
-	}
-
-	{
-		span<int, 5> av = arr;
-		// TODO: This should work without specifying the extent!
-		// CHECK(av.subspan<1>().size() == 4);
-		// CHECK(decltype(av.subspan<1>())::extent == 4);
-		CHECK(av.subspan<1,4>().size() == 4);
-		CHECK(decltype(av.subspan<1,4>())::extent == 4);
-	}
-
-	{
-		span<int> av;
-		CHECK((av.subspan<0, 0>().size()) == 0);
-		CHECK(decltype(av.subspan<0, 0>())::extent == 0);
-		CHECK(av.subspan(0, 0).size() == 0);
-	}
-
-	{
-		span<int> av;
-		CHECK(av.subspan(0).size() == 0);
-	}
-
-	{
-		span<int> av = arr;
-		CHECK(av.subspan(0).size() == 5);
-		CHECK(av.subspan(1).size() == 4);
-		CHECK(av.subspan(4).size() == 1);
-		CHECK(av.subspan(5).size() == 0);
-		const auto av2 = av.subspan(1);
-		for (int i = 0; i < 4; ++i) CHECK(av2[i] == i + 2);
-	}
-
-	{
-		span<int, 5> av = arr;
-		CHECK(av.subspan(0).size() == 5);
-		CHECK(av.subspan(1).size() == 4);
-		CHECK(av.subspan(4).size() == 1);
-		CHECK(av.subspan(5).size() == 0);
-		const auto av2 = av.subspan(1);
-		for (int i = 0; i < 4; ++i) CHECK(av2[i] == i + 2);
-	}
+	constexpr const auto num_checks { 36 };
+	result_of_check results[num_checks] = {};
+	subspan{}(results, num_checks);
+	check_results(results, num_checks);
 }
 
-
-//	We don't have the GSL size optimization...
-//	TEST(span_test, size_optimization)
-//	{
-//	    span<int> s;
-//	    CHECK(sizeof(s) == sizeof(int*) + sizeof(ptrdiff_t));
+// We don't have this size-zero optimization
+//TEST_CASE("size_optimization")
+//{
+//  span<int> s;
+//  CHECK(sizeof(s) == sizeof(int*) + sizeof(ptrdiff_t));
 //
-//	    span<int, 0> se;
-//	    CHECK(sizeof(se) == sizeof(int*));
-//	}
+//  span<int, 0> se;
+//  (void) se;
+//  CHECK(sizeof(se) == sizeof(int*));
+//}
 
 } // TEST_SUITE("span-host-side-gsl")
 
-TEST_SUITE("span-device-side") {
+TEST_SUITE("span-device-side-from-libstdcxx") {
 
 TEST_CASE("LWG-3225-constructibility-with-C-array")
 {
-	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::lwg_3225_constructibility_with_c_array, single_thread_launch_config());
-	device.synchronize();
+	execute_simple_testcase_on_gpu(detail::lwg_3225_constructibility_with_c_array{});
 }
 
 TEST_CASE("LWG-3225-constructibility-with-kat-array")
 {
-	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::lwg_3225_constructibility_with_kat_array, single_thread_launch_config());
-	device.synchronize();
+	execute_simple_testcase_on_gpu(detail::lwg_3225_constructibility_with_kat_array{});
 }
 
 TEST_CASE("LWG-3225-constructibility-with-std-array")
 {
-	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::lwg_3225_constructibility_with_std_array, single_thread_launch_config());
-	device.synchronize();
+	execute_simple_testcase_on_gpu(detail::lwg_3225_constructibility_with_std_array{});
 }
 
 TEST_CASE("nothrow-constructibility")
 {
-	cuda::device_t device {cuda::device::current::get()};
-	cuda::launch(kernels::nothrow_constructibility, single_thread_launch_config());
-	device.synchronize();
+	execute_simple_testcase_on_gpu(detail::nothrow_constructibility{});
 }
 
-} // TEST_SUITE("span-device-side")
+TEST_CASE("everything") {
+	auto results = execute_simple_testcase_on_gpu(detail::everything{}, detail::num_checks);
+	check_results(results);
+}
+
+} // TEST_SUITE("span-device-side-from-libstdcxx")
+
+TEST_SUITE("span-device-side-from-libgsl") {
+
+TEST_CASE("from_convertible_span_constructor")
+{
+	from_convertible_span_constructor{}(nullptr, 0);
+}
+
+TEST_CASE("copy_move_and_assignment")
+ {
+	constexpr const auto num_checks { 7 };
+	auto results = execute_simple_testcase_on_gpu(copy_move_and_assignment{}, num_checks);
+	check_results(results);
+ }
+
+TEST_CASE("first")
+{
+	constexpr const auto num_checks { 8 };
+	auto results = execute_simple_testcase_on_gpu(first{}, num_checks);
+	check_results(results);
+}
+
+TEST_CASE("last")
+{
+	constexpr const auto num_checks { 8 };
+	auto results = execute_simple_testcase_on_gpu(last{}, num_checks);
+	check_results(results);
+}
+
+TEST_CASE("subspan")
+{
+	constexpr const auto num_checks { 36 };
+	auto results = execute_simple_testcase_on_gpu(subspan{}, num_checks);
+	check_results(results);
+}
+
+} // TEST_SUITE("span-device-side-from-libgsl")
