@@ -84,6 +84,43 @@ KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap( T& a, T& b )
 	b = move(tmp);
 }
 
+namespace detail {
+
+template<class T>
+struct addr_impl_ref
+{
+	T& v_;
+
+	KAT_FHD addr_impl_ref( T& v ): v_( v ) {}
+	KAT_FHD operator T& () const { return v_; }
+
+private:
+	KAT_FHD addr_impl_ref & operator=(const addr_impl_ref &);
+};
+
+template<class T>
+struct addressof_impl
+{
+	static KAT_FHD  T* f( T& v, long ) {
+		return reinterpret_cast<T*>(
+			&const_cast<char&>(reinterpret_cast<const volatile char &>(v)));
+	}
+
+	static KAT_FHD T* f( T* v, int ) { return v; }
+};
+
+} // namespace detail
+
+template<class T>
+KAT_FHD T* addressof( T& v ) {
+	// Note the complex implementation details are due to some objects
+	// overloading their & operator
+	return detail::addressof_impl<T>::f( detail::addr_impl_ref<T>( v ), 0 );
+}
+
+template <class T>
+const KAT_FHD T* addressof(const T&&) = delete;
+
 } // namespace kat
 
 #endif // CUDA_KAT_UTILITY_HPP_
