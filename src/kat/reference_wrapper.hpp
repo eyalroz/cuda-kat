@@ -117,8 +117,8 @@ template <typename T>
 template <typename... ArgTypes>
 KAT_HD typename std::result_of<T&(ArgTypes&&...)>::type reference_wrapper<T>::operator() (ArgTypes&&... args) const
 {
-	//	return std::invoke(*val, kat::forward<ArgTypes>(args)...);
-	return *val(kat::forward<ArgTypes>(args)...);
+	//	return std::invoke(*val, std::forward<ArgTypes>(args)...);
+	return *val(std::forward<ArgTypes>(args)...);
 }
 
 // reference_wrapper-specific utilties
@@ -187,9 +187,9 @@ struct remove_reference_wrapper< const kat::reference_wrapper<T> >
 template <typename R, typename C, typename T, typename... Args>
 auto invoke_impl(R (C::*func)(Args...), T&& obj, Args&&... args) ->
 	typename std::enable_if<is_reference_wrapper<typename std::remove_reference<T>::type>::value,
-					   decltype((obj.get().*func)(kat::forward<Args>(args)...))>::type
+					   decltype((obj.get().*func)(std::forward<Args>(args)...))>::type
 {
-	return (obj.get().*func)(kat::forward<Args>(args)...);
+	return (obj.get().*func)(std::forward<Args>(args)...);
 }
 
 template <typename M, typename C, typename T>

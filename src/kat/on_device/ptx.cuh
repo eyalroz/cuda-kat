@@ -1,8 +1,19 @@
 /**
  * @file on_device/ptx.cuh
  *
- * @brief an include-of-includes of all functions whose implementation uses
- * inline PTX (CUDA's inline IR, using `inline asm` in the source code).
+ * @brief Wrapper functions for single PTX instructions --- using inline PTX
+ * assembly --- which are not already available in the official CUDA includes
+ *
+ * CUDA provides many "intrinsics" functions, which wrap single PTX instructions,
+ * e.g. `__ldg` or `__funnelshift_l` from `sm_32_intrinsics.h`. But - CUDA
+ * doesn't provide such functions for all of the PTX instruction set. The
+ * files included from this master-include contain such single-line assembly
+ * wrapper functions for different categories of missing PTX instructions.
+ *
+ * @note Unlike @ref `on_device/builtins.cuh`, functions here are not
+ * templated, and do not necessarily have the same name for different
+ * parameter types. `on_device/builtins.cuh` functions do _use_ PTX wrapper
+ * functions as their implementation.
  */
 
 #pragma once

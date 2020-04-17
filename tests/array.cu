@@ -56,7 +56,7 @@ struct result_of_check {
 
 #define GPU_CHECK(check_expression) \
 do { \
-	check_results[check_index++] = result_of_check{ ( check_expression ) , __LINE__ }; \
+	results[check_index++] = result_of_check{ ( check_expression ) , __LINE__ }; \
 } while(false);
 
 
@@ -75,12 +75,12 @@ __global__ void run_on_gpu(
 template <typename F>//, typename... Ts>
 __global__ void run_simple_test(
 	F                             test_function,
-	result_of_check*  __restrict  check_results,
+	result_of_check*  __restrict  results,
 	kat::size_t                   num_checks
 //	, Ts...                         args
 	)
 {
-	test_function(check_results, num_checks);//, std::forward<Ts>(args)...);
+	test_function(results, num_checks);//, std::forward<Ts>(args)...);
 }
 
 } // namespace kernels
@@ -103,10 +103,10 @@ template<typename T, typename U>
 template <typename F>
 auto execute_simple_testcase_on_gpu(
 	F                                testcase_device_function,
-	size_t                           num_checks)
+	size_t                           num_checks = 0)
 {
 	cuda::device_t device { cuda::device::current::get() };
-	auto host_side_check_results { std::vector<result_of_check>(num_checks) };
+	auto host_side_results { std::vector<result_of_check>(num_checks) };
 	if (num_checks == 0) {
 		cuda::launch(
 			kernels::run_simple_test<F>,
@@ -117,27 +117,34 @@ auto execute_simple_testcase_on_gpu(
 			);
 	}
 	else {
-		auto device_side_check_results { cuda::memory::device::make_unique<result_of_check[]>(device, num_checks) };
-		cuda::memory::device::zero(device_side_check_results.get(), num_checks * sizeof(result_of_check)); // just to be on the safe side
+		auto device_side_results { cuda::memory::device::make_unique<result_of_check[]>(device, num_checks) };
+		cuda::memory::device::zero(device_side_results.get(), num_checks * sizeof(result_of_check)); // just to be on the safe side
 
 		cuda::launch(
 			kernels::run_simple_test<F>,
 			single_thread_launch_config(),
 			testcase_device_function,
-			device_side_check_results.get(),
+			device_side_results.get(),
 			num_checks
 			);
 
-		cuda::memory::copy(host_side_check_results.data(), device_side_check_results.get(), sizeof(result_of_check) * num_checks);
+		cuda::memory::copy(host_side_results.data(), device_side_results.get(), sizeof(result_of_check) * num_checks);
 	}
-	return host_side_check_results;
+	device.synchronize(); // Probably unnecessary, but let's just be on the safe side
+	return host_side_results;
 }
 
-void check_results(std::string name, const result_of_check* results, kat::size_t num_checks)
+void check_results(
+	std::string             test_or_testcase_name,
+	const result_of_check*  results,
+	kat::size_t             num_checks)
 {
+	std::stringstream ss;
 	// Note that it's possible for there to be _no_ results
 	for(kat::size_t i = 0; i < num_checks; i++) {
-		auto message = name + " failed check #" + std::to_string(i+1) + " (1-based) at source line " + std::to_string(results[i].line_number);
+		ss.str("");
+		ss << test_or_testcase_name << " failed check #" << (i+1) << " (1-based) at source line " << results[i].line_number;
+		auto message = ss.str();
 		CHECK_MESSAGE(results[i].result, message);
 	}
 }
@@ -149,10 +156,6 @@ void execute_simple_testcase_on_gpu_and_check(
 	size_t                           num_checks)
 {
 	auto results = execute_simple_testcase_on_gpu(testcase_device_function, num_checks);
-	int i { 0 };
-	for(auto r : results) {
-		std::cout << testcase_name << " result " << (i++) << ": " << (r.result ? "TRUE" : "FALSE") << " on line " << r.line_number << '\n';
-	}
 	check_results(testcase_name, results.data(), results.size());
 }
 
@@ -187,7 +190,7 @@ namespace capacity {
 
 struct empty {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -210,7 +213,7 @@ KAT_HD void operator()(
 
 struct max_size {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -236,7 +239,7 @@ KAT_HD void operator()(
 
 struct size {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -265,7 +268,7 @@ namespace comparison_operators {
 
 struct equal {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -283,7 +286,7 @@ KAT_HD void operator()(
 
 struct greater {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -300,7 +303,7 @@ KAT_HD void operator()(
 
 struct greater_or_equal {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -317,7 +320,7 @@ KAT_HD void operator()(
 
 struct less {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -335,7 +338,7 @@ KAT_HD void operator()(
 
 struct less_or_equal {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -352,7 +355,7 @@ KAT_HD void operator()(
 
 struct not_equal {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -390,7 +393,7 @@ KAT_HD void operator()(
 #if __cplusplus >= 201703L
 struct deduction {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::array a1{ 1, 2, 3 };
@@ -416,7 +419,7 @@ namespace element_access {
 
 struct tc54338 {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -439,7 +442,7 @@ KAT_HD void operator()(
 
 struct back {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -462,7 +465,7 @@ KAT_HD void operator()(
 
 struct data {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -485,7 +488,7 @@ KAT_HD void operator()(
 
 struct front {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -512,7 +515,7 @@ namespace iterators {
 
 struct end_is_one_past {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -534,7 +537,7 @@ namespace requirements {
 
 struct contiguous {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -552,7 +555,7 @@ KAT_HD void operator()(
 
 struct fill {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -572,7 +575,7 @@ KAT_HD void operator()(
 
 struct member_swap {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -594,7 +597,7 @@ KAT_HD void operator()(
 
 struct zero_sized_arrays {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -621,7 +624,7 @@ namespace specialized_algorithms {
 
 struct swap {
 KAT_HD void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;
@@ -659,7 +662,7 @@ KAT_HD void operator()(
 
 struct range_access {
 KAT_DEV void operator()(
-	result_of_check* check_results,
+	result_of_check* results,
 	kat::size_t   num_checks)
 {
 	kat::size_t check_index = 0;

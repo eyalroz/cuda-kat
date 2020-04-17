@@ -1,7 +1,7 @@
 /**
  * @file kat/on_device/miscellany.cuh
  *
- * @brief Miscellaneous functions provided by cudat-kat which are not a good
+ * @brief Miscellaneous functions provided by cuda-kat which are not a good
  * fit in any other header.
  */
 #pragma once
@@ -121,10 +121,12 @@ KAT_FD void copy(
  * or block-level primitive for copying data.
  *
  * @param destination Destination of the copy. Must have at least
- * 4 * {@p num_elements_to_copy} bytes allocated.
+ * 4 (@p num_elements_to_copy} bytes allocated. Data must be self-aligned, i.e. the
+ * numeric value of this parameter must be divisible by sizeof(T).
  * @param source The beginning of the memory region from which to copy.
- * There must be 4 * {@p num_elements_to_copy} bytes readable starting with
- * this address.
+ * There must be sizeof(T) * {@p num_elements_to_copy} bytes readable starting with
+ * this address. Data must be self-aligned, i.e. the numeric value of this parameter
+ * must be divisible by sizeof(T).
  * @param num_elements_to_copy the number of elements of data to copy - not their
  * total size in bytes!
  * @return the destination pointer

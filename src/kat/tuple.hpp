@@ -349,11 +349,11 @@ public:
 
 	// We shouldn't need this explicit constructor as it should be handled by the template below but OSX clang
 	// is_constructible type trait incorrectly gives false for is_constructible<T&&, T&&>::value
-	KAT_HD explicit tuple_leaf(ValueType&& v) : mValue(kat::move(v)) {}
+	KAT_HD explicit tuple_leaf(ValueType&& v) : mValue(std::move(v)) {}
 
 	template <typename T, typename = typename std::enable_if<std::is_constructible<ValueType, T&&>::value>::type>
 	KAT_HD explicit tuple_leaf(T&& t)
-		: mValue(kat::forward<T>(t))
+		: mValue(std::forward<T>(t))
 	{
 	}
 
@@ -366,7 +366,7 @@ public:
 	template <typename T>
 	KAT_HD tuple_leaf& operator=(T&& t)
 	{
-		mValue = kat::forward<T>(t);
+		mValue = std::forward<T>(t);
 		return *this;
 	}
 
@@ -393,7 +393,7 @@ public:
 
 	template <typename T, typename = typename std::enable_if<std::is_constructible<ValueType, T&&>::value>::type>
 	KAT_HD explicit tuple_leaf(T&& t)
-		: mValue(forward<T>(t))
+		: mValue(std::forward<T>(t))
 	{
 	}
 
@@ -410,7 +410,7 @@ public:
 	template <typename T>
 	KAT_HD tuple_leaf& operator=(T&& t)
 	{
-		mValue = forward<T>(t);
+		mValue = std::forward<T>(t);
 		return *this;
 	}
 
@@ -438,7 +438,7 @@ public:
 
 	template <typename T, typename = typename std::enable_if<std::is_constructible<ValueType, T&&>::value>::type>
 	KAT_HD explicit tuple_leaf(T&& t)
-		: ValueType(forward<T>(t))
+		: ValueType(std::forward<T>(t))
 	{
 	}
 
@@ -451,7 +451,7 @@ public:
 	template <typename T>
 	KAT_HD tuple_leaf& operator=(T&& t)
 	{
-		ValueType::operator=(forward<T>(t));
+		ValueType::operator=(std::forward<T>(t));
 		return *this;
 	}
 
@@ -531,13 +531,13 @@ struct tuple_impl<std::integer_sequence<size_t, Indices...>, Ts...> : public tup
 	//
 	template <typename... Us, typename... ValueTypes>
 	explicit KAT_HD tuple_impl(std::integer_sequence<size_t, Indices...>, tuple_types<Us...>, ValueTypes&&... values)
-		: tuple_leaf<Indices, Ts>(forward<ValueTypes>(values))...
+		: tuple_leaf<Indices, Ts>(std::forward<ValueTypes>(values))...
 	{
 	}
 
 	template <typename OtherTuple>
 	KAT_HD tuple_impl(OtherTuple&& t)
-		: tuple_leaf<Indices, Ts>(forward<tuple_element_t<Indices, make_tuple_types_t<OtherTuple>>>(get<Indices>(t)))...
+		: tuple_leaf<Indices, Ts>(std::forward<tuple_element_t<Indices, make_tuple_types_t<OtherTuple>>>(get<Indices>(t)))...
 	{
 	}
 
@@ -545,7 +545,7 @@ struct tuple_impl<std::integer_sequence<size_t, Indices...>, Ts...> : public tup
 	KAT_HD tuple_impl& operator=(OtherTuple&& t)
 	{
 		swallow(tuple_leaf<Indices, Ts>::operator=(
-			forward<tuple_element_t<Indices, make_tuple_types_t<OtherTuple>>>(get<Indices>(t)))...);
+			std::forward<tuple_element_t<Indices, make_tuple_types_t<OtherTuple>>>(get<Indices>(t)))...);
 		return *this;
 	}
 
@@ -830,7 +830,7 @@ struct tuple_cat_2_impl<tuple<T1s...>, index_sequence<I1s...>, tuple<T2s...>, in
 	template <typename Tuple1, typename Tuple2>
 	static KAT_HD result_type do_cat_2(Tuple1&& t1, Tuple2&& t2)
 	{
-		return result_type(get<I1s>(forward<Tuple1>(t1))..., get<I2s>(forward<Tuple2>(t2))...);
+		return result_type(get<I1s>(std::forward<Tuple1>(t1))..., get<I2s>(std::forward<Tuple2>(t2))...);
 	}
 };
 
@@ -849,7 +849,7 @@ struct tuple_cat_2<tuple<T1s...>, tuple<T2s...>>
 	template <typename Tuple1, typename Tuple2>
 	static inline KAT_HD result_type do_cat_2(Tuple1&& t1, Tuple2&& t2)
 	{
-		return tci_type::do_cat_2(forward<Tuple1>(t1), forward<Tuple2>(t2));
+		return tci_type::do_cat_2(std::forward<Tuple1>(t1), std::forward<Tuple2>(t2));
 	}
 };
 
@@ -867,8 +867,8 @@ struct tuple_cat<Tuple1, Tuple2, TuplesRest...>
 	static inline KAT_HD result_type do_cat(TupleArg1&& t1, TupleArg2&& t2, TupleArgsRest&&... ts)
 	{
 		return tuple_cat<first_result_type, TuplesRest...>::do_cat(
-			tuple_cat_2<TupleArg1, TupleArg2>::do_cat_2(forward<TupleArg1>(t1), forward<TupleArg2>(t2)),
-			forward<TupleArgsRest>(ts)...);
+			tuple_cat_2<TupleArg1, TupleArg2>::do_cat_2(std::forward<TupleArg1>(t1), std::forward<TupleArg2>(t2)),
+			std::forward<TupleArgsRest>(ts)...);
 	}
 };
 
@@ -881,7 +881,7 @@ struct tuple_cat<Tuple1, Tuple2>
 	template <typename TupleArg1, typename TupleArg2>
 	static KAT_HD result_type do_cat(TupleArg1&& t1, TupleArg2&& t2)
 	{
-		return tc2_type::do_cat_2(forward<TupleArg1>(t1), forward<TupleArg2>(t2));
+		return tc2_type::do_cat_2(std::forward<TupleArg1>(t1), std::forward<TupleArg2>(t2));
 	}
 };
 
@@ -918,23 +918,23 @@ public:
 	template <typename U, typename... Us,
 		detail::tuple_implicitly_convertible_t<tuple, U, Us...> = 0>
 		constexpr KAT_HD tuple(U&& u, Us&&... us)
-		: impl_(make_index_sequence<sizeof...(Us) + 1>{}, detail::make_tuple_types_t<tuple>{}, forward<U>(u),
-			forward<Us>(us)...)
+		: impl_(make_index_sequence<sizeof...(Us) + 1>{}, detail::make_tuple_types_t<tuple>{}, std::forward<U>(u),
+			std::forward<Us>(us)...)
 	{
 	}
 
 	template <typename U, typename... Us,
 		detail::tuple_explicitly_convertible_t<tuple, U, Us...> = 0>
 		explicit constexpr KAT_HD tuple(U&& u, Us&&... us)
-		: impl_(make_index_sequence<sizeof...(Us) + 1>{}, detail::make_tuple_types_t<tuple>{}, forward<U>(u),
-			forward<Us>(us)...)
+		: impl_(make_index_sequence<sizeof...(Us) + 1>{}, detail::make_tuple_types_t<tuple>{}, std::forward<U>(u),
+			std::forward<Us>(us)...)
 	{
 	}
 
 	template <typename OtherTuple,
 			  typename std::enable_if<detail::tuple_convertible<OtherTuple, tuple>::value, bool>::type = false>
 	KAT_HD tuple(OtherTuple&& t)
-		: impl_(kat::forward<OtherTuple>(t))
+		: impl_(std::forward<OtherTuple>(t))
 	{
 	}
 
@@ -942,7 +942,7 @@ public:
 			  typename std::enable_if<detail::tuple_assignable<tuple, OtherTuple>::value, bool>::type = false>
 	KAT_HD tuple& operator=(OtherTuple&& t)
 	{
-		impl_.operator=(forward<OtherTuple>(t));
+		impl_.operator=(std::forward<OtherTuple>(t));
 		return *this;
 	}
 
@@ -1005,7 +1005,7 @@ inline KAT_HD const_tuple_element_t<I, tuple<Ts...>>& get(const tuple<Ts...>& t)
 template <size_t I, typename... Ts>
 inline KAT_HD tuple_element_t<I, tuple<Ts...>>&& get(tuple<Ts...>&& t)
 {
-	return get<I>(kat::move(t.impl_));
+	return get<I>(std::move(t.impl_));
 }
 
 template <typename T, typename... Ts>
@@ -1023,7 +1023,7 @@ inline KAT_HD const T& get(const tuple<Ts...>& t)
 template <typename T, typename... Ts>
 inline KAT_HD T&& get(tuple<Ts...>&& t)
 {
-	return get<T>(kat::move(t.impl_));
+	return get<T>(std::move(t.impl_));
 }
 
 template <typename... Ts>
@@ -1102,7 +1102,7 @@ template <typename... T1s, typename... T2s> inline KAT_HOST bool operator>=(cons
 template <typename... Tuples>
 inline KAT_HD typename detail::tuple_cat<Tuples...>::result_type tuple_cat(Tuples&&... ts)
 {
-	return detail::tuple_cat<Tuples...>::do_cat(kat::forward<Tuples>(ts)...);
+	return detail::tuple_cat<Tuples...>::do_cat(std::forward<Tuples>(ts)...);
 }
 
 
@@ -1112,7 +1112,7 @@ inline KAT_HD typename detail::tuple_cat<Tuples...>::result_type tuple_cat(Tuple
 template <typename... Ts>
 inline KAT_HD constexpr tuple<detail::make_tuple_return_t<Ts>...> make_tuple(Ts&&... values)
 {
-	return tuple<detail::make_tuple_return_t<Ts>...>(forward<Ts>(values)...);
+	return tuple<detail::make_tuple_return_t<Ts>...>(std::forward<Ts>(values)...);
 }
 
 
@@ -1122,7 +1122,7 @@ inline KAT_HD constexpr tuple<detail::make_tuple_return_t<Ts>...> make_tuple(Ts&
 template <typename... Ts>
 inline KAT_HD constexpr tuple<Ts&&...> forward_as_tuple(Ts&&... ts) noexcept
 {
-	return tuple<Ts&&...>(forward<Ts&&>(ts)...);
+	return tuple<Ts&&...>(std::forward<Ts&&>(ts)...);
 }
 
 namespace detail {

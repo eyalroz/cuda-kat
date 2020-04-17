@@ -70,7 +70,7 @@ PREPARE_BUILTIN1(builtins, bit_reverse);
 PREPARE_BUILTIN1(builtins, find_leading_non_sign_bit);
 PREPARE_BUILTIN1(builtins::bit_field, extract_bits);
 PREPARE_BUILTIN1(builtins::bit_field, replace_bits);
-PREPARE_BUILTIN0(builtins, prmt);
+PREPARE_BUILTIN0(builtins, permute_bytes);
 // This function is special, in that one of its template parameters is a value rather than a type.
 PREPARE_BUILTIN_INNER(builtins, funnel_shift_right, kat::builtins::funnel_shift_amount_resolution_mode_t AmountResolutionMode, AmountResolutionMode);
 PREPARE_BUILTIN_INNER(builtins, funnel_shift_left, kat::builtins::funnel_shift_amount_resolution_mode_t AmountResolutionMode, AmountResolutionMode);
@@ -874,7 +874,8 @@ TEST_CASE_TEMPLATE("find_leading_non_sign_bit", I, int, unsigned, long, unsigned
 		values.data());
 }
 
-// Not testing ldg / load_global_with_non_coherent_cache
+// Not testing ldg/load_global_with_non_coherent_cache here, since such a test is too dissimilar from the
+// rest of the builtin tests.
 
 TEST_CASE("select_bytes")
 {
@@ -938,7 +939,7 @@ TEST_CASE("select_bytes")
 	auto num_checks = expected_results.size();
 
 	execute_uniform_builtin_testcase_on_gpu_and_check(
-		device_function_ptrs::prmt{},
+		device_function_ptrs::permute_bytes{},
 		expected_results.data(),
 		num_checks,
 		make_exact_comparison<result_type>,

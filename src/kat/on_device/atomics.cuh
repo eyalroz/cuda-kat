@@ -1,18 +1,25 @@
 /**
- * @file atomics.cuh Type-generic wrappers for CUDA atomic operations
+ * @file on_device/common.cuh
+ *
+ * @brief Type-generic wrappers for CUDA atomic operations
+ *
+ * CUDA's atomic "primitive" atomic functions are non-generic C functions,
+ * defined only for some specific types - and sometimes only for some of the
+ * types of the same size for which semantics are identical. In this file
+ * are found type-generic variants of these same function, with functionality
+ * extended as much as possible - either through recasting or using
+ * the compare-and-swap (compare-and-exchange) primitive to implement other
+ * functions for types not directly supported.
+ *
+ * Additionally, the wrapper used for emulating atomics on arbitrary types
+ * is made available here for the user to be able to do the same for
+ * arbitrary functions.
  *
  * @note nVIDIA makes a rather unfortunate and non-intuitive choice of parameter
  * names for its atomic functions, which - at least for now, and for the sake of
  * consistency - I adopt: they call a pointer an "address", and they call the
  * new value "val" even if there is another value to consider (e.g. atomicCAS).
  * Also, what's with the shorthand? Did you run out of disk space? :-(
- *
- * @note If you use an atomic function implemented here for a type size for
- * which CUDA doesn't support atomic primitives, you must have read and write
- * to the memory before it, so that a compare-and-swap on that memory and the
- * actual value of interest would be possible. This is a subtle point, since the
- * CUDA primitives themselves don't have any such requirements, nor do their
- * wrappers here; and - we can't afford to check (nor is it possible to check).
  */
 
 #ifndef CUDA_KAT_ON_DEVICE_ATOMICS_CUH_

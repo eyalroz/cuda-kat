@@ -1,7 +1,8 @@
 /**
  * @file grid_info.cuh
  *
- * @brief Information regarding the current kernel launch grid and positions within it
+ * @brief Information regarding the current kernel's launch grid and the calling
+ * thread's positions within it.
  *
  * @note Currently, CUDA does not allows more than 2^31 threads in a launch grid, hence many functions
  * here return unsigned / dimension_t
@@ -11,14 +12,12 @@
  * the _switching_ of those terms would be more in line with their literal, dictionary definitions;
  * however - for consistency, the functions in this file maintain the same convention. So,
  *
- *    IF YOU WANT TO GET   --== A SINGLE NUMBER ==-- ,  USE  ::id()       METHODS
+ *    IF YOU WANT TO GET   --== A SINGLE NUMBER ==-- ,  USE  ::id()       METHODS<br>
  *    IF YOU WANT TO GET   --== 3-D COORDINATES ==-- ,  USE  ::index()    METHODS
  *
  * however, the above applies only for 3-D grids. When the grid is linear, we drop the distinction
  * between "index" and "id". Also, warp ID's are always linearized, since they don't respect the
  * multi-dimensional structure.
- *
- * @todo Consider converting the `unsigned` return types to `native_word_t`
  */
 
 #pragma once
@@ -150,15 +149,16 @@ KAT_FHD Size row_major_linearization(position_t position, dimensions_t dims)
 } // namespace detail
 
 /**
- * @return true if no non-trivial dimensions follow trivial dimensions
+ * @brief Determines whether a dimensions specification follows CUDA's
+ * convention of having non-trivial dimensions first.
  *
- * @note Assumes non-empty dimensions!
+ * @param[in] dims A dimensions specification. Assumed to not be "empty",
+ * i.e. assumed to have a value of at least 1 in every axis.
+ *
+ * @return true if no non-trivial dimensions follow trivial dimensions
  */
-KAT_FHD bool dimensionality_is_canonical(dimensions_t dims)
+constexpr KAT_FHD bool dimensionality_is_canonical(dimensions_t dims)
 {
-#if __cplusplus >= 201402L
-	assert(not dims.empty());
-#endif
 	return
 		(dims.x > 1 or (dims.y == 1 and dims.z == 1)) and
 		(dims.y > 1 or dims.z == 1);

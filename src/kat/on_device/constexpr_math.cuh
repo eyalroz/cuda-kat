@@ -1,10 +1,15 @@
 /**
  * @file on_device/constexpr_math.cuh
  *
- * @brief mathematical functions (mostly super-simple ones) implemented using
- * compile-time-executable code. Some of these are also the reasonable runtime-
- * executable version, some aren't; the former appear outside of any namespace,
- * the latter have their own namespace (although maybe they shouldn't)
+ * @brief mathematical functions (mostly very-simple ones) implemented using
+ * compile-time-executable code.
+ *
+ * @note Some of these mathematical functions are also the reasonable runtime-
+ * executable version, some are less efficient, to avoid non-constexpr
+ * constructs. The former appear outside of any namespace,
+ * the latter have their own namespace (`constexpr_`) to make them their
+ * use be more explicit. This will only be able to change when CUDA supports
+ * C++20, which will have a `std::is_constant_evaluated` type trait.
  */
 #pragma once
 #ifndef CUDA_KAT_ON_DEVICE_CONSTEXPR_MATH_CUH_

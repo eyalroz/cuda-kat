@@ -3,6 +3,9 @@
  *
  * @brief CUDA device-side functions related to making accesses to unaligned
  * global memory.
+ *
+ * @note Functionality in this file is not meaningfully covered by unit tests
+ * at this time.
  */
 
 #pragma once

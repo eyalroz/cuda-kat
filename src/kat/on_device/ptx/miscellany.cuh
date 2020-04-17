@@ -39,26 +39,6 @@ KAT_FD void exit()
 }
 
 /**
- * @brief Load data through the read-only data cache
- *
- * @note See the <a href="http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#ldg-function">relevant section</a>
- * of the CUDA C Programming guide for details on using this instruction for loading.
- *
- * @param ptr The global memory location from which to load
- * @return the value at location @p ptr , loaded through the read-only data cache rather than
- * through the usual (read-write) caches
- */
-template <typename T>
-KAT_FD T ldg(const T* ptr)
-{
-#if __CUDA_ARCH__ >= 320
-	return __ldg(ptr);
-#else
-	assert(false);
-#endif
-}
-
-/**
  * See <a href="http://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-isspacep">relevant section</a>
  * of the CUDA PTX reference for details on these instructions.
  */

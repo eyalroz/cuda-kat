@@ -1,10 +1,17 @@
 /**
  * @file on_device/non-builtins.cuh
  *
- * @brief Namespace with uniform-naming scheme, templated-when-relevant,
- * wrappers of what could be (or should be) single PTX instruction - but
- * aren't.
- */
+* @brief Templated, uniformly-named C++ functions wrapping what should
+* have been single PTX - but aren't (in a dedicated `non_builtins` namespace).
+*
+* There are several functions one would expect would compile to single PTX
+* instructions (Similar ones _do_ compile to single PTX instructions,
+* and on the CPU, they themselves often translate to a single machine
+* instruction) - but strangely, they do not. Implementations of such functions
+* are found in this file rather than in @ref `on_device/builtins.cuh`; and they
+* get a different namespace to avoid accidental confusion.
+*
+*/
 #ifndef CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_
 #define CUDA_KAT_ON_DEVICE_NON_BUILTINS_CUH_
 
