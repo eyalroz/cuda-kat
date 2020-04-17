@@ -149,15 +149,16 @@ KAT_FHD Size row_major_linearization(position_t position, dimensions_t dims)
 } // namespace detail
 
 /**
- * @return true if no non-trivial dimensions follow trivial dimensions
+ * @brief Determines whether a dimensions specification follows CUDA's
+ * convention of having non-trivial dimensions first.
  *
- * @note Assumes non-empty dimensions!
+ * @param[in] dims A dimensions specification. Assumed to not be "empty",
+ * i.e. assumed to have a value of at least 1 in every axis.
+ *
+ * @return true if no non-trivial dimensions follow trivial dimensions
  */
-KAT_FHD bool dimensionality_is_canonical(dimensions_t dims)
+constexpr KAT_FHD bool dimensionality_is_canonical(dimensions_t dims)
 {
-#if __cplusplus >= 201402L
-	assert(not dims.empty());
-#endif
 	return
 		(dims.x > 1 or (dims.y == 1 and dims.z == 1)) and
 		(dims.y > 1 or dims.z == 1);
