@@ -1526,6 +1526,60 @@ TEST_CASE("exclusive scan_and_reduce without specified scratch area") {
 	);
 }
 
+TEST_CASE("elementwise accumulate_n")
+{
+	using checked_value_type = int32_t;
+	using input_value_type = checked_value_type;
+	cuda::grid::dimension_t num_grid_blocks { 2 };
+	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
+	size_t length_to_cover_per_block { num_threads_per_block * 2 + 7 };
+
+	auto num_values_to_populate = length_to_cover_per_block * num_grid_blocks;
+
+	std::vector<checked_value_type> input_dest;
+	auto dest_generator = [](size_t pos) -> checked_value_type { return 1000 + pos % 8000; };
+	size_t pos = 0;
+	std::generate_n(std::back_inserter(input_dest), num_values_to_populate, [&]() { return dest_generator(pos++); });
+
+	std::vector<input_value_type> input_src;
+	auto src_generator = [](size_t pos) -> input_value_type { return 10 + pos % 80; };
+	pos = 0;
+	std::generate_n(std::back_inserter(input_src), num_values_to_populate, [&]() { return src_generator(pos++); });
+
+	auto testcase_device_function =
+		[=] KAT_DEV (
+			size_t,
+			checked_value_type*        __restrict result,
+			const checked_value_type*  __restrict input_dest,
+			const input_value_type*    __restrict input_src
+			)
+		{
+			namespace gi = kat::linear_grid::grid_info;
+			auto block_result = result + length_to_cover_per_block * gi::block::id();
+			auto block_dest = input_dest + length_to_cover_per_block * gi::block::id();
+			klcb::copy_n(block_dest, length_to_cover_per_block, block_result);
+			auto block_src = input_src + length_to_cover_per_block * gi::block::id();
+			const auto plus = [](checked_value_type& x, input_value_type y) { x += y; };
+			// So, you might think we should be accumulating into _dest - but we can't do that since it's
+			// read-only. So first let's make a copy of it into the result column, then accumulate there.
+			klcb::elementwise_accumulate_n(plus, block_result, block_src, length_to_cover_per_block);
+		};
+
+	auto expected_value_retriever = [=] (size_t pos) -> checked_value_type {
+		return dest_generator(pos) + src_generator(pos);
+	};
+
+	execute_non_uniform_testcase_on_gpu_and_check(
+		testcase_device_function,
+		expected_value_retriever,
+		num_values_to_populate,
+		num_grid_blocks, num_threads_per_block,
+		make_exact_comparison<checked_value_type>,
+		input_dest.data(),
+		input_src.data()
+	);
+}
+
 TEST_CASE("elementwise accumulate")
 {
 	using checked_value_type = int32_t;
@@ -1562,7 +1616,7 @@ TEST_CASE("elementwise accumulate")
 			const auto plus = [](checked_value_type& x, input_value_type y) { x += y; };
 			// So, you might think we should be accumulating into _dest - but we can't do that since it's
 			// read-only. So first let's make a copy of it into the result column, then accumulate there.
-			klcb::elementwise_accumulate(plus, block_result, block_src, length_to_cover_per_block);
+			klcb::elementwise_accumulate(plus, block_result, block_src, block_src + length_to_cover_per_block);
 		};
 
 	auto expected_value_retriever = [=] (size_t pos) -> checked_value_type {
@@ -2290,6 +2344,61 @@ TEST_CASE("lookup")
 
 }
 
+TEST_CASE("elementwise accumulate_n")
+{
+	using checked_value_type = int32_t;
+	using input_value_type = checked_value_type;
+	cuda::grid::dimension_t num_grid_blocks { 1 };
+	cuda::grid::block_dimension_t num_warps_per_block { 3 };
+	cuda::grid::block_dimension_t num_threads_per_block { num_warps_per_block * kat::warp_size };
+	size_t length_to_cover_per_warp { kat::warp_size * 2 + 7 };
+
+	auto num_values_to_populate = length_to_cover_per_warp * num_warps_per_block * num_grid_blocks;
+
+	std::vector<checked_value_type> input_dest;
+	auto dest_generator = [](size_t pos) -> checked_value_type { return 1000 + pos % 8000; };
+	size_t pos = 0;
+	std::generate_n(std::back_inserter(input_dest), num_values_to_populate, [&]() { return dest_generator(pos++); });
+
+	std::vector<input_value_type> input_src;
+	auto src_generator = [](size_t pos) -> input_value_type { return 10 + pos % 80; };
+	pos = 0;
+	std::generate_n(std::back_inserter(input_src), num_values_to_populate, [&]() { return src_generator(pos++); });
+
+	auto testcase_device_function =
+		[=] KAT_DEV (
+			size_t,
+			checked_value_type*        __restrict result,
+			const checked_value_type*  __restrict input_dest,
+			const input_value_type*    __restrict input_src
+			)
+		{
+			namespace gi = kat::linear_grid::grid_info;
+			auto warp_result = result + length_to_cover_per_warp * gi::warp::global_id();
+			auto warp_dest = input_dest + length_to_cover_per_warp * gi::warp::global_id();
+			kcw::copy_n(warp_dest, length_to_cover_per_warp, warp_result);
+			auto warp_src = input_src + length_to_cover_per_warp * gi::warp::global_id();
+			const auto plus = [](checked_value_type& x, input_value_type y) { x += y; };
+			// So, you might think we should be accumulating into _dest - but we can't do that since it's
+			// read-only. So first let's make a copy of it into the result column, then accumulate there.
+			kcw::elementwise_accumulate_n(plus, warp_result, warp_src, length_to_cover_per_warp);
+		};
+
+	auto expected_value_retriever = [=] (size_t pos) -> checked_value_type {
+		return dest_generator(pos) + src_generator(pos);
+	};
+
+	execute_non_uniform_testcase_on_gpu_and_check(
+		testcase_device_function,
+		expected_value_retriever,
+		num_values_to_populate,
+		num_grid_blocks, num_threads_per_block,
+		make_exact_comparison<checked_value_type>,
+		input_dest.data(),
+		input_src.data()
+	);
+}
+
 TEST_CASE("elementwise accumulate")
 {
 	using checked_value_type = int32_t;
@@ -2327,7 +2436,7 @@ TEST_CASE("elementwise accumulate")
 			const auto plus = [](checked_value_type& x, input_value_type y) { x += y; };
 			// So, you might think we should be accumulating into _dest - but we can't do that since it's
 			// read-only. So first let's make a copy of it into the result column, then accumulate there.
-			kcw::elementwise_accumulate(plus, warp_result, warp_src, length_to_cover_per_warp);
+			kcw::elementwise_accumulate(plus, warp_result, warp_src, warp_src+length_to_cover_per_warp);
 		};
 
 	auto expected_value_retriever = [=] (size_t pos) -> checked_value_type {

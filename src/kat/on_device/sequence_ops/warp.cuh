@@ -418,17 +418,30 @@ KAT_FD void lookup(
  * @todo consider using elementwise_apply for this.
  *
  */
-template <typename D, typename S, typename AccumulatingOperation, typename Size>
-KAT_FD void elementwise_accumulate(
-	AccumulatingOperation  op,
-	D*       __restrict__  destination,
-	const S* __restrict__  source,
-	Size                   length)
+template <typename D, typename RandomAccessIterator, typename AccumulatingOperation, typename Size>
+KAT_FD void elementwise_accumulate_n(
+	AccumulatingOperation              op,
+	D*                   __restrict__  destination,
+	RandomAccessIterator __restrict__  source,
+	Size                               length)
 {
 	auto accumulate_in_element = [&](promoted_size_t<Size> pos) {
 		op(destination[pos], source[pos]);
 	};
 	at_warp_stride(length, accumulate_in_element);
+}
+
+template <typename D, typename RandomAccessIterator, typename AccumulatingOperation, typename Size = std::ptrdiff_t>
+KAT_FD void elementwise_accumulate(
+	AccumulatingOperation              op,
+	D*                   __restrict__  destination,
+	RandomAccessIterator __restrict__  source_start,
+	RandomAccessIterator __restrict__  source_end)
+{
+	elementwise_accumulate_n(op, destination, source_start,
+		// kat::distance(source_start, source_end)
+		source_end - source_start
+		);
 }
 
 } // namespace warp
