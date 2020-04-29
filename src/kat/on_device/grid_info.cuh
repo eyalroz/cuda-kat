@@ -316,6 +316,8 @@ template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
 KAT_FD unsigned     num_threads()           { return num_blocks<OuterDimensionality>() * block::size<InnerDimensionality>(); }
 template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
 KAT_FD unsigned     total_size()            { return num_threads<OuterDimensionality, InnerDimensionality>(); }
+template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
+KAT_FD unsigned     size_in_threads()       { return num_threads<OuterDimensionality, InnerDimensionality>(); }
 template <unsigned Dimensionality = 3>
 KAT_FD unsigned     num_warps_per_block()   { return block::num_warps<Dimensionality>(); }
 
