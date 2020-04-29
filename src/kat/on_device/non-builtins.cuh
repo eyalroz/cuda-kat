@@ -83,6 +83,43 @@ template <typename I> KAT_FD int count_leading_zeros(I x)
 	return builtins::count_leading_zeros<native_clz_type>(static_cast<native_clz_type>(x)) - width_difference_in_bits;
 }
 
+/**
+ * Performs a bitwise leftwards rotation of the bits in the binary representation of value
+ *
+ * @param value A value whose bits are to be rotated
+ * @param shift_amount the number of bits to shift left by. Behavior for values about the
+ * number of bits for T is undefined.
+ * @return the left-rotation result, or something arbitrary for invalid @p shift_amount.
+ *
+ * @note a.k.a. `rol` or rotl` on many platforms.
+ */
+template <typename T>
+__device__ T rotate_left(T value, int shift_amount) {
+	static_assert(std::is_unsigned<T>::value, "Only unsigned integers are supported");
+	return (std::is_same<T, uint32_t>::value) ?
+		builtins::funnel_shift_left(value, value, shift_amount) :
+		(value << shift_amount) | ( value >> (size_in_bits(value) - shift_amount) );
+}
+
+/**
+ * Performs a bitwise rightwards rotation of the bits in the binary representation of value
+ *
+ * @param value A value whose bits are to be rotated
+ * @param shift_amount the number of bits to shift left by. Behavior for values about the
+ * number of bits for T is undefined.
+ * @return the right-rotation result, or something arbitrary for invalid @p shift_amount.
+ *
+ * @note a.k.a. `ror` or rotr` on many platforms.
+ */
+template <typename T>
+__device__ T rotate_right(T value, int shift_amount) {
+	static_assert(std::is_unsigned<T>::value, "Only unsigned integers are supported");
+	return (std::is_same<T, uint32_t>::value) ?
+		builtins::funnel_shift_right(value, value, shift_amount) :
+		(value >> shift_amount) | ( value << (size_in_bits(value)- shift_amount) );
+}
+
+
 } // namespace non_builtins
 } // namespace kat
 

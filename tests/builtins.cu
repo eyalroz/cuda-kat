@@ -111,6 +111,8 @@ PREPARE_BUILTIN0(builtins::warp::mask_of_lanes, succeeding);
 PREPARE_BUILTIN1(non_builtins, find_first_set);
 PREPARE_BUILTIN1(non_builtins, count_trailing_zeros);
 PREPARE_BUILTIN1(non_builtins, count_leading_zeros);
+PREPARE_BUILTIN1(non_builtins, rotate_left);
+PREPARE_BUILTIN1(non_builtins, rotate_right);
 
 } // namespace builtin_device_function_ptrs
 
@@ -365,9 +367,6 @@ void execute_testcase_on_gpu_and_check(
 		comparison_tolerance_fraction,
 		inputs...);
 }
-
-
-
 
 template <typename DeviceFunctionHook, typename R, typename... Is>
 void execute_uniform_builtin_testcase_on_gpu_and_check(
@@ -1180,6 +1179,94 @@ TEST_CASE("funnel_shift_left")
 	);
 }
 
+TEST_CASE("funnel_shift_right")
+{
+	using result_type = uint32_t;
+	std::vector<result_type> expected_results;
+	std::vector<uint32_t> low_words;
+	std::vector<uint32_t> high_words;
+	std::vector<uint32_t> shift_amounts;
+
+	auto add_check = [&](
+		uint32_t low_word,
+		uint32_t high_word,
+		uint32_t shift_amount,
+		result_type result)
+	{
+		low_words.emplace_back(low_word);
+		high_words.emplace_back(high_word);
+		shift_amounts.emplace_back(shift_amount);
+		expected_results.emplace_back(result);
+	};
+
+	//            low          high          shift    result
+	//            word         word          amount
+	//           ----------------------------------------------------
+
+	add_check(          ~0u,          0u,      0,         ~0u );
+	add_check(       0xCA7u, 0xDEADBEEFu,      0,      0xCA7u );
+	add_check(          ~0u,          0u,      5, 0x07FFFFFFu );
+	add_check(          ~0u,      0b111u,      4, 0x7FFFFFFFu );
+	add_check(           0u, 0xDEADBEEFu,     32, 0xDEADBEEFu );
+	add_check(       0xCA7u, 0xDEADBEEFu,     32, 0xDEADBEEFu );
+	add_check( 0xCA7u << 16, 0xDEADBEEFu,     16, 0xBEEF0CA7u );
+
+	auto num_checks = expected_results.size();
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
+		device_function_ptrs::funnel_shift_right<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
+		expected_results.data(),
+		num_checks,
+		make_exact_comparison<result_type>,
+		low_words.data(),
+		high_words.data(),
+		shift_amounts.data()
+	);
+}
+
+TEST_CASE("funnel_shift_left")
+{
+	using result_type = uint32_t;
+	std::vector<result_type> expected_results;
+	std::vector<uint32_t> low_words;
+	std::vector<uint32_t> high_words;
+	std::vector<uint32_t> shift_amounts;
+
+	auto add_check = [&](
+		uint32_t low_word,
+		uint32_t high_word,
+		uint32_t shift_amount,
+		result_type result)
+	{
+		low_words.emplace_back(low_word);
+		high_words.emplace_back(high_word);
+		shift_amounts.emplace_back(shift_amount);
+		expected_results.emplace_back(result);
+	};
+
+	//            low            high         shift    result
+	//            word           word         amount
+	//           ----------------------------------------------------
+
+	add_check( 0u,            0xDEADBEEFu,      0, 0xDEADBEEFu );
+	add_check( 0u,            0xDEADBEEFu,      4, 0xEADBEEF0u );
+	add_check( 0u,            0xDEADBEEFu,     16, 0xBEEF0000u );
+	add_check( 0x0ACEu << 16, 0xDEADBEEFu,     16, 0xBEEF0ACEu );
+	add_check( 0xDEADBEEFu,   0u,              32, 0xDEADBEEFu );
+	add_check( 0b10u,         ~0u,             31, (1 << 31) | 0b1 );
+
+	auto num_checks = expected_results.size();
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
+		device_function_ptrs::funnel_shift_left<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
+		expected_results.data(), num_checks,
+		make_exact_comparison<result_type>,
+		low_words.data(),
+		high_words.data(),
+		shift_amounts.data()
+	);
+}
+
 } // TEST_SUITE("uniform builtins")
 
 TEST_SUITE("uniform non-builtins") {
@@ -1423,6 +1510,202 @@ TEST_CASE_TEMPLATE("replace_bits", I, uint32_t, uint64_t)
 		numbers_of_bits.data()
 	);
 }
+
+TEST_CASE_TEMPLATE("rotate_left", I, uint8_t, uint16_t, uint32_t, uint64_t)
+{
+	using result_type = I;
+	std::vector<result_type> expected_results;
+	std::vector<result_type> values;
+	std::vector<uint32_t> shift_amounts;
+
+	auto add_check = [&](
+		result_type value,
+		uint32_t shift_amount,
+		result_type result)
+	{
+		values.emplace_back(value);
+		shift_amounts.emplace_back(shift_amount);
+		expected_results.emplace_back(result);
+	};
+
+	//          value          shift    result
+	//                         amount
+	//         ----------------------------------------------------
+
+	// Shift-like behavior when upper bits are zero
+
+	if (sizeof(I) >= 1) {
+	add_check(          1u,      0,                  0x1u );
+	add_check(          1u,      1,                  0x2u );
+	add_check(          1u,      5,                 0x20u );
+	add_check(          1u,      7,                 0x80u );
+	}
+
+	if (sizeof(I) >= 2) {
+	add_check(          1u,     15, I(            0x8000u) );
+	}
+
+	if (sizeof(I) >= 4) {
+	add_check(          1u,     31, I(        0x80000000u) );
+	}
+
+	if (sizeof(I) >= 8) {
+	add_check(          1u,     47, I(    0x800000000000u) );
+	add_check(          1u,     63, I(0x8000000000000000u) );
+	}
+
+	// Proper rotation - full nibbles
+
+	if (sizeof(I) == 1) {
+	add_check(       0xABu,      4,                 0xBAu );
+	}
+
+	if (sizeof(I) == 2) {
+	add_check(I(   0xDEAF),      4, I(             0xEAFD) );
+	add_check(I(   0xDEAF),      8, I(             0xAFDE) );
+	add_check(I(   0xDEAF),     12, I(             0xFDEA) );
+	}
+
+	if (sizeof(I) == 4) {
+	add_check(I(   0xDEADBEEF),      4, I(             0xEADBEEFDu) );
+	add_check(I(   0xDEADBEEF),      8, I(             0xADBEEFDEu) );
+	add_check(I(   0xDEADBEEF),     12, I(             0xDBEEFDEAu) );
+	add_check(I(   0xDEADBEEF),     16, I(             0xBEEFDEADu) );
+	add_check(I(   0xDEADBEEF),     20, I(             0xEEFDEADBu) );
+	add_check(I(   0xDEADBEEF),     24, I(             0xEFDEADBEu) );
+	add_check(I(   0xDEADBEEF),     28, I(             0xFDEADBEEu) );
+	}
+
+	if (sizeof(I) == 8) {
+	add_check(I(   0x1EE7CAFEDEADBEEF),      4, I(0xEE7CAFEDEADBEEF1lu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),      8, I(0xE7CAFEDEADBEEF1Elu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     12, I(0x7CAFEDEADBEEF1EElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     16, I(0xCAFEDEADBEEF1EE7lu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     20, I(0xAFEDEADBEEF1EE7Clu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     24, I(0xFEDEADBEEF1EE7CAlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     28, I(0xEDEADBEEF1EE7CAFlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     32, I(0xDEADBEEF1EE7CAFElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     36, I(0xEADBEEF1EE7CAFEDlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     40, I(0xADBEEF1EE7CAFEDElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     44, I(0xDBEEF1EE7CAFEDEAlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     48, I(0xBEEF1EE7CAFEDEADlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     52, I(0xEEF1EE7CAFEDEADBlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     56, I(0xEF1EE7CAFEDEADBElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     60, I(0xF1EE7CAFEDEADBEElu) );
+	}
+
+	auto num_checks = expected_results.size();
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
+		device_function_ptrs::rotate_left<I>{},
+		expected_results.data(),
+		num_checks,
+		make_exact_comparison<result_type>,
+		values.data(),
+		shift_amounts.data()
+	);
+}
+
+
+TEST_CASE_TEMPLATE("rotate_right", I, uint8_t, uint16_t, uint32_t, uint64_t)
+{
+	using result_type = I;
+	std::vector<result_type> expected_results;
+	std::vector<result_type> values;
+	std::vector<uint32_t> shift_amounts;
+
+	auto add_check = [&](
+		result_type value,
+		uint32_t shift_amount,
+		result_type result)
+	{
+		values.emplace_back(value);
+		shift_amounts.emplace_back(shift_amount);
+		expected_results.emplace_back(result);
+	};
+
+	//          value          shift    result
+	//                         amount
+	//         ----------------------------------------------------
+
+	// Shift-like behavior when upper bits are zero
+
+	if (sizeof(I) == 1) {
+	add_check(          1u,      0,                  0x1u );
+	add_check(          1u,      1,                 0x80u );
+	add_check(          1u,      3,                 0x20u );
+	add_check(          1u,      7,                  0x2u );
+	}
+
+	if (sizeof(I) == 2) {
+	add_check(          1u,      1, I(            0x8000u) );
+	add_check(          1u,     15, I(            0x0002u) );
+	}
+
+	if (sizeof(I) == 4) {
+	add_check(          1u,      1, I(        0x80000000u) );
+	add_check(          1u,     31, I(        0x00000002u) );
+	}
+
+	if (sizeof(I) == 8) {
+	add_check(          1u,      1, I(0x8000000000000000u) );
+	add_check(          1u,     17, I(    0x800000000000u) );
+	add_check(          1u,     63, I(0x0000000000000002u) );
+	}
+
+	// Proper rotation - full nibbles
+
+	if (sizeof(I) == 1) {
+	add_check(       0xABu,      4,                 0xBAu );
+	}
+
+	if (sizeof(I) == 2) {
+	add_check(I(   0xDEAF),      8, I(             0xAFDE) );
+	add_check(I(   0xDEAF),      4, I(             0xFDEA) );
+	add_check(I(   0xDEAF),     12, I(             0xEAFD) );
+	}
+
+	if (sizeof(I) == 4) {
+	add_check(I(   0xDEADBEEF),      4, I(             0xFDEADBEEu) );
+	add_check(I(   0xDEADBEEF),      8, I(             0xEFDEADBEu) );
+	add_check(I(   0xDEADBEEF),     12, I(             0xEEFDEADBu) );
+	add_check(I(   0xDEADBEEF),     16, I(             0xBEEFDEADu) );
+	add_check(I(   0xDEADBEEF),     20, I(             0xDBEEFDEAu) );
+	add_check(I(   0xDEADBEEF),     24, I(             0xADBEEFDEu) );
+	add_check(I(   0xDEADBEEF),     28, I(             0xEADBEEFDu) );
+	}
+
+	if (sizeof(I) == 8) {
+	add_check(I(   0x1EE7CAFEDEADBEEF),      4, I(0xF1EE7CAFEDEADBEElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),      8, I(0xEF1EE7CAFEDEADBElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     12, I(0xEEF1EE7CAFEDEADBlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     16, I(0xBEEF1EE7CAFEDEADlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     20, I(0xDBEEF1EE7CAFEDEAlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     24, I(0xADBEEF1EE7CAFEDElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     28, I(0xEADBEEF1EE7CAFEDlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     32, I(0xDEADBEEF1EE7CAFElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     36, I(0xEDEADBEEF1EE7CAFlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     40, I(0xFEDEADBEEF1EE7CAlu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     44, I(0xAFEDEADBEEF1EE7Clu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     48, I(0xCAFEDEADBEEF1EE7lu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     52, I(0x7CAFEDEADBEEF1EElu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     56, I(0xE7CAFEDEADBEEF1Elu) );
+	add_check(I(   0x1EE7CAFEDEADBEEF),     60, I(0xEE7CAFEDEADBEEF1lu) );
+	}
+
+	auto num_checks = expected_results.size();
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
+		device_function_ptrs::rotate_right<I>{},
+		expected_results.data(),
+		num_checks,
+		make_exact_comparison<result_type>,
+		values.data(),
+		shift_amounts.data()
+	);
+}
+
+
 
 } // TEST_SUITE("uniform non-builtins")
 
