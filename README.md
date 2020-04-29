@@ -1,6 +1,6 @@
 # cuda-kat: CUDA Kernel Author's Toolkit
 
-An install-less, header-only library which is a loosely-coupled collection of **utility functions and classes** for writing **device-side CUDA code** (kernels and non-kernel functions). These utilities:
+An install-less, header-only library which is a loosely-coupled collection of **utility functions and classes** for writing **device-side CUDA code** (kernels and non-kernel functions). These let us:
 
 * Write templated device-side without constantly coming up against not-trivially-templatable bits.
 * Use standard-library(-like) containers in device-side code (but not _have_ to use them).
