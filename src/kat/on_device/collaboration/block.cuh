@@ -99,6 +99,15 @@ KAT_FD void barrier() { __syncthreads(); }
  * one of the threads (and likely not otherwise easily accessible
  * to the rest of the block's threads).
  *
+ * @p value For most threads can be any junk T (even uninitialized);
+ * for the thread at position @p source_thread - this is the value
+ * to be shared with the rest of the block.
+ * @p source_thread_position (multi-dimensional) position of the thread
+ * from which to obtain the value.
+ *
+ * @return the referenced value of @p value of the thread at @p
+ * source_thread_position.
+ *
  * @note uses shared memory for the "broadcast" by the thread holding
  * the relevant value
  */
