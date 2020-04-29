@@ -8,7 +8,7 @@ An install-less, header-only library which is a loosely-coupled collection of **
 * Use less magic numbers.
 * Make our device-side code less cryptic and idiosyncratic, with clearer naming and semantics.
 
-... while not committing to any particular framework, library, paradigm or class hierarchy.
+... while not committing to any particular framework, paradigm or class hierarchy - and not compromising performance.
 
 
 | Table of contents|
