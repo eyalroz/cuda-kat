@@ -1092,7 +1092,93 @@ TEST_CASE_TEMPLATE("average_rounded_up", I, int, unsigned)
 		lhs.data(), rhs.data());
 }
 
+TEST_CASE("funnel_shift_right")
+{
+	using result_type = uint32_t;
+	std::vector<result_type> expected_results;
+	std::vector<uint32_t> low_words;
+	std::vector<uint32_t> high_words;
+	std::vector<uint32_t> shift_amounts;
 
+	auto add_check = [&](
+		uint32_t low_word,
+		uint32_t high_word,
+		uint32_t shift_amount,
+		result_type result)
+	{
+		low_words.emplace_back(low_word);
+		high_words.emplace_back(high_word);
+		shift_amounts.emplace_back(shift_amount);
+		expected_results.emplace_back(result);
+	};
+
+	//            low          high          shift    result
+	//            word         word          amount
+	//           ----------------------------------------------------
+
+	add_check(          ~0u,          0u,      0,         ~0u );
+	add_check(       0xCA7u, 0xDEADBEEFu,      0,      0xCA7u );
+	add_check(          ~0u,          0u,      5, 0x07FFFFFFu );
+	add_check(          ~0u,      0b111u,      4, 0x7FFFFFFFu );
+	add_check(           0u, 0xDEADBEEFu,     32, 0xDEADBEEFu );
+	add_check(       0xCA7u, 0xDEADBEEFu,     32, 0xDEADBEEFu );
+	add_check( 0xCA7u << 16, 0xDEADBEEFu,     16, 0xBEEF0CA7u );
+
+	auto num_checks = expected_results.size();
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
+		device_function_ptrs::funnel_shift_right<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
+		expected_results.data(),
+		num_checks,
+		make_exact_comparison<result_type>,
+		low_words.data(),
+		high_words.data(),
+		shift_amounts.data()
+	);
+}
+
+TEST_CASE("funnel_shift_left")
+{
+	using result_type = uint32_t;
+	std::vector<result_type> expected_results;
+	std::vector<uint32_t> low_words;
+	std::vector<uint32_t> high_words;
+	std::vector<uint32_t> shift_amounts;
+
+	auto add_check = [&](
+		uint32_t low_word,
+		uint32_t high_word,
+		uint32_t shift_amount,
+		result_type result)
+	{
+		low_words.emplace_back(low_word);
+		high_words.emplace_back(high_word);
+		shift_amounts.emplace_back(shift_amount);
+		expected_results.emplace_back(result);
+	};
+
+	//            low            high         shift    result
+	//            word           word         amount
+	//           ----------------------------------------------------
+
+	add_check( 0u,            0xDEADBEEFu,      0, 0xDEADBEEFu );
+	add_check( 0u,            0xDEADBEEFu,      4, 0xEADBEEF0u );
+	add_check( 0u,            0xDEADBEEFu,     16, 0xBEEF0000u );
+	add_check( 0x0ACEu << 16, 0xDEADBEEFu,     16, 0xBEEF0ACEu );
+	add_check( 0xDEADBEEFu,   0u,              32, 0xDEADBEEFu );
+	add_check( 0b10u,         ~0u,             31, (1 << 31) | 0b1 );
+
+	auto num_checks = expected_results.size();
+
+	execute_uniform_builtin_testcase_on_gpu_and_check(
+		device_function_ptrs::funnel_shift_left<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
+		expected_results.data(), num_checks,
+		make_exact_comparison<result_type>,
+		low_words.data(),
+		high_words.data(),
+		shift_amounts.data()
+	);
+}
 
 } // TEST_SUITE("uniform builtins")
 
@@ -1335,94 +1421,6 @@ TEST_CASE_TEMPLATE("replace_bits", I, uint32_t, uint64_t)
 		original_bit_fields.data(),
 		start_positions.data(),
 		numbers_of_bits.data()
-	);
-}
-
-TEST_CASE("funnel_shift_right")
-{
-	using result_type = uint32_t;
-	std::vector<result_type> expected_results;
-	std::vector<uint32_t> low_words;
-	std::vector<uint32_t> high_words;
-	std::vector<uint32_t> shift_amounts;
-
-	auto add_check = [&](
-		uint32_t low_word,
-		uint32_t high_word,
-		uint32_t shift_amount,
-		result_type result)
-	{
-		low_words.emplace_back(low_word);
-		high_words.emplace_back(high_word);
-		shift_amounts.emplace_back(shift_amount);
-		expected_results.emplace_back(result);
-	};
-
-	//            low          high          shift    result
-	//            word         word          amount
-	//           ----------------------------------------------------
-
-	add_check(          ~0u,          0u,      0,         ~0u );
-	add_check(       0xCA7u, 0xDEADBEEFu,      0,      0xCA7u );
-	add_check(          ~0u,          0u,      5, 0x07FFFFFFu );
-	add_check(          ~0u,      0b111u,      4, 0x7FFFFFFFu );
-	add_check(           0u, 0xDEADBEEFu,     32, 0xDEADBEEFu );
-	add_check(       0xCA7u, 0xDEADBEEFu,     32, 0xDEADBEEFu );
-	add_check( 0xCA7u << 16, 0xDEADBEEFu,     16, 0xBEEF0CA7u );
-
-	auto num_checks = expected_results.size();
-
-	execute_uniform_builtin_testcase_on_gpu_and_check(
-		device_function_ptrs::funnel_shift_right<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
-		expected_results.data(),
-		num_checks,
-		make_exact_comparison<result_type>,
-		low_words.data(),
-		high_words.data(),
-		shift_amounts.data()
-	);
-}
-
-TEST_CASE("funnel_shift_left")
-{
-	using result_type = uint32_t;
-	std::vector<result_type> expected_results;
-	std::vector<uint32_t> low_words;
-	std::vector<uint32_t> high_words;
-	std::vector<uint32_t> shift_amounts;
-
-	auto add_check = [&](
-		uint32_t low_word,
-		uint32_t high_word,
-		uint32_t shift_amount,
-		result_type result)
-	{
-		low_words.emplace_back(low_word);
-		high_words.emplace_back(high_word);
-		shift_amounts.emplace_back(shift_amount);
-		expected_results.emplace_back(result);
-	};
-
-	//            low            high         shift    result
-	//            word           word         amount
-	//           ----------------------------------------------------
-
-	add_check( 0u,            0xDEADBEEFu,      0, 0xDEADBEEFu );
-	add_check( 0u,            0xDEADBEEFu,      4, 0xEADBEEF0u );
-	add_check( 0u,            0xDEADBEEFu,     16, 0xBEEF0000u );
-	add_check( 0x0ACEu << 16, 0xDEADBEEFu,     16, 0xBEEF0ACEu );
-	add_check( 0xDEADBEEFu,   0u,              32, 0xDEADBEEFu );
-	add_check( 0b10u,         ~0u,             31, (1 << 31) | 0b1 );
-
-	auto num_checks = expected_results.size();
-
-	execute_uniform_builtin_testcase_on_gpu_and_check(
-		device_function_ptrs::funnel_shift_left<kat::builtins::funnel_shift_amount_resolution_mode_t::cap_at_full_word_size>{},
-		expected_results.data(), num_checks,
-		make_exact_comparison<result_type>,
-		low_words.data(),
-		high_words.data(),
-		shift_amounts.data()
 	);
 }
 
