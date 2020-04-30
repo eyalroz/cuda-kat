@@ -178,15 +178,15 @@ enum class funnel_shift_amount_resolution_mode_t {
  * @brief Performs a right-shift on the combination of the two arguments
  * into a single, double-the-length, value
  *
- * @param low_word
- * @param high_word
+ * @param low_word the lower 32-bit word
+ * @param high_word the higher/upper 32-bit word
  * @param shift_amount The number of bits to right-shift
  *
  * @tparam AmountResolutionMode shift_amount can have values which are
  * higher than the maximum possible number of bits to right-shift; this
  * indicates how to interpret such values.
  *
- * @return the lower bits of the result
+ * @return the lower word (lower 32 bits) of the result
  */
 template <
 	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
@@ -201,15 +201,15 @@ KAT_FD uint32_t funnel_shift_right(
  * @brief Performs a left-shift on the combination of the two arguments
  * into a single, double-the-length, value
  *
- * @param low_word
- * @param high_word
+ * @param low_word the lower 32-bit word
+ * @param high_word the higher/upper 32-bit word
  * @param shift_amount The number of bits to left-shift
  *
  * @tparam AmountResolutionMode shift_amount can have values which are
  * higher than the maximum possible number of bits to right-shift; this
  * indicates how to interpret such values.
  *
- * @return the upper bits of the result
+ * @return the higher world (higher 32 bits) of the result
  */
 template <
 	funnel_shift_amount_resolution_mode_t AmountResolutionMode =
