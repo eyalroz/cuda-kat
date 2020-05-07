@@ -76,13 +76,6 @@ KAT_FD int last_lane_in(lane_mask_t mask)
 namespace collaborative {
 namespace warp {
 
-// If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::id()` without prefixing that with anything.
-
-//namespace grid   = grid_info::grid;
-//namespace block  = grid_info::block;
-//namespace warp   = grid_info::warp;
-//namespace thread = grid_info::thread;
 namespace lane   = grid_info::lane;
 
 // lane conditions
