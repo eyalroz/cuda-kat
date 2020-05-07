@@ -78,6 +78,15 @@ namespace warp {
 
 namespace lane   = grid_info::lane;
 
+/**
+ * @brief Guarantees all memory writes by (mask-specified) warp lanes are visible to the other (mask-specified) lanes.
+ *
+ * @param[in] lane_mask The lanes whose memory writes must be visible after invocation. All lanes named in the mask
+ * must call this function, otherwise the behavior is undefined.
+ */
+KAT_FD void barrier(lane_mask_t lane_mask = full_warp_mask) { __syncwarp(lane_mask); }
+
+
 // lane conditions
 // ----------------------------
 

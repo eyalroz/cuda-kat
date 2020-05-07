@@ -286,6 +286,62 @@ auto execute_non_uniform_testcase_on_gpu(
 
 TEST_SUITE("warp-level - general grid") {
 
+TEST_CASE("barrier") {
+	// TODO: Check with different lane masks and conditional
+	// execution by lanes outside the mask
+
+	using checked_value_type = int;
+	cuda::grid::dimensions_t grid_dimensions { 1 };
+	cuda::grid::block_dimensions_t block_dimensions { warp_size * 3 };
+
+	auto num_total_threads = block_dimensions.volume() * grid_dimensions.volume();
+	auto num_values_to_populate = num_total_threads;
+
+	auto make_thread_value =
+		[] KAT_HD (unsigned warp_id, unsigned lane_id) {
+			return checked_value_type( (warp_id+1) * 100 + (lane_id + 1) );
+		};
+
+	auto testcase_device_function =
+		[=] KAT_DEV (
+			size_t,
+			checked_value_type* thread_obtained_values
+		)
+		{
+			__shared__ int shared_array[warp_size];
+			namespace gi = kat::linear_grid::grid_info;
+			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
+
+			shared_array[gi::lane::id()] = 0;
+
+			kat::collaborative::block::barrier();
+
+			if (gi::lane::id() == gi::warp::id_in_block()) {
+				shared_array[gi::lane::id()] = make_thread_value(gi::warp::id_in_block(), gi::lane::id());
+			};
+			kcw::barrier();
+			thread_obtained_values[gi::thread::global_id()] = shared_array[gi::warp::id_in_block()];
+		};
+
+
+	auto expected_value_retriever = [=] (size_t global_thread_id) {
+		auto warp_id { (global_thread_id % block_dimensions.volume()) / warp_size };
+		auto writing_lane_id { warp_id };
+		return make_thread_value(warp_id, writing_lane_id);
+	};
+
+	execute_non_uniform_testcase_on_gpu_and_check(
+		testcase_device_function,
+		expected_value_retriever,
+		num_values_to_populate,
+		grid_dimensions,
+		block_dimensions,
+		make_exact_comparison<checked_value_type>
+	);
+
+}
+
+
 TEST_CASE("all_lanes_satisfy") {
 	using predicate_type = int;
 	cuda::grid::dimensions_t grid_dimensions { 1 };
