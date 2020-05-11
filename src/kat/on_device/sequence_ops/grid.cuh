@@ -71,12 +71,12 @@ KAT_FD void append_to_global_memory(
 	if (detail::elements_per_lane_in_full_warp_write<T>::value > 1) {
 		// We don't have a version of copy which handles unaligned destinations, so
 		warp::detail::naive_copy(global_output + offset_to_start_writing_at,
-			fragment_to_append, fragment_length);
+			fragment_length, fragment_to_append);
 	}
 	else {
 		warp::copy_n<T, Size,  may_have_slack>(
 			global_output + offset_to_start_writing_at,
-			fragment_to_append, fragment_length);
+			fragment_length, fragment_to_append);
 	}
 }
 

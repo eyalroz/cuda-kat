@@ -757,10 +757,10 @@ TEST_CASE("lookup") {
 	);
 }
 
-TEST_CASE("reduce - all threads obtain result") {
+TEST_CASE_TEMPLATE("reduce - all threads obtain result", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
 	constexpr const bool all_threads_do_obtain_result { true };
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -827,11 +827,10 @@ TEST_CASE("reduce - all threads obtain result") {
 		input.data()
 	);
 }
-
-TEST_CASE("reduce - not all threads obtain result") {
+TEST_CASE_TEMPLATE("reduce - not all threads obtain result", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
 	constexpr const bool not_all_threads_obtain_result { true };
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -896,10 +895,10 @@ TEST_CASE("reduce - not all threads obtain result") {
 	}
 }
 
-TEST_CASE("sum - all threads obtain result") {
+TEST_CASE_TEMPLATE("sum - all threads obtain result", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
 	constexpr const bool all_threads_do_obtain_result { true };
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -963,9 +962,9 @@ TEST_CASE("sum - all threads obtain result") {
 }
 
 
-TEST_CASE("inclusive scan with specified scratch area") {
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("inclusive scan with specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1029,9 +1028,10 @@ TEST_CASE("inclusive scan with specified scratch area") {
 	);
 }
 
-TEST_CASE("inclusive scan without specified scratch area") {
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("inclusive scan without specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
+
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1094,9 +1094,10 @@ TEST_CASE("inclusive scan without specified scratch area") {
 	);
 }
 
-TEST_CASE("exclusive scan with specified scratch area") {
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("exclusive scan with specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
+
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1160,9 +1161,9 @@ TEST_CASE("exclusive scan with specified scratch area") {
 	);
 }
 
-TEST_CASE("exclusive scan without specified scratch area") {
-	using checked_value_type = int32_t; // TODO: Try with some other types, e.g. int64_t
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("exclusive scan without specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using checked_value_type = typename InputAndResultTypes::second_type;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1225,12 +1226,12 @@ TEST_CASE("exclusive scan without specified scratch area") {
 	);
 }
 
-
-TEST_CASE("inclusive scan_and_reduce with specified scratch area") {
-	using scan_result_type = int32_t;
-	using reduction_result_type = int32_t;
-	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type >;
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("inclusive scan_and_reduce with specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using result_type = typename InputAndResultTypes::second_type;
+	using scan_result_type = result_type;
+	using reduction_result_type = result_type;
+	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type>;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1301,11 +1302,12 @@ TEST_CASE("inclusive scan_and_reduce with specified scratch area") {
 	);
 }
 
-TEST_CASE("exclusive scan_and_reduce with specified scratch area") {
-	using scan_result_type = int32_t;
-	using reduction_result_type = int32_t;
-	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type >;
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("exclusive scan_and_reduce with specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using result_type = typename InputAndResultTypes::second_type;
+	using scan_result_type = result_type;
+	using reduction_result_type = result_type;
+	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type>;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1377,11 +1379,12 @@ TEST_CASE("exclusive scan_and_reduce with specified scratch area") {
 }
 
 
-TEST_CASE("inclusive scan_and_reduce with specified scratch area") {
-	using scan_result_type = int32_t;
-	using reduction_result_type = int32_t;
-	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type >;
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("inclusive scan_and_reduce with specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using result_type = typename InputAndResultTypes::second_type;
+	using scan_result_type = result_type;
+	using reduction_result_type = result_type;
+	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type>;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 
@@ -1452,11 +1455,12 @@ TEST_CASE("inclusive scan_and_reduce with specified scratch area") {
 	);
 }
 
-TEST_CASE("exclusive scan_and_reduce without specified scratch area") {
-	using scan_result_type = int32_t;
-	using reduction_result_type = int32_t;
-	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type >;
-	using input_value_type = int16_t;
+TEST_CASE_TEMPLATE("exclusive scan_and_reduce without specified scratch area", InputAndResultTypes, std::pair<int16_t, int32_t>, std::pair<int32_t, int64_t>, std::pair<float, float>, std::pair<double, double>) {
+	using input_value_type = typename InputAndResultTypes::first_type;
+	using result_type = typename InputAndResultTypes::second_type;
+	using scan_result_type = result_type;
+	using reduction_result_type = result_type;
+	using checked_value_type = poor_mans_pair<scan_result_type, reduction_result_type>;
 	cuda::grid::dimension_t num_grid_blocks { 3 };
 	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 3 };
 

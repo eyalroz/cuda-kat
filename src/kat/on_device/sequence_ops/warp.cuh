@@ -96,17 +96,18 @@ KAT_FD T sum(T value)
 template <
 	typename T,
 	typename AccumulationOp,
-	inclusivity_t Inclusivity = inclusivity_t::Inclusive,
-	T NeutralValue = T{}
+	inclusivity_t Inclusivity = inclusivity_t::Inclusive
 >
 KAT_FD T scan(T value, AccumulationOp op)
 {
+	constexpr const T neutral_value {};
+
 	T x;
 
 	if (Inclusivity == inclusivity_t::Exclusive) {
 		T preshuffled = shuffle_up(value, 1);
 		// ... and now we can pretend to be doing an inclusive shuffle
-		x = lane::is_first() ? NeutralValue : preshuffled;
+		x = lane::is_first() ? neutral_value : preshuffled;
 	}
 	else { x = value; }
 
@@ -126,19 +127,18 @@ KAT_FD T scan(T value, AccumulationOp op)
 
 template <
 	typename T,
-	inclusivity_t Inclusivity = inclusivity_t::Inclusive,
-	T NeutralValue = T{}
+	inclusivity_t Inclusivity = inclusivity_t::Inclusive
 >
 KAT_FD T prefix_sum(T value)
 {
 	const auto plus = [](T& x, T y) { x += y; };
-	return scan<T, decltype(plus), Inclusivity, NeutralValue>(value, plus);
+	return scan<T, decltype(plus), Inclusivity>(value, plus);
 }
 
-template <typename T, T NeutralValue = T{}>
+template <typename T>
 KAT_FD T exclusive_prefix_sum(T value)
 {
-	return prefix_sum<T, inclusivity_t::Exclusive, NeutralValue>(value);
+	return prefix_sum<T, inclusivity_t::Exclusive>(value);
 }
 
 

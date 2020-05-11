@@ -251,16 +251,15 @@ using accumulator_op_return_type_t = typename accumulator_op_return_type_helper<
  * @tparam AllThreadsObtainResult when true, all threads in a block will
  * return the reduction result; otherwise, only the first warp of the block
  * is guaranteed to return the actual reduction result.
- *
  */
 template<
 	typename T,
 	typename AccumulationOp,
-	bool AllThreadsObtainResult = false,
-	T NeutralValue = T{}>
+	bool AllThreadsObtainResult = false>
 KAT_DEV T reduce(T value, AccumulationOp op)
 {
 	namespace gi = kat::linear_grid::grid_info;
+	constexpr const T neutral_value {};
 
 	static __shared__ T warp_reductions[warp_size];
 
@@ -275,7 +274,7 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 	if (not AllThreadsObtainResult) {
 		// We currently only guarantee the first thread has the final result,
 		// which is what allows most threads to return already:
-		if (not gi::warp::is_first_in_block()) { return NeutralValue; }
+		if (not gi::warp::is_first_in_block()) { return neutral_value; }
 	}
 
 	collaborative::block::barrier(); // Perhaps we can do with something weaker here?
@@ -284,7 +283,7 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 
 	// read from shared memory only if that warp actually existed
 	auto other_warp_result  = (gi::lane::id() < gi::block::num_warps()) ?
-		warp_reductions[gi::lane::id()] : NeutralValue;
+		warp_reductions[gi::lane::id()] : neutral_value;
 
 	return kat::collaborative::warp::reduce<T, AccumulationOp>(other_warp_result, op);
 		// TODO: Would it perhaps be faster to have only one warp compute this,
@@ -297,7 +296,7 @@ template<
 KAT_DEV T sum(T value)
 {
 	auto plus = [](T& x, T y) { x += y; };
-	return reduce<T, decltype(plus), AllThreadsObtainResult, T{}>(value, plus);
+	return reduce<T, decltype(plus), AllThreadsObtainResult>(value, plus);
 }
 
 /**
@@ -312,13 +311,13 @@ KAT_DEV T sum(T value)
 template <
 	typename T,
 	typename AccumulationOp,
-	bool Inclusivity = inclusivity_t::Inclusive,
-	T NeutralValue = T{}
+	bool Inclusivity = inclusivity_t::Inclusive
 >
 KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 {
+	constexpr const T neutral_value {};
 	auto intra_warp_inclusive_scan_result =	kat::collaborative::warp::scan<
-		T, AccumulationOp, inclusivity_t::Inclusive, NeutralValue >(value, op);
+		T, AccumulationOp, inclusivity_t::Inclusive >(value, op);
 
 	auto last_active_lane_id =
 		// (AssumeFullWarps or not grid_info::warp::is_last_in_block()) ?
@@ -346,7 +345,7 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaborative::warp::scan<T, AccumulationOp, inclusivity_t::Exclusive, NeutralValue>(
+			kat::collaborative::warp::scan<T, AccumulationOp, inclusivity_t::Exclusive>(
 				scratch[lane::id()], op);
 		scratch[lane::id()] = warp_reductions_scan_result;
 	}
@@ -360,7 +359,7 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 	}
 	else {
 		auto shuffled = shuffle_up(intra_warp_inclusive_scan_result, 1);
-		intra_warp_scan_result = lane::is_first() ? NeutralValue : shuffled;
+		intra_warp_scan_result = lane::is_first() ? neutral_value : shuffled;
 	}
 	op(r, intra_warp_scan_result);
 	return r;
@@ -369,14 +368,13 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 template <
 	typename T,
 	typename AccumulationOp,
-	bool Inclusivity = inclusivity_t::Inclusive,
-	T NeutralValue = T{}
+	bool Inclusivity = inclusivity_t::Inclusive
 >
 KAT_DEV T scan(T value, AccumulationOp op)
 {
 	// Note the assumption there can no than warp_size warps per block
 	static __shared__ T scratch[warp_size];
-	return scan<T, AccumulationOp, Inclusivity, NeutralValue>(value, op, scratch);
+	return scan<T, AccumulationOp, Inclusivity>(value, op, scratch);
 }
 
 
@@ -406,8 +404,7 @@ KAT_DEV T scan(T value, AccumulationOp op)
 template <
 	typename T,
 	typename AccumulationOp,
-	bool Inclusivity = inclusivity_t::Inclusive,
-	T NeutralValue = T{}
+	bool Inclusivity = inclusivity_t::Inclusive
 >
  KAT_DEV void scan_and_reduce(
 	 T* __restrict__ scratch, // must have as many elements as there are warps
@@ -416,8 +413,10 @@ template <
 	 T&              scan_result,
 	 T&              reduction_result)
 {
+	constexpr const T neutral_value {};
+
 	auto intra_warp_inclusive_scan_result = kat::collaborative::warp::scan<
-		T, AccumulationOp, inclusivity_t::Inclusive, NeutralValue>(value, op);
+		T, AccumulationOp, inclusivity_t::Inclusive>(value, op);
 
 	auto last_active_lane_id =
 		// (AssumeFullWarps or not grid_info::warp::is_last_in_block()) ?
@@ -450,7 +449,7 @@ template <
 		// on what the first warp computes here.
 		auto other_warp_reduction_result = scratch[lane::id()];
 		auto warp_reductions_scan_result = kat::collaborative::warp::scan<
-			T, AccumulationOp, inclusivity_t::Exclusive, NeutralValue>(
+			T, AccumulationOp, inclusivity_t::Exclusive>(
 				other_warp_reduction_result, op);
 		scratch[lane::id()] = warp_reductions_scan_result;
 	}
@@ -477,7 +476,7 @@ template <
 		// TODO: Version of this function taking a de-accumulation operator
 		// which avoid this shuffle
 		T shuffled = shuffle_up(intra_warp_inclusive_scan_result, 1);
-		intra_warp_scan_result = lane::is_first() ? NeutralValue : shuffled;
+		intra_warp_scan_result = lane::is_first() ? neutral_value : shuffled;
 	}
 	op(partial_scan_result, intra_warp_scan_result);
 
@@ -488,8 +487,7 @@ template <
 template <
 	typename T,
 	typename AccumulationOp,
-	bool Inclusivity = inclusivity_t::Inclusive,
-	T NeutralValue = T{}
+	bool Inclusivity = inclusivity_t::Inclusive
 >
  KAT_DEV void scan_and_reduce(
 	 T               value,
@@ -499,7 +497,7 @@ template <
 {
 	// Note the assumption there can no than warp_size warps per block
 	static __shared__ T scratch[warp_size];
-	scan_and_reduce<T, AccumulationOp, Inclusivity, NeutralValue>(
+	scan_and_reduce<T, AccumulationOp, Inclusivity>(
 		scratch, value, op, scan_result, reduction_result);
 }
 
