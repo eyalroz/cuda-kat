@@ -71,7 +71,7 @@ template<>
 KAT_DEV void sleep<sleep_resolution::nanoseconds>(
 	sleep_unit_t<sleep_resolution::nanoseconds> num_cycles)
 {
-	__nanosleep(unsigned int ns);
+	__nanosleep(num_cycles);
 }
 
 #endif // __CUDA_ARCH__ >= 700
