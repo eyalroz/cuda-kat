@@ -12,7 +12,7 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 
 	auto maybe_print = [&](const char* section_title) {
 		if (print_first_indices_for_each_function) {
-			printf("%-30s tests start at index  %3d\n", section_title, i);
+			printf("%-30s tests start at index  %3d\n", section_title, (int) i);
 		}
 	};
 
