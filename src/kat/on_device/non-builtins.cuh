@@ -96,8 +96,11 @@ template <typename I> KAT_FD int count_leading_zeros(I x)
 template <typename T>
 __device__ T rotate_left(T value, int shift_amount) {
 	static_assert(std::is_unsigned<T>::value, "Only unsigned integers are supported");
-	return (std::is_same<T, uint32_t>::value) ?
+	return
+#if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 320
+		(std::is_same<T, uint32_t>::value) ?
 		builtins::funnel_shift_left(value, value, shift_amount) :
+#endif
 		(value << shift_amount) | ( value >> (size_in_bits(value) - shift_amount) );
 }
 
@@ -114,8 +117,11 @@ __device__ T rotate_left(T value, int shift_amount) {
 template <typename T>
 __device__ T rotate_right(T value, int shift_amount) {
 	static_assert(std::is_unsigned<T>::value, "Only unsigned integers are supported");
-	return (std::is_same<T, uint32_t>::value) ?
+	return
+#if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 320
+		(std::is_same<T, uint32_t>::value) ?
 		builtins::funnel_shift_right(value, value, shift_amount) :
+#endif
 		(value >> shift_amount) | ( value << (size_in_bits(value)- shift_amount) );
 }
 

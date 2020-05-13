@@ -166,6 +166,8 @@ template <typename I> KAT_FD I replace_bits(I original_bit_field, I bits_to_inse
  */
 KAT_FD unsigned permute_bytes(unsigned first, unsigned second, unsigned byte_selectors);
 
+#if ! defined(__CUDA_ARCH__) or __CUDA_ARCH__ >= 320
+
 /**
  * Use this to select which variant of the funnel shift intrinsic to use
  */
@@ -197,6 +199,7 @@ KAT_FD uint32_t funnel_shift_right(
 	uint32_t  high_word,
 	uint32_t  shift_amount);
 
+
 /**
  * @brief Performs a left-shift on the combination of the two arguments
  * into a single, double-the-length, value
@@ -220,6 +223,7 @@ KAT_FD uint32_t funnel_shift_left(
 	uint32_t  high_word,
 	uint32_t  shift_amount);
 
+#endif
 
 // --------------------------------------------
 
