@@ -150,6 +150,10 @@ T* addressof(T& arg)
 	return reinterpret_cast<T*>(&const_cast<char&>(reinterpret_cast<const volatile char&>(arg)));
 }
 
+template<class F, class...Ts>
+KAT_HD F for_each_arg(F f, Ts&&...a) {
+	return (void)std::initializer_list<int>{(ref(f)((Ts&&)a),0)...}, f;
+}
 
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */

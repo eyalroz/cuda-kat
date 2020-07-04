@@ -198,7 +198,28 @@ using kat::make_tuple;
 using std::is_same;
 using namespace test_structs;
 
+namespace kernels {
 
+__global__ void takes_a_tuple(kat::tuple<int, double> tup, int* result)
+{
+	*result = static_cast<int>(kat::get<0>(tup) + kat::get<1>(tup));
+}
+
+//template <typename... Ts>
+//__global__ void takes_a_tuple(kat::tuple<Ts...> tup, int* result)
+//{
+//	static_assert(sizeof...(Ts) >= 2, "Need more elements to the tuple!");
+//	*result = static_cast<int>(kat::get<0>(tup) + kat::get<1>(tup));
+//}
+
+//
+//template <typename T, typename... Rest>
+//__global__ void taking_a_tuple<T, Rest...>(kat::tuple<T, Rest...> tup, int* result)
+//{
+//	if (std::is_convertible<T,)
+//}
+
+} // namespace kernels
 
 TEST_SUITE("tuple") {
 
@@ -700,6 +721,24 @@ TEST_CASE("tuple_cat") {
 	CHECK( kat::get<1>(tc) == 1 );
 	CHECK( kat::get<2>(tc) == nullptr );
 	CHECK( kat::get<3>(tc) == true );
+}
+
+TEST_CASE("pass tuple to kernel") {
+	cuda::device_t dev = cuda::device::current::get();
+	auto t = kat::make_tuple(1200, 34.0);
+	auto uptr = cuda::memory::device::make_unique<int>(dev);
+	cuda::memory::device::zero(uptr.get(), sizeof(int));
+	auto kernel = kernels::takes_a_tuple;
+	dev.launch(
+		kernel,
+		cuda::make_launch_config(1, 1),
+		t,
+		uptr.get()
+	);
+	dev.synchronize();
+	int result;
+	cuda::memory::copy_single(&result, uptr.get());
+	CHECK( result == 1234 );
 }
 
 } // TEST_SUITE("tuple")
