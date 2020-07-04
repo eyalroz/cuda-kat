@@ -56,10 +56,13 @@ KAT_FD void append_to_global_memory(
 	Size   __restrict__  fragment_length)
 {
 	using namespace grid_info;
-	Size previous_output_size = thread::is_first_in_warp() ?
-		atomic::add(global_output_length, fragment_length) : 0;
-	Size offset_to_start_writing_at = collaborative::warp::get_from_first_lane(
-		previous_output_size);
+	auto lane_to_perform_atomic_op = collaborative::warp::select_leader_lane();
+	auto f = [&]() {
+		return atomic::add(global_output_length, fragment_length);
+	};
+	Size previous_output_size = collaborative::warp::have_a_single_lane_compute(f,lane_to_perform_atomic_op);
+	previous_output_size = collaborative::warp::get_from_lane(previous_output_size, lane_to_perform_atomic_op);
+	Size start_offset_for_warp_data = previous_output_size;
 
 	// Now the (0-based) positions
 	// previous_output_size ... previous_output_size + fragment_length - 1
@@ -70,13 +73,11 @@ KAT_FD void append_to_global_memory(
 
 	if (detail::elements_per_lane_in_full_warp_write<T>::value > 1) {
 		// We don't have a version of copy which handles unaligned destinations, so
-		warp::detail::naive_copy(global_output + offset_to_start_writing_at,
-			fragment_length, fragment_to_append);
+		warp::detail::naive_copy(fragment_to_append, fragment_length, global_output + start_offset_for_warp_data);
 	}
 	else {
 		warp::copy_n<T, Size,  may_have_slack>(
-			global_output + offset_to_start_writing_at,
-			fragment_length, fragment_to_append);
+			fragment_to_append, fragment_length, global_output + start_offset_for_warp_data);
 	}
 }
 
