@@ -51,28 +51,31 @@ KAT_DEV T* safe_malloc(std::size_t size)
  * @note This class owns its buffer.
  * @note nothing is dynamically allocated if the length is 0
  */
-class stringstream: public ::strf::basic_outbuf<char>
+class stringstream: public ::strf::basic_outbuff<char>
 {
 public:
 	using char_type = char;
 	// no traits_type - this is not implemented by strf
 	// using int_type = int; // really
 	// using off_type = std::off_t; // really?
+
 	using pos_type = std::size_t;
+	char_type* pointer_type;
+
 
 protected:
 	// Note: initial_buffer_size + 1 bytes must be allocated
 	STRF_HD stringstream(char_type* initial_buffer, std::size_t initial_buffer_size) :
 		buffer_size(initial_buffer_size),
 		buffer(initial_buffer),
-		strf::basic_outbuf<char_type>(initial_buffer, buffer_size)
+		strf::basic_outbuff<char_type>(initial_buffer, buffer_size)
 	{
 	}
 
 public:
 	STRF_HD stringstream(std::size_t initial_buffer_size);
 
-	STRF_HD stringstream(stringstream&& other) : strf::basic_outbuf<char_type>(other.buffer, other.buffer_size)
+	STRF_HD stringstream(stringstream&& other) : strf::basic_outbuff<char_type>(other.buffer, other.buffer_size)
     {
 		if (buffer != nullptr) {
 			free(buffer);
@@ -99,13 +102,13 @@ public:
 
 	KAT_DEV void clear()
 	{
-		set_pos(buffer);
+		set_pointer(buffer);
 		flush();
 	}
 
 	KAT_DEV void flush() {
 		if (buffer != nullptr) {
-			*pos() = '\0';
+			*pointer() = '\0';
 		}
 	}
 
@@ -118,10 +121,10 @@ public:
 		return buffer;
 	}
 
-	KAT_DEV pos_type tellp() const { return pos() - buffer; }
+	KAT_DEV pos_type tellp() const { return pointer() - buffer; }
 	KAT_DEV bool empty() const { return tellp() == 0; }
 		// std::stringstream's don't have this
-	KAT_DEV stringstream& seekp(pos_type pos) { set_pos(buffer + pos); return *this; }
+	KAT_DEV stringstream& seekp(pos_type pos) { set_pointer(buffer + pos); return *this; }
 
 	KAT_DEV std::size_t capacity() const { return buffer_size; } // perhaps there's something else we can use instead?
 
@@ -181,7 +184,7 @@ STRF_HD stringstream::stringstream(std::size_t initial_buffer_size)
 
 KAT_DEV void stringstream::recycle()
 {
-	std::size_t used_size = (buffer_size == 0) ? 0 : (this->pos() - buffer);
+	std::size_t used_size = (buffer_size == 0) ? 0 : (this->pointer() - buffer);
 	// a postcondition of recycle() is that at least so much free space is available.
 	auto new_buffer_size = builtins::maximum(
 		buffer_size * 2,
@@ -191,7 +194,7 @@ KAT_DEV void stringstream::recycle()
 		memcpy(new_buff, buffer, sizeof(char_type) * used_size);
 		free(buffer);
 	}
-	this->set_pos(new_buff + used_size);
+	this->set_pointer(new_buff + used_size);
 	this->set_end(new_buff + new_buffer_size);
 	buffer = new_buff;
 }
@@ -211,26 +214,29 @@ KAT_DEV  stringstream& operator<<(stringstream& out, const T& arg)
 	// TODO:
 	// 1. Can `no_preview` be made constant?
 	// 2. Can't we target a specific overload rather than play with ranks?
-	auto no_preview = ::strf::print_preview<false, false>{};
-	::strf::make_printer<char>(
-		::strf::rank<5>(),
-			// strf::rank is a method for controlling matching within the overload set:
-			// rank objects have no members, it's only about their type. Higher rank objects can
-			// match lower-rank objects (i.e. match functions in the overload sets expecting lower-rank
-			// objects), which means they have access to more of the overload sets. If we create
-			// a lower-rank object here we will only be able to match a few overload set members.
-		::strf::pack(),
-			// not modifying any facets such as digit grouping or digit separator
-		no_preview,
-			// Don't know what this means actually
-		arg
-		).print_to(out);
+	auto no_preview = ::strf::print_preview<strf::preview_size::no, strf::preview_width::no>{};
+//	::strf::make_printer<char>(
+//		::strf::rank<5>(),
+//			// strf::rank is a method for controlling matching within the overload set:
+//			// rank objects have no members, it's only about their type. Higher rank objects can
+//			// match lower-rank objects (i.e. match functions in the overload sets expecting lower-rank
+//			// objects), which means they have access to more of the overload sets. If we create
+//			// a lower-rank object here we will only be able to match a few overload set members.
+//		::strf::pack(),
+//			// not modifying any facets such as digit grouping or digit separator
+//		no_preview,
+//			// Don't know what this means actually
+//		arg
+//		).print_to(out);
+	auto printer_input = strf::make_printer_input<char, decltype(no_preview), decltype(strf::pack())>(no_preview, strf::pack(), arg);
+	strf::printer_type<char,decltype(no_preview), decltype(strf::pack()), T>(printer_input).print_to(out);
+
 
 	// Note: This function doesn't actually rely on out being a stringstream; any
 	// ostream-like class would do. But for now, we don't have any ostreams other
 	// than the stringstream, so we'll leave it this way. Later, with could either
-	// have an intermediate class, or wrap basic_outbuf with an ostream class
-	// without a buffer, or just call basic_outbuf an ostream
+	// have an intermediate class, or wrap basic_outbuff with an ostream class
+	// without a buffer, or just call basic_outbuff an ostream
 
 	return out;
 }

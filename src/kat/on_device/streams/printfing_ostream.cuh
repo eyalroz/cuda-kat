@@ -37,8 +37,18 @@ public:
 	enum class resolution { thread, warp, block, grid };
 
 	KAT_DEV printfing_ostream(std::size_t initial_buffer_size = cout_initial_buffer_size) : main_buffer(initial_buffer_size) { }
-	KAT_DEV printfing_ostream(printfing_ostream&& other) : main_buffer(other.main_buffer) { }
-	KAT_DEV printfing_ostream(const printfing_ostream& other) : main_buffer(other.main_buffer) { }
+
+	KAT_DEV printfing_ostream(printfing_ostream&& other) :
+		main_buffer(other.main_buffer),
+		prefix(other.prefix),
+		flush_on_destruction(other.flush_on_destruction),
+		newline_on_flush(other.newline_on_flush),
+		use_prefix(other.use_prefix),
+		prefix_generator(other.prefix_generator),
+		printing_resolution_(other.printing_resolution_)
+	{ }
+
+	KAT_DEV printfing_ostream(const printfing_ostream& other) = delete;
     KAT_DEV ~printfing_ostream();
 
     // Note: You can also use strf::flush if that exists
@@ -86,14 +96,16 @@ public:
 	KAT_DEV printfing_ostream& operator<<(const T& arg)
 	{
 		if (not should_act_for_resolution(printing_resolution_)) { return *this; }
-		strf::print_preview<false, false> no_preview;
-		strf::make_printer<char>(strf::rank<5>(), strf::pack(), no_preview, arg).print_to(main_buffer);
+		strf::print_preview<strf::preview_size::no, strf::preview_width::no> no_preview;
+		// strf::make_printer<char>(strf::rank<5>(), strf::pack(), no_preview, arg).print_to(main_buffer);
+		auto printer_input = strf::make_printer_input<char, decltype(no_preview), decltype(strf::pack())>(no_preview, strf::pack(), arg);
+		strf::printer_type<char,decltype(no_preview), decltype(strf::pack()), T>(printer_input).print_to(main_buffer);
 		return *this;
 	}
 
 	// Manipulators are a clever, but confusing, idea from the C++ standard library's
 	// IO streams: They're functions which manipulate streams, but can also be made
-	// to manipulatethem by being sent to them using the << operator - which instead
+	// to manipulate them by being sent to them using the << operator - which instead
 	// of actually adding any data to the stream, invokes the manipulator function.
 	//
 	using manipulator = kat::printfing_ostream& ( kat::printfing_ostream& );
@@ -196,7 +208,7 @@ KAT_DEV printfing_ostream& printfing_ostream::operator<< <printfing_ostream::man
 
 namespace manipulators {
 KAT_DEV auto prefix(prefix_generator_type gen) {
-	return [gen](kat::printfing_ostream& os) { return os.set_prefix_generator(gen); };
+	return [gen](kat::printfing_ostream& os) -> kat::printfing_ostream& { return os.set_prefix_generator(gen); };
 }
 } // namespace manipulators
 
@@ -219,7 +231,9 @@ KAT_DEV printfing_ostream& operator<< (printfing_ostream& os, manipulators::pref
 
 namespace manipulators {
 KAT_DEV auto resolution(printfing_ostream::resolution new_resolution) {
-	return [new_resolution](kat::printfing_ostream& os) { return os.set_printing_resolution(new_resolution); };
+	return [new_resolution](kat::printfing_ostream& os) -> kat::printfing_ostream& {
+		return os.set_printing_resolution(new_resolution);
+	};
 }
 } // namespace manipulators
 

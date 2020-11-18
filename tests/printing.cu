@@ -216,7 +216,7 @@ __global__ void print_at_different_resolutions()
 	cout << "Printing at thread resolution. The printing thread is (" << blockIdx.x << "," << threadIdx.x << ")\n" << flush;
 }
 
-__device__ void sipo_for_resolution(kat::printfing_ostream& os, kat::printfing_ostream::resolution res)
+__device__ void self_identifying_printfing_ostream_for_resolution(kat::printfing_ostream& os, kat::printfing_ostream::resolution res)
 {
 	os
 		<< kat::manipulators::resolution(res)
@@ -232,15 +232,15 @@ __global__ void self_identifying_printfing_ostream()
 	using kat::flush;
 	namespace gi = kat::linear_grid::grid_info;
 
-	sipo_for_resolution(cout, kat::printfing_ostream::resolution::grid);
+	self_identifying_printfing_ostream_for_resolution(cout, kat::printfing_ostream::resolution::grid);
 
 	kat::sleep<kat::sleep_resolution::clock_cycles>(1e8);
 
-	sipo_for_resolution(cout, kat::printfing_ostream::resolution::block);
+	self_identifying_printfing_ostream_for_resolution(cout, kat::printfing_ostream::resolution::block);
 	__syncthreads();
-	sipo_for_resolution(cout, kat::printfing_ostream::resolution::warp);
+	self_identifying_printfing_ostream_for_resolution(cout, kat::printfing_ostream::resolution::warp);
 	__syncthreads();
-	sipo_for_resolution(cout, kat::printfing_ostream::resolution::thread);
+	self_identifying_printfing_ostream_for_resolution(cout, kat::printfing_ostream::resolution::thread);
 	__syncthreads();
 }
 
