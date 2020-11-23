@@ -88,13 +88,17 @@ foreach(TEST_TARGET ${tests})
 	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
 	target_include_directories(${TEST_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-	set_target_properties(
-		${TEST_TARGET}
-		PROPERTIES
-		CXX_STANDARD 14
-		CXX_STANDARD_REQUIRED YES
-		CXX_EXTENSIONS NO
-	)
+	#	set_target_properties(
+	#	${TEST_TARGET}
+	#		PROPERTIES
+	#		CXX_STANDARD 14
+	#		CXX_STANDARD_REQUIRED YES
+	#		CXX_EXTENSIONS NO
+	#		CUDA_STANDARD 14
+	#		CUDA_STANDARD_REQUIRED YES
+	#		CUDA_EXTENSIONS NO
+	#		)
+	set_target_properties(${TEST_TARGET} PROPERTIES COMPILE_FLAGS "-std=c++14" )
 	add_test(
 		NAME ${PROJECT_NAME}.${TEST_TARGET}
 		COMMAND ${TEST_TARGET} ${TEST_RUNNER_PARAMS}

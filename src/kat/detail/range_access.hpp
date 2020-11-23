@@ -280,7 +280,7 @@ namespace kat {
    */
   template <typename T>
     [[nodiscard]] constexpr bool
-    empty(initializer_list<T> init_list) noexcept
+    empty(std::initializer_list<T> init_list) noexcept
     { return init_list.size() == 0;}
 
   /**
@@ -318,7 +318,7 @@ namespace kat {
    */
   template <typename T>
     constexpr const T*
-    data(initializer_list<T> init_list) noexcept
+    data(std::initializer_list<T> init_list) noexcept
     { return init_list.begin(); }
 
 #endif // C++17

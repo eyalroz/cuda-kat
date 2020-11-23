@@ -43,11 +43,10 @@ template<typename B> struct negation : bool_constant<not bool(B::value)> {};
 
 #else
 
-template <typename ... Bs> using conjunction   = std::conjunction<Bs...>;
-template <typename ... Bs> using disjunction   = std::disjunction<Bs...>;
-template <bool B> using bool_constant = std::bool_constant<B>;
-template <bool B> using negation      = std::negation<B>;
-
+using std::conjunction;
+using std::disjunction;
+using std::bool_constant;
+using std::negation;
 
 #endif
 

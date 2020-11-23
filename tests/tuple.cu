@@ -670,6 +670,9 @@ TEST_CASE("piecewise_construction")
 
 #if __cplusplus >=  201703L
 
+// TODO: Implement kat::apply
+#if FALSE
+
 TEST_CASE("apply")
 {
 	// test with tuples
@@ -700,6 +703,8 @@ TEST_CASE("apply")
 	// TODO: Test apply with arrays?
 }
 
+#endif // FALSE due to no kat::apply
+
 TEST_CASE("tuple structured bindings") {
 	kat::tuple<int, int, int> t = {1,2,3};
 	auto [x,y,z] = t;
@@ -707,6 +712,7 @@ TEST_CASE("tuple structured bindings") {
 	CHECK( y == 2 );
 	CHECK( z == 3 );
 }
+
 
 #endif // __cplusplus >= 201703L
 

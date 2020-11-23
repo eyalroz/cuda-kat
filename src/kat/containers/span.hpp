@@ -142,7 +142,7 @@ public:
 	static constexpr KAT_HD std::size_t S_subspan_extent<Offset, dynamic_extent>()
 	{
 	#if __cplusplus >= 201703L
-		if constexpr KAT_HD (extent != dynamic_extent)
+		if constexpr (extent != dynamic_extent)
 	#else
 		if (extent != dynamic_extent)
 	#endif
@@ -453,8 +453,11 @@ public:
 	first() const noexcept
 	{
 	#if __cplusplus >= 201703L
-		if constexpr KAT_HD (Extent == dynamic_extent)
-		assert(Count <= size());
+		if constexpr (Extent == dynamic_extent) {
+			if constexpr (Count > 0) {
+				assert(Count <= size());
+			}
+		}
 		else
 		static_assert(Count <= extent);
 	#else
@@ -480,8 +483,11 @@ public:
 	last() const noexcept
 	{
 	#if __cplusplus >= 201703L
-		if constexpr KAT_HD (Extent == dynamic_extent)
-		assert(Count <= size());
+		if constexpr (Extent == dynamic_extent) {
+			if constexpr (Count > 0) {
+				assert(Count <= size());
+			}
+		}
 		else
 		static_assert(Count <= extent);
 	#else
@@ -508,8 +514,11 @@ public:
 	-> span<element_type, S_subspan_extent<Offset, Count>()>
 	{
 	#if __cplusplus >= 201703L
-		if constexpr KAT_HD (Extent == dynamic_extent)
-		assert(Offset <= size());
+		if constexpr (Extent == dynamic_extent) {
+			if constexpr (Offset > 0) {
+				assert(Offset <= size());
+			}
+		}
 		else
 		static_assert(Offset <= extent);
 	#else
@@ -522,10 +531,12 @@ public:
 	#endif
 
 	#if __cplusplus >= 201703L
-		if constexpr KAT_HD (Extent == dynamic_extent)
+		if constexpr (Extent == dynamic_extent)
 		{
-			assert(Count <= size());
-			assert(Count <= (size() - Offset));
+			if constexpr (Count > 0) {
+				assert(Count <= size());
+				assert(Count <= (size() - Offset));
+			}
 		}
 		else
 		{
@@ -553,7 +564,7 @@ public:
 	-> span<element_type, S_subspan_extent<Offset, dynamic_extent>()>
 	{
 	#if __cplusplus >= 201703L
-		if constexpr KAT_HD (Extent == dynamic_extent)
+		if constexpr (Extent == dynamic_extent)
 			assert(Offset <= size());
 		else
 			static_assert(Offset <= extent);
@@ -617,28 +628,30 @@ constexpr const std::size_t span<Type, Extent>::extent;
     span(const std::array<Type, ArrayExtent>&)
       -> span<const Type, ArrayExtent>;
 
-  template<contiguous_iterator Iter, typename Sentinel>
-    span(Iter, Sentinel)
-      -> span<std::remove_reference_t<ranges::range_reference_t<Iter>>>;
-
-  template<typename Range>
-    span(Range &&)
-      -> span<std::remove_reference_t<ranges::range_reference_t<Range&>>>;
+// These two definitions  probably requires the ranges library
+//
+//  template<contiguous_iterator Iter, typename Sentinel>
+//    span(Iter, Sentinel)
+//      -> span<std::remove_reference_t<ranges::range_reference_t<Iter>>>;
+//
+//  template<typename Range>
+//    span(Range &&)
+//      -> span<std::remove_reference_t<ranges::range_reference_t<Range&>>>;
 #endif
 
 #if __cplusplus >= 201703L
 template<typename Type, std::size_t Extent>
-inline KAT_HD span<const byte, Extent == dynamic_extent ? dynamic_extent : Extent * sizeof(Type)> as_bytes(
+inline KAT_HD span<const std::byte, Extent == dynamic_extent ? dynamic_extent : Extent * sizeof(Type)> as_bytes(
 	span<Type, Extent> sp) noexcept
 {
-	return {reinterpret_cast<const byte*>(sp.data()), sp.size_bytes()};
+	return {reinterpret_cast<const std::byte*>(sp.data()), sp.size_bytes()};
 }
 
 template<typename Type, std::size_t Extent>
-inline KAT_HD span<byte, Extent == dynamic_extent ? dynamic_extent : Extent * sizeof(Type)> as_writable_bytes(
+inline KAT_HD span<std::byte, Extent == dynamic_extent ? dynamic_extent : Extent * sizeof(Type)> as_writable_bytes(
 	span<Type, Extent> sp) noexcept
 {
-	return {reinterpret_cast<byte*>(sp.data()), sp.size_bytes()};
+	return {reinterpret_cast<std::byte*>(sp.data()), sp.size_bytes()};
 }
 #endif
 

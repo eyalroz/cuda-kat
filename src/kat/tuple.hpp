@@ -1170,6 +1170,8 @@ inline KAT_HD constexpr tuple<Ts&...> tie(Ts&... ts) noexcept
 
 #if __cplusplus >=  201703L
 
+// TODO: Implement a kat::invoke (and perhaps a kat::apply) function
+#if FALSE
 
 // apply
 //
@@ -1179,22 +1181,33 @@ inline KAT_HD constexpr tuple<Ts&...> tie(Ts&... ts) noexcept
 //
 namespace detail
 {
-	template <class F, class Tuple, size_t... I>
-	constexpr KAT_HD decltype(auto) apply_impl(F&& f, Tuple&& t, index_sequence<I...>)
-	{
-		// TODO: Will std::invoke really work here? I doubt it.
-		return std::invoke(forward<F>(f), get<I>(forward<Tuple>(t))...);
-	}
+
+template <class F, class Tuple, size_t... I>
+constexpr KAT_HD decltype(auto) apply_impl(F&& f, Tuple&& t, index_sequence<I...>)
+{
+#ifndef KAT_DEFINE_MOVE_AND_FORWARD
+	using std::forward;
+#endif
+	// TODO: Will std::invoke really work here? I doubt it.
+	return std::invoke(forward<F>(f), get<I>(forward<Tuple>(t))...);
+}
+
 } // namespace detail
 
 template <class F, class Tuple>
 constexpr KAT_HD decltype(auto) apply(F&& f, Tuple&& t)
 {
-	return detail::apply_impl(std::forward<F>(f), forward<Tuple>(t),
-		                      make_index_sequence<tuple_size_v<typename std::remove_reference<Tuple>::type>>{});
+#ifndef KAT_DEFINE_MOVE_AND_FORWARD
+	using std::forward;
+#endif
+	return detail::apply_impl(
+		forward<F>(f), forward<Tuple>(t),
+		make_index_sequence<tuple_size_v<typename std::remove_reference<Tuple>::type>>{});
 }
 
 #endif
+
+#endif // no kat::invoke implementation
 
 }  // namespace kat
 
