@@ -38,12 +38,12 @@
 
 #include <kat/common.hpp>
 #include <kat/detail/range_access.hpp>
+#include <kat/utility.hpp>
 
 #include <cstddef>
 #include <cstdlib>
 #include <array>
 #include <tuple>
-#include <utility>
 #include <algorithm>
 #include <iterator>
 #include <type_traits>
@@ -103,20 +103,23 @@ struct array
 	KAT_FHD CONSTEXPR_SINCE_CPP_14 void fill(const value_type& u)
 	{
 		//std::fill_n(begin(), size(), __u);
-		for(size_type i = 0; i < NumElements; i++) { elements[i] = u; }
+		for(size_type i = 0; i < NumElements; i++) {
+			elements[i] = u;
+		}
 	}
 
 	// Does the noexcept matter here?
-	KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap(array& other) noexcept(noexcept(std::swap(std::declval<T&>(), std::declval<T&>())))
+	KAT_FHD CONSTEXPR_SINCE_CPP_14
+	void
+	swap(array& other) noexcept(noexcept(std::swap(std::declval<T&>(), std::declval<T&>())))
 	{
 		// std::swap_ranges(begin(), end(), other.begin());
-		for(size_type i = 0; i < NumElements; i++)
-		{
-			auto x = elements[i];
-			auto y = other.elements[i];
-			elements[i] = y;
-			other.elements[i] = x;
-		}
+		auto first1 = begin();
+		auto last1 = end();
+		auto first2 = other.begin();
+
+		for (; first1 != last1; ++first1, (void)++first2)
+			kat::swap(*first1, *first2);
 	}
 
 	// Iterators.
@@ -151,8 +154,11 @@ struct array
 	KAT_FHD CONSTEXPR_SINCE_CPP_17 reference at(size_type n) noexcept {
 		if (n > NumElements) {
 #if __CUDA_ARCH__
-			asm("trap;");
+#if __cplusplus >= 202001L
+			if (not std::is_constant_evaluated()) { asm("trap;"); }
 #else
+			assert(false);
+#endif
 			throw std::out_of_range("kat::array::at: index n exceeds number of elements");
 #endif
 		}
@@ -165,7 +171,11 @@ struct array
 	{
 		if (n > NumElements) {
 #if __CUDA_ARCH__
-			asm("trap;");
+#if __cplusplus >= 202001L
+			if (not std::is_constant_evaluated()) { asm("trap;"); }
+#else
+			assert(false);
+#endif
 #else
 			throw std::out_of_range("kat::array::at: index n exceeds number of elements");
 #endif
@@ -193,6 +203,13 @@ struct array
 
 	KAT_FHD constexpr const_pointer data() const noexcept { return array_traits_type::pointer(elements); }
 };
+
+#if __cpp_deduction_guides >= 201606
+  template<typename _Tp, typename... _Up>
+    array(_Tp, _Up...)
+      -> array<std::enable_if_t<(std::is_same_v<_Tp, _Up> && ...), _Tp>,
+	       1 + sizeof...(_Up)>;
+#endif
 
 // Array comparisons.
 template<typename T, size_t NumElements>
@@ -262,7 +279,11 @@ operator>=(const array<T, NumElements>& one, const array<T, NumElements>& two)
 }
 
 // Specialized algorithms.
+// #if __cplusplus >= 201712L
+//template<typename T, size_t NumElements, typename = std::enable_if_t<std::is_swappable<T>::value>>
+//#else
 template<typename T, size_t NumElements>
+// #endif
 KAT_FHD CONSTEXPR_SINCE_CPP_14 void swap(array<T, NumElements>& one, array<T, NumElements>& two)
 noexcept(noexcept(one.swap(two)))
 {
@@ -279,8 +300,11 @@ KAT_FHD constexpr T& get(array<T, NumElements>& arr) noexcept
 template<size_t Integer, typename T, size_t NumElements>
 KAT_FHD constexpr T&& get(array<T, NumElements>&& arr) noexcept
 {
+#ifndef KAT_DEFINE_MOVE_AND_FORWARD
+	using std::move;
+#endif
 	static_assert(Integer < NumElements, "index is out of bounds");
-	return std::move(get<Integer>(arr));
+	return move(get<Integer>(arr));
 }
 
 template<size_t Integer, typename T, size_t NumElements>

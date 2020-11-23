@@ -124,7 +124,7 @@ namespace detail {
 
 enum everything_checks {
 	shorts_is_empty
-#if __cplusplus >= 201703L
+#if __cplusplus >= 202001L
 	, shorts_is_std_empty
 #endif
 	, shorts_data_is_null
@@ -322,7 +322,7 @@ KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 	static_assert(sizeof(kat::span<strawman>) <= sizeof(strawman_span), "");
 
 	constexpr static const kat::array<int, 9> arr_data{ 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-	constexpr auto arr_data_span = kat::span<const int, sizeof(arr_data) / sizeof(int)>(arr_data);
+	constexpr auto arr_data_span = kat::span<const int, arr_data.size()>(arr_data);
 	static_assert(arr_data_span.size() == 9, "");
 	static_assert(arr_data_span.size_bytes() == 9 * sizeof(int), "");
 	static_assert(*arr_data_span.begin() == 0, "");
@@ -438,7 +438,7 @@ KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 	kat::span<short> shorts{};
 	KAT_HD_CHECK(shorts.empty());
 
-#if __cplusplus >= 201703L
+#if __cplusplus >= 202001L
 	results[shorts_is_std_empty] = std::empty(shorts);
 #else
 #endif
@@ -599,7 +599,7 @@ KAT_HD void operator()(result_of_check* results, kat::size_t num_checks)
 		for (int i = 0; i < 4; ++i)
 		{
 			{
-				span<int> s = {&arr[0], std::size_t {i}};
+				span<int> s = {&arr[0], std::size_t(i)};
 				KAT_HD_CHECK(s.size() == i);
 				KAT_HD_CHECK(s.data() == &arr[0]);
 				KAT_HD_CHECK(s.empty() == (i == 0));

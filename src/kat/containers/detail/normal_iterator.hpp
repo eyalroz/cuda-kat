@@ -62,10 +62,6 @@
 
 #include <type_traits>
 
-#if __cplusplus > 201402L
-# define __cpp_lib_array_constexpr 201803
-#endif
-
 #if __cplusplus > 201703L
 # include <compare>
 # include <new>
