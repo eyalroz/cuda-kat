@@ -153,6 +153,7 @@ auto execute_testcase_on_gpu(
 	};
 	auto device_side_inputs = std::make_tuple( make_device_side_input(inputs, num_values_to_populate)... );
 	ignore(device_side_inputs); // for the case of no inputs
+	ignore(make_device_side_input); // for the case of no inputs
 
 	cuda::launch(
 		testcase_kernel,
