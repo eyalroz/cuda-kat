@@ -19,16 +19,6 @@
 
 using std::size_t;
 
-#if __cplusplus < 201701L
-#include <experimental/optional>
-template <typename T>
-using optional = std::experimental::optional<T>;
-#else
-template <typename T>
-#include <optional>
-using optional = std::optional<T>;
-#endif
-
 template <typename T>
 const auto make_exact_comparison { optional<T>{} };
 

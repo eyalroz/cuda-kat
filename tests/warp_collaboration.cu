@@ -21,17 +21,6 @@ using std::size_t;
 using kat::warp_size;
 using fake_bool = int8_t; // so as not to have trouble with vector<bool>
 
-
-#if __cplusplus < 201701L
-#include <experimental/optional>
-template <typename T>
-using optional = std::experimental::optional<T>;
-#else
-template <typename T>
-#include <optional>
-using optional = std::optional<T>;
-#endif
-
 template <typename T>
 const auto make_exact_comparison { optional<T>{} };
 
