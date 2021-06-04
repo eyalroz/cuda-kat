@@ -313,7 +313,7 @@ KAT_FD void copy_n(
 	}
 	else {
 		// elements_per_lane_in_full_warp_write is either 1, 2...
-		kat::array<T, elements_per_lane_in_full_warp_write> buffer;
+		struct buffer_type { T data[elements_per_lane_in_full_warp_write]; };
 			// ... so this has either 1 or 2 elements and its overall size is 4
 
 		promoted_size_t<Size> truncated_length = MayHaveSlack ?
@@ -327,8 +327,8 @@ KAT_FD void copy_n(
 			pos < truncated_length;
 			pos += warp_size * elements_per_lane_in_full_warp_write)
 		{
-			* (reinterpret_cast<decltype(buffer) *>(target + pos)) =
-				*( reinterpret_cast<const decltype(buffer) *>(source + pos) );
+			*(reinterpret_cast<buffer_type*>(target + pos)) =
+				*( reinterpret_cast<const buffer_type*>(source + pos) );
 		}
 
 		if (MayHaveSlack) {
