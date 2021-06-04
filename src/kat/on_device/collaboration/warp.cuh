@@ -13,8 +13,7 @@
 #ifndef CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 #define CUDA_KAT_WARP_LEVEL_PRIMITIVES_CUH_
 
-#include "../grid_info.cuh"
-
+#include <kat/on_device/grid_info.cuh>
 #include <kat/on_device/shuffle.cuh>
 #include <kat/on_device/builtins.cuh>
 #include <kat/on_device/atomics.cuh>
@@ -22,6 +21,9 @@
 #include <kat/on_device/ptx.cuh>
 #include <kat/on_device/math.cuh>
 #include <kat/on_device/common.cuh>
+#include <kat/on_device/ranges.cuh>
+
+#include <kat/ranges.hpp>
 
 #include <type_traits>
 
@@ -477,9 +479,7 @@ KAT_FD void at_warp_stride(Size length, Function f)
 {
 	// If the length is known at compile-time, perhaps this loop can be unrolled
 	#pragma unroll
-	for(promoted_size_t<Size> pos = lane::id();
-		pos < length;
-		pos += warp_size)
+	for(auto pos : ranges::warp_stride(length))
 	{
 		f(pos);
 	}
@@ -586,9 +586,7 @@ KAT_FD void at_warp_stride(Size length, Function f)
 {
 	// If the length is known at compile-time, perhaps this loop can be unrolled
 	#pragma unroll
-	for(promoted_size_t<Size> pos = linear_grid::grid_info::lane::id();
-		pos < length;
-		pos += warp_size)
+	for(auto pos : ranges::warp_stride(length))
 	{
 		f(pos);
 	}
@@ -748,7 +746,6 @@ template <
 		}
 	}
 }
-
 
 } // namespace warp
 } // namespace collaborative

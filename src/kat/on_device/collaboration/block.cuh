@@ -18,6 +18,7 @@
 #include <kat/on_device/common.cuh>
 #include <kat/on_device/math.cuh>
 #include <kat/on_device/grid_info.cuh>
+#include <kat/on_device/ranges.cuh>
 
 #include <type_traits>
 
@@ -179,11 +180,7 @@ namespace lane   = grid_info::lane;
 template <typename Function, typename Size = size_t>
 KAT_FD void at_block_stride(Size length, const Function& f)
 {
-	auto block_length = block::length();
-	#pragma unroll
-	for(promoted_size_t<Size> pos = thread::index_in_block();
-		pos < length;
-		pos += block_length)
+	for(auto pos : ranges::block_stride(length))
 	{
 		f(pos);
 	}

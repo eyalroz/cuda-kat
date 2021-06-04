@@ -147,10 +147,9 @@ KAT_FD T exclusive_prefix_sum(T value)
 template <typename RandomAccessIterator, typename Size, typename T>
 KAT_FD void fill_n(RandomAccessIterator start, Size count, const T& value)
 {
-	auto f = [=](promoted_size_t<Size> pos) {
+	for(auto pos : ranges::warp_stride(count)) {
 		start[pos] = value;
 	};
-	at_warp_stride(count, f);
 }
 
 template <typename RandomAccessIterator, typename T, typename Size = decltype(std::declval<RandomAccessIterator>() - std::declval<RandomAccessIterator>())>
@@ -190,10 +189,9 @@ KAT_FD void transform_n(
 	T*        __restrict__  target,
 	UnaryOperation          unary_op)
 {
-	auto f = [&](promoted_size_t<Size> pos) {
+	for(auto pos : ranges::warp_stride(length)) {
 		target[pos] = unary_op(source[pos]);
 	};
-	at_warp_stride(length, f);
 }
 
 /**
@@ -260,10 +258,9 @@ KAT_FD void naive_copy(
 	Size                    length,
 	T*        __restrict__  target)
 {
-	auto f = [&](promoted_size_t<Size> pos) {
+	for(auto pos : ranges::warp_stride(length)) {
 		target[pos] = source[pos];
 	};
-	at_warp_stride(length, f);
 }
 
 template <typename T> constexpr KAT_FHD  T clear_lower_bits(T x, unsigned k)
@@ -374,10 +371,9 @@ KAT_FD void lookup(
 	const I* __restrict__  indices,
 	Size                   num_indices)
 {
-	auto f = [=](promoted_size_t<Size> pos) {
+	for(auto pos : ranges::warp_stride(num_indices)) {
 		target[pos] = lookup_table[indices[pos]];
 	};
-	at_warp_stride(num_indices, f);
 }
 
 /**
@@ -425,10 +421,9 @@ KAT_FD void elementwise_accumulate_n(
 	RandomAccessIterator __restrict__  source,
 	Size                               length)
 {
-	auto accumulate_in_element = [&](promoted_size_t<Size> pos) {
+	for(auto pos : ranges::warp_stride(length)) {
 		op(destination[pos], source[pos]);
 	};
-	at_warp_stride(length, accumulate_in_element);
 }
 
 template <typename D, typename RandomAccessIterator, typename AccumulatingOperation, typename Size = std::ptrdiff_t>

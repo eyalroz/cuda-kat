@@ -15,6 +15,7 @@
 #include <kat/on_device/common.cuh>
 #include <kat/on_device/math.cuh>
 #include <kat/on_device/grid_info.cuh>
+#include <kat/on_device/ranges.cuh>
 
 #include <type_traits>
 
@@ -72,10 +73,7 @@ namespace lane   = kat::linear_grid::grid_info::lane;
 template <typename Function, typename Size = size_t>
 KAT_FD void at_grid_stride(Size length, const Function& f)
 {
-	auto num_grid_threads = grid::num_threads();
-	for(promoted_size_t<Size> pos = thread::global_id();
-		pos < length;
-		pos += num_grid_threads)
+	for(auto pos : ranges::grid_stride(length))
 	{
 		f(pos);
 	}
@@ -102,11 +100,7 @@ namespace warp_per_input_element {
 template <typename Function, typename Size = unsigned>
 KAT_FD void at_grid_stride(Size length, const Function& f)
 {
-	auto num_warps_in_grid = grid_info::grid::num_warps();
-	for(// _not_ the global thread index! - one element per warp
-		promoted_size_t<Size> pos = grid_info::warp::global_id();
-		pos < length;
-		pos += num_warps_in_grid)
+	for(auto pos : ranges::warp_per_input_element::grid_stride(length))
 	{
 		f(pos);
 	}
