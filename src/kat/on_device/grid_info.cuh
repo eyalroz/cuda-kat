@@ -716,7 +716,7 @@ namespace lane {
 
 enum { half_warp_size = kat::grid_info::lane::half_warp_size };
 
-KAT_FD unsigned id(unsigned thread_index)
+KAT_FD unsigned id_of(unsigned thread_index)
 {
 	// we could use a special register:
 	//
@@ -729,7 +729,7 @@ KAT_FD unsigned id(unsigned thread_index)
 	return thread_index & lane_id_mask;
 }
 
-KAT_FD unsigned id_in_warp()              { return id(threadIdx.x); }
+KAT_FD unsigned id_in_warp()              { return id_of(threadIdx.x); }
 KAT_FD unsigned id()                      { return id_in_warp(); }
 KAT_FD unsigned index()                   { return id(); }
 KAT_FD unsigned index_in_warp()           { return id(); }
