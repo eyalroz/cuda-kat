@@ -147,33 +147,33 @@ KAT_FD unsigned log2(I x) {
 
 namespace detail {
 
-template <typename T> KAT_FD T minimum(std::integral_constant<bool, false>, T x, T y)
+template <typename T> KAT_FD T minimum(std::false_type, T x, T y)
 {
 	return x < y ? x : y;
 }
 
-template <typename T> KAT_FD T minimum(std::integral_constant<bool, true>, T x, T y)
+template <typename T> KAT_FD T minimum(std::true_type, T x, T y)
 {
 	return builtins::minimum(x, y);
 }
 
 
-template <typename T> KAT_FD T maximum(std::integral_constant<bool, false>, T x, T y)
+template <typename T> KAT_FD T maximum(std::false_type, T x, T y)
 {
 	return x > y ? x : y;
 }
 
-template <typename T> KAT_FD T maximum(std::integral_constant<bool, true>, T x, T y)
+template <typename T> KAT_FD T maximum(std::true_type, T x, T y)
 {
 	return builtins::maximum(x, y);
 }
 
-template <typename T> KAT_FD T absolute_value(std::integral_constant<bool, false>, T x)
+template <typename T> KAT_FD T absolute_value(std::false_type, T x)
 {
 	return (std::is_unsigned<T>::value or x >= 0) ? x : -x;
 }
 
-template <typename T> KAT_FD T absolute_value(std::integral_constant<bool, true>, T x)
+template <typename T> KAT_FD T absolute_value(std::true_type, T x)
 {
 	return builtins::absolute_value(x);
 }
