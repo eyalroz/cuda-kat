@@ -22,6 +22,20 @@ static_assert(sizeof(bool) == sizeof(fake_bool), "unexpected size mismatch");
 template <typename T>
 const auto make_exact_comparison { optional<T>{} };
 
+template <typename I>
+KAT_HD I silly_hash_next(I previous_hash, I value)
+{
+	return ((previous_hash << (sizeof(I)*CHAR_BIT / 2 + 1)) - previous_hash) + value;
+}
+
+template <typename C>
+typename C::value_type silly_hash(const C& container)
+{
+	typename C::value_type hash { 0 };
+	for(auto v : container) { hash = silly_hash_next(hash, v); }
+	return hash;
+}
+
 namespace kernels {
 
 template <typename F, typename T, typename... Is>
@@ -88,7 +102,7 @@ void check_results(
 		ss
 			<< "Assertion " << std::setw(index_width) << (i+1) << " for " << title
 			// << " :\n"
-			<< "(" << std::make_tuple(inputs[i]...) << ")"
+			<< "(with inputs: " << std::make_tuple(inputs[i]...) << ")"
 		;
 		auto mismatch_message { ss.str() };
 		if (comparison_tolerance_fraction) {
@@ -132,7 +146,7 @@ struct tag {};
  *
  * @note The actual checks are eventually conducted on the host side, since doctest
  * code can't actually do anything useful on the GPU. So on the GPU side we "merely"
- * compute the values to check and let the test logic peform the actual comparison later
+ * compute the values to check and let the test logic perform the actual comparison later
  * on.
  */
 template <typename F, typename K, typename T, typename... Is, size_t... Indices>
@@ -242,15 +256,12 @@ TEST_CASE("irange coverage")
 {
 	using tc_type = int;
 	constexpr const auto a { 3 };
-	constexpr const auto b { 15 };
+	constexpr const auto b { 11 };
 
-	std::vector<tc_type> expected;
+	std::vector<tc_type> expected { 3, 4, 5, 6, 7, 8, 9, 10 };
 	std::vector<tc_type> with_kat_range;
 	for(auto i : kat::irange(a, b)) {
 		with_kat_range.push_back(i);
-	}
-	for(auto i = a; i < b; i ++) {
-		expected.push_back(i);
 	}
 	CHECK(with_kat_range.size() == expected.size());
 	for(auto i = 0; i < expected.size(); i ++) {
@@ -261,15 +272,12 @@ TEST_CASE("irange coverage")
 TEST_CASE("zero-based irange coverage")
 {
 	using tc_type = int;
-	constexpr const auto b { 15 };
+	constexpr const auto b { 12 };
 
-	std::vector<tc_type> expected;
+	std::vector<tc_type> expected { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 	std::vector<tc_type> with_kat_range;
 	for(auto i : kat::irange(b)) {
 		with_kat_range.push_back(i);
-	}
-	for(auto i = 0; i < b; i ++) {
-		expected.push_back(i);
 	}
 	CHECK(with_kat_range.size() == expected.size());
 	for(auto i = 0; i < expected.size(); i ++) {
@@ -284,13 +292,10 @@ TEST_CASE("strided irange coverage")
 	constexpr const auto b { 15 };
 	constexpr const auto stride { 3 };
 
-	std::vector<tc_type> expected;
+	std::vector<tc_type> expected { 4, 7, 10, 13 };
 	std::vector<tc_type> with_kat_range;
 	for(auto i : kat::strided_irange(a, b, stride)) {
 		with_kat_range.push_back(i);
-	}
-	for(auto i = a; i < b; i += stride) {
-		expected.push_back(i);
 	}
 	CHECK(with_kat_range.size() == expected.size());
 	for(auto i = 0; i < expected.size(); i ++) {
@@ -304,13 +309,10 @@ TEST_CASE("zero-based strided irange coverage")
 	constexpr const auto b { 15 };
 	constexpr const auto stride { 3 };
 
-	std::vector<tc_type> expected;
+	std::vector<tc_type> expected { 0, 3, 6, 9, 12 };
 	std::vector<tc_type> with_kat_range;
 	for(auto i : kat::strided_irange(b, stride)) {
 		with_kat_range.push_back(i);
-	}
-	for(auto i = 0; i < b; i += stride) {
-		expected.push_back(i);
 	}
 	CHECK(with_kat_range.size() == expected.size());
 	for(auto i = 0; i < expected.size(); i ++) {
@@ -319,3 +321,48 @@ TEST_CASE("zero-based strided irange coverage")
 }
 
 } // TEST_SUITE("host-side")
+/*
+TEST_SUITE("device-side") {
+
+TEST_CASE("irange coverage")
+{
+	using tc_type = int32_t;
+	constexpr const auto a { 3 };
+	constexpr const auto b { 11 };
+
+	std::vector<tc_type> expected_coverage { 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+	auto expected_hash = silly_hash(expected_coverage);
+
+	cuda::grid::dimension_t num_grid_blocks { 2 };
+	cuda::grid::block_dimension_t num_warps_per_block { 3 };
+	cuda::grid::block_dimension_t num_threads_per_block { num_warps_per_block * kat::warp_size };
+
+	auto num_values_to_populate = num_threads_per_block * num_grid_blocks;
+
+	auto testcase_device_function =
+		[=] KAT_DEV (
+			size_t num_values_to_populate,
+			tc_type* values_to_populate)
+		{
+			tc_type hash { 0 };
+			for(auto pos : kat::irange(a, b)) {
+				hash = silly_hash_next(hash, pos);
+			}
+			values_to_populate[kat::linear_grid::grid_info::thread::global_id()] = hash;
+		};
+
+	auto expected_value_retriever = [=] (size_t pos) -> tc_type {
+		return expected_hash;
+	};
+
+	execute_non_uniform_testcase_on_gpu_and_check(
+		testcase_device_function,
+		expected_value_retriever,
+		num_values_to_populate,
+		num_grid_blocks, num_threads_per_block,
+		make_exact_comparison<tc_type>
+	);
+
+}
+} // TEST_SUITE("device-side")
+*/
