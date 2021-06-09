@@ -348,7 +348,7 @@ TEST_CASE("irange coverage")
 			for(auto pos : kat::irange(a, b)) {
 				hash = silly_hash_next(hash, pos);
 			}
-			values_to_populate[kat::linear_grid::grid_info::thread::global_id()] = hash;
+			values_to_populate[kat::linear_grid::thread::global_id()] = hash;
 		};
 
 	auto expected_value_retriever = [=] (size_t pos) -> tc_type {

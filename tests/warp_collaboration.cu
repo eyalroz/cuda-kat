@@ -299,7 +299,7 @@ TEST_CASE("barrier") {
 		)
 		{
 			__shared__ int shared_array[warp_size];
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 
 			shared_array[gi::lane::id()] = 0;
@@ -357,7 +357,7 @@ TEST_CASE("all_lanes_satisfy") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::all_lanes_satisfy(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -411,7 +411,7 @@ TEST_CASE("no_lanes_satisfy") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::no_lanes_satisfy(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -464,7 +464,7 @@ TEST_CASE("all_lanes_agree_on") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::all_lanes_agree_on(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -522,7 +522,7 @@ TEST_CASE("some_lanes_satisfy") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::some_lanes_satisfy(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -575,7 +575,7 @@ TEST_CASE("num_lanes_agreeing_on") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::num_lanes_agreeing_on(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -629,7 +629,7 @@ TEST_CASE("majority_vote") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::majority_vote(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -690,7 +690,7 @@ TEST_CASE("in_unique_lane_with") {
 			predicate_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::in_unique_lane_with(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -744,7 +744,7 @@ TEST_CASE("get_from_lane") {
 	auto testcase_device_function =
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::thread::id()) };
 			auto source_lane { make_source_lane(gi::thread::id()) };
 			auto obtained_value { kcw::get_from_lane(thread_value, source_lane) };
@@ -787,7 +787,7 @@ TEST_CASE("get_from_first_lane") {
 	auto testcase_device_function =
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::thread::id()) };
 			auto obtained_value { kcw::get_from_first_lane(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -829,7 +829,7 @@ TEST_CASE("get_from_last_lane") {
 	auto testcase_device_function =
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::thread::id()) };
 			auto obtained_value { kcw::get_from_last_lane(thread_value) };
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
@@ -876,7 +876,7 @@ TEST_CASE("have_a_single_lane_compute") {
 	auto testcase_device_function =
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_lane { make_source_lane(gi::thread::id()) };
 			auto obtained_value =
 				kcw::have_a_single_lane_compute(
@@ -922,7 +922,7 @@ TEST_CASE("have_first_lane_compute") {
 	auto testcase_device_function =
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto obtained_value =
 				kcw::have_first_lane_compute(
 					[=]() { return make_thread_value(gi::thread::id()); }
@@ -965,7 +965,7 @@ TEST_CASE("have_last_lane_compute") {
 	auto testcase_device_function =
 		[=] KAT_DEV (size_t, checked_value_type* thread_obtained_values)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto obtained_value =
 				kcw::have_last_lane_compute(
 					[=]() { return make_thread_value(gi::thread::id()); }
@@ -1017,7 +1017,7 @@ TEST_CASE("first_lane_satisfying") {
 			checked_value_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_value { make_thread_value(gi::warp::id_in_block(), gi::lane::id()) };
 			auto obtained_value { kcw::first_lane_satisfying(thread_value) };
 			// if (threadIdx.x >= 64) printf("Thread %u value %u obtained %u\n", gi::thread::global_id(), thread_value, obtained_value);
@@ -1075,7 +1075,7 @@ TEST_CASE("get_active_lanes") {
 			checked_value_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			// if (threadIdx.x < 32)
 			//	printf("Thread %u %s stay active\n", gi::thread::id(), (should_stay_active ? "SHOULD" : "SHOULD NOT"));
@@ -1145,7 +1145,7 @@ TEST_CASE("num_active_lanes") {
 			checked_value_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			if (not should_stay_active) {
 				thread_obtained_values[gi::thread::global_id()] = invalid_num_active_lanes;
@@ -1210,7 +1210,7 @@ TEST_CASE("am_leader_lane") {
 			checked_value_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			if (not should_stay_active) {
 				thread_obtained_values[gi::thread::global_id()] = false;
@@ -1291,7 +1291,7 @@ TEST_CASE("index_among_active_lanes") {
 			checked_value_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			bool should_stay_active { determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id()) };
 			if (not should_stay_active) {
 				thread_obtained_values[gi::thread::global_id()] = invalid_index;
@@ -1347,7 +1347,7 @@ TEST_CASE("at_warp_stride")
 			checked_value_type* pos_attendent_thread_indices
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto offset_into_attendant_array = length_to_cover_per_warp * gi::warp::id_in_block();
 			auto f_inner = [&] (size_t pos) {
 				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::id_in_grid();
@@ -1407,7 +1407,7 @@ TEST_CASE("active_lanes_atomically_increment")
 			checked_value_type* thread_values_before_increment
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			if (not determine_whether_to_stay_active(gi::warp::id_in_block(), gi::lane::id() )) {
 				thread_values_before_increment[gi::thread::global_id()] = invalid_value_for_inactives;
 				return;
@@ -1472,7 +1472,7 @@ TEST_CASE("at_warp_stride")
 			checked_value_type* pos_attendent_thread_indices
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto offset_into_attendant_array = length_to_cover_per_warp * gi::warp::id_in_block();
 			auto f_inner = [&] (size_t pos) {
 				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::id_in_grid();
@@ -1533,7 +1533,7 @@ TEST_CASE("multisearch") {
 			checked_value_type* search_results
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat::linear_grid;
 			auto haystack_straw = make_thread_value(gi::warp::id_in_block(), gi::lane::id());
 			thread_value_type needle_to_search_for = make_search_value(gi::warp::id_in_block(), gi::lane::id());
 			auto search_result = klcw::multisearch(needle_to_search_for, haystack_straw);
@@ -1612,7 +1612,7 @@ TEST_CASE_TEMPLATE ("compute_predicate_at_warp_stride", SlackSetting,
 			checked_value_type* computed_predicate
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto instrumented_pred = [=] (size_t pos) -> bool {
 				device_side_pos_attendants_raw[gi::warp::global_id() * length_to_cover_per_warp + pos] = gi::thread::id_in_grid();
 				return pred(pos);
@@ -1695,7 +1695,7 @@ TEST_CASE("merge_sorted_half_warps - in-register")
 			checked_value_type* merged_data
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto half_warp_pair_index = gi::warp::global_id(); // Each warp gets a different pair of half-warps to merge
 			auto first_half_warp_index = half_warp_pair_index / num_half_warps;
 			auto second_half_warp_index = half_warp_pair_index % num_half_warps;

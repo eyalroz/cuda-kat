@@ -299,10 +299,10 @@ KAT_FD void copy_n(
 	Size                    length,
 	T*        __restrict__  target)
 {
-	using namespace linear_grid::grid_info;
+	using namespace linear_grid;
 	enum {
 		elements_per_lane_in_full_warp_write =
-			collaborative::detail::elements_per_lane_in_full_warp_write<T>::value
+			kat::collaborative::detail::elements_per_lane_in_full_warp_write<T>::value
 	};
 
 	if ((elements_per_lane_in_full_warp_write == 1) or
@@ -323,7 +323,7 @@ KAT_FD void copy_n(
 		// TODO: Should I pragma-unroll this by a fixed amount? Should
 		// I not specify an unroll at all?
 		#pragma unroll
-		for(promoted_size_t<Size> pos = lane::index() * elements_per_lane_in_full_warp_write;
+		for(promoted_size_t<Size> pos = kat::lane::index() * elements_per_lane_in_full_warp_write;
 			pos < truncated_length;
 			pos += warp_size * elements_per_lane_in_full_warp_write)
 		{
@@ -340,8 +340,8 @@ KAT_FD void copy_n(
 			}
 			else {
 				auto num_slack_elements = length - truncated_length;
-				if (lane::index() < num_slack_elements) {
-					auto pos = truncated_length + lane::index();
+				if (kat::lane::index() < num_slack_elements) {
+					auto pos = truncated_length + kat::lane::index();
 					target[pos] = source[pos];
 				}
 			}

@@ -78,8 +78,6 @@ KAT_FD int last_lane_in(lane_mask_t mask)
 namespace collaborative {
 namespace warp {
 
-namespace lane   = grid_info::lane;
-
 /**
  * @brief Guarantees all memory writes by (mask-specified) warp lanes are visible to the other (mask-specified) lanes.
  *
@@ -296,13 +294,13 @@ KAT_FD T get_from_lane(T value, int source_lane)
 template <typename T>
 KAT_FD T get_from_first_lane(T value)
 {
-	return get_from_lane(value, grid_info::warp::first_lane);
+	return get_from_lane(value, kat::warp::first_lane);
 }
 
 template <typename T>
 KAT_FD T get_from_last_lane(T value)
 {
-	return get_from_lane(value, grid_info::warp::last_lane);
+	return get_from_lane(value, kat::warp::last_lane);
 }
 
 /**
@@ -422,13 +420,13 @@ KAT_FD typename std::result_of<Function()>::type have_a_single_lane_compute(Func
 template <typename Function>
 KAT_FD typename std::result_of<Function()>::type have_first_lane_compute(Function f)
 {
-	return have_a_single_lane_compute<Function>(f, grid_info::warp::first_lane);
+	return have_a_single_lane_compute<Function>(f, kat::warp::first_lane);
 }
 
 template <typename Function>
 KAT_FD typename std::result_of<Function()>::type have_last_lane_compute(Function f)
 {
-	return have_a_single_lane_compute<Function>(f, grid_info::warp::last_lane);
+	return have_a_single_lane_compute<Function>(f, kat::warp::last_lane);
 }
 
 KAT_FD unsigned index_among_active_lanes()
@@ -554,11 +552,11 @@ KAT_FD search_result_t<T> multisearch(const T& lane_needle, const T& lane_hay_st
 		unsigned lower, upper; // lower  is inclusive, upper is exclusive
 	} bounds;
 	if (lane_needle <= lane_hay_straw) {
-		bounds.lower = grid_info::warp::first_lane;
-		bounds.upper = grid_info::lane::id();
+		bounds.lower = kat::warp::first_lane;
+		bounds.upper = kat::lane::id();
 	}
 	else {
-		bounds.lower = grid_info::lane::id() + 1;
+		bounds.lower = lane::id() + 1;
 		bounds.upper = warp_size;
 	}
 	enum : unsigned { cutoff_to_linear_search = 6 };
@@ -680,7 +678,7 @@ template <
 	auto full_warp_writes_output_length = (PossibilityOfSlack == detail::has_no_slack) ?
 		full_warp_reads_output_length :
 		round_down_to_full_warps(full_warp_reads_output_length);
-	const auto lane_index = grid_info::lane::id();
+	const auto lane_index = lane::id();
 
 
 	promoted_size_t<Size> input_pos = lane_index;

@@ -105,14 +105,14 @@ __global__ void use_printfing_ostream()
 	cout.flush();
 
 	kat::collaborative::block::barrier();
-	if (kat::linear_grid::grid_info::thread::index_in_block() == 0) {
+	if (kat::linear_grid::thread::index_in_block() == 0) {
 		printf("All threads in block %d have flushed cout.\n", blockIdx.x);
 	}
 	cout << "String literal 2 with newline - to be printed on use of flush manipulator\n";
 	cout << kat::flush;
 
 	kat::collaborative::block::barrier();
-	if (kat::linear_grid::grid_info::thread::index_in_block() == 0) {
+	if (kat::linear_grid::thread::index_in_block() == 0) {
 		printf("All threads in block %d have streamed the flush manipulator to their cout.\n", blockIdx.x);
 	}
 
@@ -122,7 +122,7 @@ __global__ void use_printfing_ostream()
 __global__ void printfing_ostream_settings()
 {
 	kat::printfing_ostream cout;
-	namespace gi = kat::linear_grid::grid_info;
+	namespace gi = kat::linear_grid;
 	cout << "Before any setting\n";
 	cout.flush();
 
@@ -134,7 +134,7 @@ __global__ void printfing_ostream_settings()
 	cout << "SHOULD NOT see \\n between threads' printouts of this sentence. ";
 	cout.flush();
 
-	if (kat::linear_grid::grid_info::thread::is_first_in_grid()) {
+	if (kat::linear_grid::thread::is_first_in_grid()) {
 		cout << '\n';
 		cout.flush();
 	}
@@ -158,7 +158,7 @@ __global__ void stream_manipulators_into_printfing_ostream()
 {
 	kat::printfing_ostream cout;
 	using kat::flush;
-	namespace gi = kat::linear_grid::grid_info;
+	namespace gi = kat::linear_grid;
 	cout << "Before any setting\n" << flush;
 
 	// TODO: What if the text is big enough to cause recycling? That shouldn't matter, but we should try it.
@@ -167,7 +167,7 @@ __global__ void stream_manipulators_into_printfing_ostream()
 	     << kat::manipulators::no_newline_on_flush
 	     << "SHOULD NOT see \\n between threads' printouts of this sentence. " << flush;
 
-	if (kat::linear_grid::grid_info::thread::is_first_in_grid()) {
+	if (kat::linear_grid::thread::is_first_in_grid()) {
 		// This will just add a newline after the long paragraph of many threads' non-newline-terminated strings.
 		cout << kat::manipulators::endl;
 	}
@@ -202,7 +202,7 @@ __global__ void print_at_different_resolutions()
 {
 	kat::printfing_ostream cout;
 	using kat::flush;
-	namespace gi = kat::linear_grid::grid_info;
+	namespace gi = kat::linear_grid;
 
 	cout << kat::manipulators::resolution(kat::printfing_ostream::resolution::grid);
 	cout << "Printing at grid resolution. The printing thread is (" << blockIdx.x << "," << threadIdx.x << ")\n" << flush;
@@ -230,7 +230,7 @@ __global__ void self_identifying_printfing_ostream()
 {
 	kat::printfing_ostream cout;
 	using kat::flush;
-	namespace gi = kat::linear_grid::grid_info;
+	namespace gi = kat::linear_grid;
 
 	self_identifying_printfing_ostream_for_resolution(cout, kat::printfing_ostream::resolution::grid);
 

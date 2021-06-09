@@ -215,7 +215,7 @@ TEST_CASE("at_block_stride")
 			checked_value_type* pos_attendent_thread_indices
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto offset_into_attendant_array = length_to_cover_per_block * gi::block::id();
 			auto f_inner = [&] (size_t pos) {
 				pos_attendent_thread_indices[offset_into_attendant_array + pos] = gi::thread::index_in_grid();
@@ -264,20 +264,21 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 			datum_type* warp_data_for_all_blocks
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 				// same for all threads in warp!
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
-			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
+			__shared__ datum_type block_warps_data [max_possible_num_warps_per_block];
 			constexpr const auto writing_lane_index = 3u; // just for kicks
-			klcb::share_per_warp_data(thread_datum, warp_data, writing_lane_index);
+			klcb::share_per_warp_data(thread_datum, block_warps_data, writing_lane_index);
 			// We've run the synchronized variant, so no need for extra sync
 
 			if (gi::thread::is_first_in_block()) {
+
 				// Now we're populating what's going to be checked outside the kernel.
 				auto warp_data_for_this_block = warp_data_for_all_blocks + gi::block::id() * num_warps_per_block;
 				for(int i = 0; i < num_warps_per_block; i++) {
-					warp_data_for_this_block[i] = warp_data[i];
+					warp_data_for_this_block[i] = block_warps_data[i];
 				}
 			}
 		};
@@ -321,7 +322,7 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 			datum_type* warp_data_for_all_blocks
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 				// same for all threads in warp!
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
@@ -382,7 +383,7 @@ TEST_CASE("get_from_thread")
 			datum_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto source_thread_index { make_source_thread_index(gi::block::id()) };
 			auto obtained_value { klcb::get_from_thread(thread_datum, source_thread_index) };
@@ -430,7 +431,7 @@ TEST_CASE("get_from_first_thread")
 			datum_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto obtained_value { klcb::get_from_first_thread(thread_datum) };
 			// We've run the synchronized variant, so no need for extra sync
@@ -488,7 +489,7 @@ TEST_CASE("share_per_warp_data - specific writer lane")
 			datum_type* warp_data_for_all_blocks
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat;
 			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
 			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
@@ -545,7 +546,7 @@ TEST_CASE("share_per_warp_data - inspecific writer lane")
 			datum_type* warp_data_for_all_blocks
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat;
 			datum_type thread_datum { make_warp_datum(gi::block::id(), gi::warp::id()) };
 			constexpr auto max_possible_num_warps_per_block = 32; // Note: Important assumption here...
 			__shared__ datum_type warp_data [max_possible_num_warps_per_block];
@@ -607,7 +608,7 @@ TEST_CASE("get_from_thread")
 			datum_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+			namespace gi = kat;
 			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto source_thread_index { make_source_thread_index(gi::block::id()) };
 			auto obtained_value { kcb::get_from_thread(thread_datum, source_thread_index) };
@@ -659,7 +660,7 @@ TEST_CASE("get_from_first_thread")
 			datum_type* thread_obtained_values
 		)
 		{
-			namespace gi = kat::grid_info;
+		namespace gi = kat;
 			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto obtained_value { kcb::get_from_first_thread(thread_datum) };
 			// We've run the synchronized variant, so no need for extra sync

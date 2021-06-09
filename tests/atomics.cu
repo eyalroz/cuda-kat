@@ -598,7 +598,7 @@ TEST_CASE_TEMPLATE("min - random values from host", T, INTEGER_TYPES, FLOAT_TYPE
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -648,7 +648,7 @@ TEST_CASE_TEMPLATE("max - random values from host", T, INTEGER_TYPES, FLOAT_TYPE
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -694,7 +694,7 @@ TEST_CASE_TEMPLATE("min - single outlier", T, INTEGER_TYPES, FLOAT_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -741,7 +741,7 @@ TEST_CASE_TEMPLATE("max - single outlier", T, INTEGER_TYPES, FLOAT_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -787,7 +787,7 @@ TEST_CASE_TEMPLATE("logical_and - single outlier", T, INTEGER_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -831,7 +831,7 @@ TEST_CASE_TEMPLATE("logical_or - single outlier", T, INTEGER_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -877,7 +877,7 @@ TEST_CASE_TEMPLATE("logical_xor - single outlier 0", T, INTEGER_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -922,7 +922,7 @@ TEST_CASE_TEMPLATE("logical_xor - single outlier 1", T, INTEGER_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -965,7 +965,7 @@ TEST_CASE_TEMPLATE("logical_not - single non-negator", T, INTEGER_TYPES) {
 			size_t,
 			T* __restrict aggregate)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 
 			// TODO: Should I sleep here? Use a block::barrier()?
 			if (not (outlier_pos == gi::thread::global_id()) ) {
@@ -1006,7 +1006,7 @@ TEST_CASE_TEMPLATE("logical_not - single negater", T, INTEGER_TYPES) {
 			size_t,
 			T* __restrict aggregate)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 
 			if (outlier_pos == gi::thread::global_id() ) {
 				kat::atomic::logical_not(aggregate);
@@ -1052,7 +1052,7 @@ TEST_CASE_TEMPLATE("logical_not - by random threads", T, INTEGER_TYPES) {
 			T*               __restrict target,
 			const fake_bool* __restrict perform_op_indicators)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			bool perform_op = perform_op_indicators[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -1106,7 +1106,7 @@ TEST_CASE_TEMPLATE("bitwise_and - single outliers", T, INTEGER_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -1156,7 +1156,7 @@ TEST_CASE_TEMPLATE("bitwise_or - single outliers", T, INTEGER_TYPES) {
 			T* __restrict aggregate,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -1203,7 +1203,7 @@ TEST_CASE_TEMPLATE("bitwise_xor - random values from host", T, INTEGER_TYPES) {
 			T* __restrict target,
 			const T* __restrict input_data)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -1252,7 +1252,7 @@ TEST_CASE_TEMPLATE("bitwise_not - by random threads", T, INTEGER_TYPES) {
 			T*               __restrict target,
 			const fake_bool* __restrict perform_op_indicators)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			bool perform_op = perform_op_indicators[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -1319,7 +1319,7 @@ TEST_CASE_TEMPLATE("set_bit - few outliers", T, long int) { // INTEGER_TYPES) {
 			const bit_index_type* __restrict bit_indices
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto bit_index = bit_indices[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?
@@ -1384,7 +1384,7 @@ TEST_CASE_TEMPLATE("unset_bit - few outliers", T, long int) { // INTEGER_TYPES) 
 			const bit_index_type* __restrict bit_indices
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto bit_index = bit_indices[gi::thread::global_index()];
 
 			// TODO: Should I sleep here? Use a block::barrier()?

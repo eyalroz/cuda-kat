@@ -28,7 +28,7 @@ template <typename Size>
 KAT_DEV kat::ranges::strided<Size> warp_stride(Size length)
 {
 	constexpr const auto stride = warp_size;
-	auto begin = grid_info::lane::id();
+	auto begin = lane::id();
 	return ::kat::ranges::strided<promoted_size_t<Size>>(begin, length, stride);
 }
 
@@ -58,7 +58,7 @@ template <typename Size>
 KAT_DEV kat::ranges::strided<Size> warp_stride(Size length)
 {
 	constexpr const auto stride = warp_size;
-	auto begin = grid_info::lane::id();
+	auto begin = lane::id();
 	return ::kat::ranges::strided<promoted_size_t<Size>>(begin, length, stride);
 }
 
@@ -76,8 +76,8 @@ KAT_DEV kat::ranges::strided<Size> warp_stride(Size length)
 template <typename Size>
 KAT_DEV kat::ranges::strided<Size> block_stride(Size length)
 {
-	const auto stride = linear_grid::grid_info::block::size();
-	const auto begin = grid_info::thread::id_in_block();
+	const auto stride = linear_grid::block::size();
+	const auto begin = thread::id_in_block();
 	return ::kat::ranges::strided<promoted_size_t<Size>>(begin, length, stride);
 }
 
@@ -94,8 +94,8 @@ KAT_DEV kat::ranges::strided<Size> block_stride(Size length)
 template <typename Size>
 KAT_DEV kat::ranges::strided<Size> grid_stride(Size length)
 {
-	const auto stride = grid_info::grid::total_size();
-	const auto begin = grid_info::thread::global_id();
+	const auto stride = grid::total_size();
+	const auto begin = thread::global_id();
 	return ::kat::ranges::strided<promoted_size_t<Size>>(begin, length, stride);
 }
 
@@ -104,8 +104,8 @@ namespace warp_per_input_element {
 template <typename Size>
 KAT_DEV kat::ranges::strided<Size> grid_stride(Size length)
 {
-	const auto stride = grid_info::grid::num_warps();
-	const auto begin = grid_info::warp::global_id();
+	const auto stride = grid::num_warps();
+	const auto begin = warp::global_id();
 	return ::kat::ranges::strided<promoted_size_t<Size>>(begin, length, stride);
 }
 

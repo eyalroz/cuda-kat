@@ -324,7 +324,7 @@ TEST_CASE("fill")
 			size_t,
 			checked_value_type* buffer_to_fill_by_entire_grid )
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = buffer_to_fill_by_entire_grid + length_to_cover_per_block * gi::block::id();
 			auto end = start + length_to_cover_per_block;
 			auto fill_value = resolve_fill_value(gi::block::id());
@@ -363,7 +363,7 @@ TEST_CASE("fill_n") {
 			size_t,
 			checked_value_type* buffer_to_fill_by_entire_grid )
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = buffer_to_fill_by_entire_grid + length_to_cover_per_block * gi::block::id();
 			auto fill_value = resolve_fill_value(gi::block::id());
 			klcb::fill_n(start, length_to_cover_per_block, fill_value);
@@ -396,7 +396,7 @@ TEST_CASE("memzero") {
 			size_t,
 			checked_value_type* buffer_to_fill_by_entire_grid )
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = buffer_to_fill_by_entire_grid + length_to_cover_per_block * gi::block::id();
 			auto end = start + length_to_cover_per_block;
 			klcb::memzero(start, end);
@@ -428,7 +428,7 @@ TEST_CASE("memzero_n") {
 			size_t,
 			checked_value_type* buffer_to_fill_by_entire_grid )
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = buffer_to_fill_by_entire_grid + length_to_cover_per_block * gi::block::id();
 			klcb::memzero_n(start, length_to_cover_per_block);
 		};
@@ -469,7 +469,7 @@ TEST_CASE("transform") {
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_block * gi::block::id();
 			auto source_end = source_start + length_to_cover_per_block;
 			auto block_target_start = target + length_to_cover_per_block * gi::block::id();
@@ -513,7 +513,7 @@ TEST_CASE("transform_n") {
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_block * gi::block::id();
 			auto block_target_start = target + length_to_cover_per_block * gi::block::id();
 			klcb::transform_n(source_start, length_to_cover_per_block, block_target_start, op);
@@ -554,7 +554,7 @@ TEST_CASE("cast_and_copy") {
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_block * gi::block::id();
 			auto source_end = source_start + length_to_cover_per_block;
 			auto block_target_start = target + length_to_cover_per_block * gi::block::id();
@@ -596,7 +596,7 @@ TEST_CASE("cast_and_copy_n") {
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = input + length_to_cover_per_block * gi::block::id();
 			auto block_target_start = target + length_to_cover_per_block * gi::block::id();
 			klcb::cast_and_copy_n(start, length_to_cover_per_block, block_target_start);
@@ -638,7 +638,7 @@ TEST_CASE("copy") {
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_block * gi::block::id();
 			auto source_end = source_start + length_to_cover_per_block;
 			auto block_target_start = target + length_to_cover_per_block * gi::block::id();
@@ -680,7 +680,7 @@ TEST_CASE("copy_n") {
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = input + length_to_cover_per_block * gi::block::id();
 			auto block_target_start = target + length_to_cover_per_block * gi::block::id();
 			klcb::copy_n(start, length_to_cover_per_block, block_target_start);
@@ -726,7 +726,7 @@ TEST_CASE("lookup") {
 			const index_type*         __restrict indices
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto block_indices_start = indices + num_indices_per_block * gi::block::id();
 			auto block_target_start = target + num_indices_per_block * gi::block::id();
 			klcb::lookup(block_target_start, data, block_indices_start, num_indices_per_block);
@@ -782,7 +782,7 @@ TEST_CASE_TEMPLATE("reduce - all threads obtain result", InputAndResultTypes, st
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
@@ -852,7 +852,7 @@ TEST_CASE_TEMPLATE("reduce - not all threads obtain result", InputAndResultTypes
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
@@ -920,7 +920,7 @@ TEST_CASE_TEMPLATE("sum - all threads obtain result", InputAndResultTypes, std::
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			target[gi::thread::global_id()] =
 				klcb::sum<checked_value_type, all_threads_do_obtain_result>(thread_input);
@@ -986,7 +986,7 @@ TEST_CASE_TEMPLATE("inclusive scan with specified scratch area", InputAndResultT
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			static __shared__ checked_value_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
@@ -1053,7 +1053,7 @@ TEST_CASE_TEMPLATE("inclusive scan without specified scratch area", InputAndResu
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
@@ -1119,7 +1119,7 @@ TEST_CASE_TEMPLATE("exclusive scan with specified scratch area", InputAndResultT
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			static __shared__ checked_value_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
@@ -1185,7 +1185,7 @@ TEST_CASE_TEMPLATE("exclusive scan without specified scratch area", InputAndResu
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
@@ -1253,7 +1253,7 @@ TEST_CASE_TEMPLATE("inclusive scan_and_reduce with specified scratch area", Inpu
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			static __shared__ scan_result_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
@@ -1329,7 +1329,7 @@ TEST_CASE_TEMPLATE("exclusive scan_and_reduce with specified scratch area", Inpu
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			static __shared__ scan_result_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
@@ -1406,7 +1406,7 @@ TEST_CASE_TEMPLATE("inclusive scan_and_reduce with specified scratch area", Inpu
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			static __shared__ scan_result_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
@@ -1482,7 +1482,7 @@ TEST_CASE_TEMPLATE("exclusive scan_and_reduce without specified scratch area", I
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
 			checked_value_type result;
@@ -1548,7 +1548,7 @@ TEST_CASE("elementwise accumulate_n")
 			const input_value_type*    __restrict input_src
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto block_result = result + length_to_cover_per_block * gi::block::id();
 			auto block_dest = input_dest + length_to_cover_per_block * gi::block::id();
 			klcb::copy_n(block_dest, length_to_cover_per_block, block_result);
@@ -1602,7 +1602,7 @@ TEST_CASE("elementwise accumulate")
 			const input_value_type*    __restrict input_src
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto block_result = result + length_to_cover_per_block * gi::block::id();
 			auto block_dest = input_dest + length_to_cover_per_block * gi::block::id();
 			klcb::copy_n(block_dest, length_to_cover_per_block, block_result);
@@ -1669,7 +1669,7 @@ TEST_CASE("reduce")
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 //			printf("Warp %u Lane %2u input is %4d\n", (unsigned) gi::warp::global_id(), (unsigned) gi::lane::id(), (int) thread_input);
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
@@ -1739,7 +1739,7 @@ TEST_CASE("sum")
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			auto warp_sum = kcw::sum(thread_input);
 			target[gi::thread::global_id()] = warp_sum;
@@ -1806,7 +1806,7 @@ TEST_CASE("inclusive scan")
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			auto warp_scan_result = kcw::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Inclusive>(thread_input, plus);
@@ -1873,7 +1873,7 @@ TEST_CASE("exclusive scan")
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			auto warp_scan_result = kcw::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Exclusive>(thread_input, plus);
@@ -1940,7 +1940,7 @@ TEST_CASE("exclusive_prefix_sum")
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			auto warp_exclusive_prefix_sum = kcw::exclusive_prefix_sum(thread_input);
 			target[gi::thread::global_id()] = warp_exclusive_prefix_sum;
@@ -2005,7 +2005,7 @@ TEST_CASE("prefix_sum") {
 			// Note: Every thread will set a target value, but there is still just one reduction result
 			// per block. In this variant of reduce, all block threads must obtain the result.
 
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			auto warp_prefix_sum = kcw::prefix_sum(thread_input);
 			target[gi::thread::global_id()] = warp_prefix_sum;
@@ -2059,7 +2059,7 @@ TEST_CASE("cast_and_copy_n")
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_warp * gi::warp::global_id();
 			auto warp_target_start = target + length_to_cover_per_warp * gi::warp::global_id();
 			kcw::cast_and_copy_n(source_start, length_to_cover_per_warp, warp_target_start);
@@ -2102,7 +2102,7 @@ TEST_CASE("cast_and_copy")
 			const input_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_warp * gi::warp::global_id();
 			auto source_end = source_start + length_to_cover_per_warp;
 			auto warp_target_start = target + length_to_cover_per_warp * gi::warp::global_id();
@@ -2145,7 +2145,7 @@ TEST_CASE("copy_n")
 			const checked_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_warp * gi::warp::global_id();
 			auto warp_target_start = target + length_to_cover_per_warp * gi::warp::global_id();
 			kcw::copy_n(source_start, length_to_cover_per_warp, warp_target_start);
@@ -2187,7 +2187,7 @@ TEST_CASE("copy")
 			const checked_value_type* __restrict input
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto source_start = input + length_to_cover_per_warp * gi::warp::global_id();
 			auto source_end = source_start + length_to_cover_per_warp;
 			auto warp_target_start = target + length_to_cover_per_warp * gi::warp::global_id();
@@ -2228,7 +2228,7 @@ TEST_CASE("fill")
 			size_t,
 			checked_value_type* buffer_to_fill_by_entire_grid )
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = buffer_to_fill_by_entire_grid + length_to_cover_per_warp * gi::warp::global_id();
 			auto end = start + length_to_cover_per_warp;
 			auto fill_value = resolve_fill_value(gi::warp::global_id());
@@ -2268,7 +2268,7 @@ TEST_CASE("fill_n") {
 			size_t,
 			checked_value_type* buffer_to_fill_by_entire_grid )
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto start = buffer_to_fill_by_entire_grid + length_to_cover_per_warp * gi::warp::global_id();
 			auto fill_value = resolve_fill_value(gi::warp::global_id());
 			kcw::fill_n(start, length_to_cover_per_warp, fill_value);
@@ -2316,7 +2316,7 @@ TEST_CASE("lookup")
 			const index_type*         __restrict indices
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto warp_indices_start = indices + num_indices_per_warp * gi::warp::global_id();
 			auto warp_target_start = target + num_indices_per_warp * gi::warp::global_id();
 			kcw::lookup(warp_target_start, data, warp_indices_start, num_indices_per_warp);
@@ -2367,7 +2367,7 @@ TEST_CASE("elementwise accumulate_n")
 			const input_value_type*    __restrict input_src
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto warp_result = result + length_to_cover_per_warp * gi::warp::global_id();
 			auto warp_dest = input_dest + length_to_cover_per_warp * gi::warp::global_id();
 			kcw::copy_n(warp_dest, length_to_cover_per_warp, warp_result);
@@ -2422,7 +2422,7 @@ TEST_CASE("elementwise accumulate")
 			const input_value_type*    __restrict input_src
 			)
 		{
-			namespace gi = kat::linear_grid::grid_info;
+			namespace gi = kat::linear_grid;
 			auto warp_result = result + length_to_cover_per_warp * gi::warp::global_id();
 			auto warp_dest = input_dest + length_to_cover_per_warp * gi::warp::global_id();
 			kcw::copy_n(warp_dest, length_to_cover_per_warp, warp_result);

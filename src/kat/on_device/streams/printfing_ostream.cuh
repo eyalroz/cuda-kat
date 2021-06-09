@@ -84,9 +84,9 @@ protected:
 		// rather than assuming the first one is.
 		switch(r) {
 		case resolution::thread: return true;
-		case resolution::warp:   return grid_info::thread::is_first_in_warp();
-		case resolution::block:  return grid_info::thread::is_first_in_block();
-		case resolution::grid:   return grid_info::thread::is_first_in_grid();
+		case resolution::warp:   return thread::is_first_in_warp();
+		case resolution::block:  return thread::is_first_in_block();
+		case resolution::grid:   return thread::is_first_in_grid();
 		default: return false; // but can't get here
 		}
 	}

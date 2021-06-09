@@ -255,14 +255,14 @@ template<
 	bool AllThreadsObtainResult = false>
 KAT_DEV T reduce(T value, AccumulationOp op)
 {
-	namespace gi = kat::linear_grid::grid_info;
+	namespace gi = kat::linear_grid;
 	constexpr const T neutral_value {};
 
 	static __shared__ T warp_reductions[warp_size];
 
 	auto intra_warp_result = kat::collaborative::warp::reduce<T, AccumulationOp>(value, op);
 
-	collaborative::block::share_per_warp_data(intra_warp_result, warp_reductions, gi::warp::first_lane);
+	collaborative::block::share_per_warp_data(intra_warp_result, warp_reductions, kat::warp::first_lane);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
@@ -271,7 +271,7 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 	if (not AllThreadsObtainResult) {
 		// We currently only guarantee the first thread has the final result,
 		// which is what allows most threads to return already:
-		if (not gi::warp::is_first_in_block()) { return neutral_value; }
+		if (not kat::warp::is_first_in_block()) { return neutral_value; }
 	}
 
 	collaborative::block::barrier(); // Perhaps we can do with something weaker here?
@@ -279,8 +279,8 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 	// shared memory now holds all intra-warp reduction results
 
 	// read from shared memory only if that warp actually existed
-	auto other_warp_result  = (gi::lane::id() < gi::block::num_warps()) ?
-		warp_reductions[gi::lane::id()] : neutral_value;
+	auto other_warp_result  = (lane::id() < gi::block::num_warps()) ?
+		warp_reductions[lane::id()] : neutral_value;
 
 	return kat::collaborative::warp::reduce<T, AccumulationOp>(other_warp_result, op);
 		// TODO: Would it perhaps be faster to have only one warp compute this,
@@ -317,8 +317,8 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 		T, AccumulationOp, inclusivity_t::Inclusive >(value, op);
 
 	auto last_active_lane_id =
-		// (AssumeFullWarps or not grid_info::warp::is_last_in_block()) ?
-		warp::last_lane
+		// (AssumeFullWarps or not warp::is_last_in_block()) ?
+		kat::warp::last_lane
 		// : collaborative::warp::last_active_lane_index()
 		;
 
@@ -335,7 +335,7 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 
 	// scratch buffer now holds all full-warp _reductions_;
 
-	if (warp::is_first_in_block()) {
+	if (kat::warp::is_first_in_block()) {
 		// Note that for a block with less than warp_size warps, some of the lanes
 		// here will read junk data from the scratch area; but that's not a problem,
 		// since these values will not effect the scan results of previous lanes,
@@ -349,7 +349,7 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 
 	collaborative::block::barrier();
 
-	auto r = scratch[warp::id()];
+	auto r = scratch[kat::warp::id()];
 	T intra_warp_scan_result;
 	if (Inclusivity == inclusivity_t::Inclusive) {
 		intra_warp_scan_result = intra_warp_inclusive_scan_result;
@@ -416,8 +416,8 @@ template <
 		T, AccumulationOp, inclusivity_t::Inclusive>(value, op);
 
 	auto last_active_lane_id =
-		// (AssumeFullWarps or not grid_info::warp::is_last_in_block()) ?
-		warp::last_lane
+		// (AssumeFullWarps or not warp::is_last_in_block()) ?
+		kat::warp::last_lane
 		// : collaborative::warp::last_active_lane_index()
 		;
 
@@ -433,12 +433,12 @@ template <
 	// scratch[i] now contains the reduction result of the data of all threads in
 	// the i'th warp of this block
 
-	auto num_warps = block::num_warps();
+	auto num_warps = kat::block::num_warps();
 	auto partial_reduction_result = scratch[num_warps - 1];
 		// We're keeping this single-warp reduction result, since it will soon
 		// be overwritten
 
-	if (warp::is_first_in_block()) {
+	if (kat::warp::is_first_in_block()) {
 		// Note that for a block with less than warp_size warps, some of the lanes
 		// here will read junk data from the scratch area; but that's not a problem,
 		// since these values will not effect the scan results of previous lanes,
@@ -460,7 +460,7 @@ template <
 		// We had kept the last warp's reduction result, now we've taken
 		// the other warps into account as well
 
-	auto partial_scan_result = scratch[warp::id()]; // only a partial result for now
+	auto partial_scan_result = scratch[kat::warp::id()]; // only a partial result for now
 
 	// To finalize the computation, we now account for the requested scan inclusivity
 

@@ -32,18 +32,6 @@ namespace collaborative {
 
 namespace block {
 
-///@cond
-// If we want to refer to other primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::id()` without prefixing that with anything.
-
-namespace grid   = grid_info::grid;
-namespace block  = grid_info::block;
-namespace warp   = grid_info::warp;
-namespace thread = grid_info::thread;
-namespace lane   = grid_info::lane;
-
-///@endcond
-
 /*
  * TODO: Implement
  * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
@@ -71,8 +59,8 @@ KAT_FD void share_per_warp_data(
 	T*  __restrict__  where_to_make_available,
 	unsigned          writing_lane_id)
 {
-	if (lane::index() == writing_lane_id) {
-		where_to_make_available[warp::id()] = datum;
+	if (lane::id() == writing_lane_id) {
+		where_to_make_available[kat::warp::id()] = datum;
 	}
 	if (Synchronize) __syncthreads();
 }
@@ -144,18 +132,6 @@ namespace linear_grid {
 namespace collaborative {
 namespace block {
 
-///@cond
-// If we want to refer to other collaboration primitives, we'll make those references explicit;
-// but we do want to be able to say `warp::id()` without prefixing that with anything.
-
-namespace grid   = grid_info::grid;
-namespace block  = grid_info::block;
-namespace warp   = grid_info::warp;
-namespace thread = grid_info::thread;
-namespace lane   = grid_info::lane;
-
-///@endcond
-
 /*
  * TODO: Implement
  * KAT_FD  unsigned all_satisfy(unsigned int predicate, unsigned* scratch_area);
@@ -206,8 +182,9 @@ KAT_FD void share_per_warp_data(
 	T*  __restrict__  where_to_make_available,
 	unsigned          writing_lane_id)
 {
-	if (lane::index() == writing_lane_id) {
-		where_to_make_available[warp::id()] = datum;
+	namespace gi = kat::linear_grid;
+	if (gi::lane::id() == writing_lane_id) {
+		where_to_make_available[gi::warp::id()] = datum;
 	}
 	if (Synchronize) __syncthreads();
 }

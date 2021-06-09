@@ -37,7 +37,7 @@ KAT_DEV void self_identify(kat::stringstream& ss);
 template <>
 KAT_DEV void self_identify<printfing_ostream::resolution::thread>(kat::stringstream& ss)
 {
-	namespace gi = ::kat::linear_grid::grid_info;
+	namespace gi = ::kat::linear_grid;
 
 	const auto global_thread_id_width = detail::num_digits_required_for(gi::grid::num_threads() - 1);
 	const auto block_id_width         = detail::num_digits_required_for(gi::grid::num_blocks() - 1);
@@ -63,7 +63,7 @@ KAT_DEV void self_identify<printfing_ostream::resolution::thread>(kat::stringstr
 template <>
 KAT_DEV void self_identify<printfing_ostream::resolution::warp>(kat::stringstream& ss)
 {
-	namespace gi = ::kat::linear_grid::grid_info;
+	namespace gi = ::kat::linear_grid;
 
 	auto global_warp_id_width = detail::num_digits_required_for(gi::grid::num_warps() - 1);
 	auto warp_id_width        = detail::num_digits_required_for(gi::grid::num_warps_per_block() - 1);
@@ -85,7 +85,7 @@ KAT_DEV void self_identify<printfing_ostream::resolution::warp>(kat::stringstrea
 template <>
 KAT_DEV void self_identify<printfing_ostream::resolution::block>(kat::stringstream& ss)
 {
-	namespace gi = ::kat::linear_grid::grid_info;
+	namespace gi = ::kat::linear_grid;
 
 	const unsigned block_id_width = detail::num_digits_required_for(gi::grid::num_blocks() - 1);
 	constexpr const auto fill_char = '0';

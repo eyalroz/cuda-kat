@@ -32,11 +32,11 @@ namespace grid {
 // If we want to refer to other primitives, we'll make those references explicit;
 // but we do want to be able to say `warp::index()` without prefixing that with anything.
 
-namespace grid   = kat::linear_grid::grid_info::grid;
-namespace block  = kat::linear_grid::grid_info::block;
-namespace warp   = kat::linear_grid::grid_info::warp;
-namespace thread = kat::linear_grid::grid_info::thread;
-namespace lane   = kat::linear_grid::grid_info::lane;
+namespace grid   = kat::linear_grid::grid;
+namespace block  = kat::linear_grid::block;
+namespace warp   = kat::linear_grid::warp;
+namespace thread = kat::linear_grid::thread;
+namespace lane   = kat::linear_grid::lane;
 
 /**
  * Have all kernel threads perform some action over the linear range
@@ -92,7 +92,7 @@ namespace warp_per_input_element {
  *
  * @note This version of `at_grid_stride` is specific to linear grids,
  * even though the text of its code looks the same as that of
- * @ref kat::grid_info::collaborative::warp::at_grid_stride .
+ * @ref kat::collaborative::warp::at_grid_stride .
  *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence

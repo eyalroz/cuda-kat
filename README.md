@@ -92,14 +92,14 @@ num_full_warps_in_grid_block()
 ```
 the library groups these (and many other related) functions into relevant namespaces. We thus have:
 ```
-linear_grid::grid_info::thread::global_id()
-grid_info::lane::id()
-linear_grid::grid_info::thread::is_last_in_block()
-linear_grid::grid_info::block::num_full_warps()
+linear_grid::thread::global_id()
+lane::id()
+linear_grid::thread::is_last_in_block()
+linear_grid::block::num_full_warps()
 ```
-which is easier to browse through if you use auto-complete. The order comes at the expense of brevity... but we can alleviate this with an appropriate `namespace`. The above can then become simply:
+which is easier to browse through if you use auto-complete. The order comes at the expense of brevity... but we can alleviate this somewhat with a shorter namespace. The above can then become simply:
 ```
-namespace gi = kat::linear_grid::grid_info;
+namespace gi = kat::linear_grid;
 gi::thread::global_id()
 gi::lane::id()
 gi::thread::is_last_in_block()
@@ -107,7 +107,7 @@ gi::block::num_full_warps()
 ```
 in your code. Now _this_ is how I want to write my kernels!
 
-You will note, that most similar phrases you could come up with about positions and sizes within the grid - already have implementations. For example: "I can get the number of full warps, but now I want the number of warps, period"; well, just replace `num_full_warps()` with `num_warps()` and it's there: `linear_grid::grid_info::block::num_warps()` is available.
+You will note, that most similar phrases you could come up with about positions and sizes within the grid - already have implementations. For example: "I can get the number of full warps, but now I want the number of warps, period"; well, just replace `num_full_warps()` with `num_warps()` and it's there: `linear_grid::block::num_warps()` is available.
 
 And as a final bonus - if you write a non-linear kernel, with blocks and grids having y and z dimensions other than 1 - you will only need to change your `namespace =` or `using` statements, to be able to write the same code and use 3-D implementations of these functions instead.
 

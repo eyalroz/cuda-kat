@@ -175,8 +175,6 @@ constexpr KAT_FHD bool dimensionality_is_canonical(dimensions_t dims)
 
 // TODO: Perhaps have functions for strided copy in and out
 
-namespace grid_info {
-
 namespace detail {
 
 template <unsigned Dimensionality = 3>
@@ -267,7 +265,7 @@ KAT_FD grid_block_dimension_t size()        { return size(dimensions()); }
 
 KAT_FD position_t   first_thread_position() { return position_t{0, 0, 0}; }
 template <unsigned Dimensionality = 3>
-KAT_FD position_t   last_thread_position()  { return grid_info::detail::last_position_for(blockDim); }
+KAT_FD position_t   last_thread_position()  { return detail::last_position_for(blockDim); }
 
 template <unsigned Dimensionality = 3>
 KAT_FD grid_block_dimension_t
@@ -306,7 +304,7 @@ namespace grid {
  */
 KAT_FD bool         is_linear()
 {
-	return gridDim.y == 1 and gridDim.z == 1 and grid_info::block::is_linear();
+	return gridDim.y == 1 and gridDim.z == 1 and block::is_linear();
 }
 
 // TODO: Consider templatizing this on the dimensions too
@@ -428,11 +426,11 @@ KAT_FD position_t  global_index()          { return position_in_grid<OuterDimens
 namespace warp {
 
 template <unsigned Dimensionality = 3>
-KAT_FD unsigned    id_in_block()           { return grid_info::thread::id_in_block<Dimensionality>() / warp_size; }
+KAT_FD unsigned    id_in_block()           { return thread::id_in_block<Dimensionality>() / warp_size; }
 template <unsigned Dimensionality = 3>
 KAT_FD unsigned    index_in_block()        { return id_in_block<Dimensionality>(); }
 template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
-KAT_FD unsigned    id_in_grid()            { return grid_info::thread::id_in_grid<OuterDimensionality, InnerDimensionality>() / warp_size; }
+KAT_FD unsigned    id_in_grid()            { return thread::id_in_grid<OuterDimensionality, InnerDimensionality>() / warp_size; }
 template <unsigned Dimensionality>
 KAT_FD unsigned    index()                 { return index_in_block<Dimensionality>(); }
 template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
@@ -531,12 +529,9 @@ KAT_FD bool     is_last_in_warp()   { return lane::id<Dimensionality>() == warp:
 
 } // namespace thread
 
-} // namespace grid_info
 
 // I couldn't use '1d, 2d, 3d since those aren't valid identifiers...
 namespace linear_grid {
-
-namespace grid_info {
 
 namespace grid {
 
@@ -556,7 +551,7 @@ KAT_FD grid_dimension_t  first_last_position()     { return index_of_last_block(
 
 namespace block {
 
-using kat::grid_info::block::dimensions;
+using kat::block::dimensions;
 KAT_FD unsigned                index_in_grid()           { return blockIdx.x; }
 KAT_FD grid_block_dimension_t  index()                   { return index_in_grid(); }
 KAT_FD unsigned                id_in_grid()              { return index_in_grid(); }
@@ -605,10 +600,10 @@ KAT_FD unsigned     num_warps_per_block()   { return block::num_warps(); }
 
 namespace warp {
 
-using kat::grid_info::warp::first_lane;
-using kat::grid_info::warp::last_lane;
-using kat::grid_info::warp::size;
-using kat::grid_info::warp::length;
+using kat::warp::first_lane;
+using kat::warp::last_lane;
+using kat::warp::size;
+using kat::warp::length;
 
 }
 
@@ -632,8 +627,8 @@ KAT_FD bool                    is_last_in_block()  { return index_in_block() == 
 KAT_FD bool                    is_first_in_grid()  { return block::is_first_in_grid() and thread::is_first_in_block(); }
 KAT_FD bool                    is_last_in_grid()   { return block::is_last_in_grid() and thread::is_last_in_block();   }
 
-using ::kat::grid_info::thread::is_first_in_warp;
-using ::kat::grid_info::thread::is_last_in_warp;
+using ::kat::thread::is_first_in_warp;
+using ::kat::thread::is_last_in_warp;
 
 
 /**
@@ -714,7 +709,7 @@ namespace lane {
 // directly - we have to separate the code for the linear-grid and
 // non-linear-grid cases.
 
-enum { half_warp_size = kat::grid_info::lane::half_warp_size };
+enum { half_warp_size = kat::lane::half_warp_size };
 
 KAT_FD unsigned id_of(unsigned thread_index)
 {
@@ -749,8 +744,6 @@ KAT_FD unsigned is_in_first_half_warp()   { return id_in_warp() < half_warp_size
 KAT_FD unsigned is_in_second_half_warp()  { return id_in_warp() >= half_warp_size; }
 
 } // namespace lane
-
-} // namespace grid_info
 
 } // namespace linear_grid
 

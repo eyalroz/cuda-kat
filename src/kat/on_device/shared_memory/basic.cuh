@@ -124,7 +124,7 @@ template <typename T>
 KAT_FD T* contiguous(unsigned num_elements_per_warp, offset_t base_offset = 0)
 {
 	return proxy<T>() + base_offset +
-		num_elements_per_warp * linear_grid::grid_info::warp::index_in_block();
+		num_elements_per_warp * linear_grid::warp::index_in_block();
 }
 
 /**
@@ -144,7 +144,7 @@ KAT_FD T* contiguous(unsigned num_elements_per_warp, offset_t base_offset = 0)
 template <typename T>
 KAT_FD T* strided(offset_t base_offset = 0)
 {
-	return proxy<T>() + base_offset + linear_grid::grid_info::warp::index_in_block();
+	return proxy<T>() + base_offset + linear_grid::warp::index_in_block();
 }
 
 } // namespace warp_specific

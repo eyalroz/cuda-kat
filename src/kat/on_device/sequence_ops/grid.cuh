@@ -55,7 +55,6 @@ KAT_FD void append_to_global_memory(
 	T*     __restrict__  fragment_to_append,
 	Size   __restrict__  fragment_length)
 {
-	using namespace grid_info;
 	auto lane_to_perform_atomic_op = collaborative::warp::select_leader_lane();
 	auto f = [&]() {
 		return atomic::add(global_output_length, fragment_length);
