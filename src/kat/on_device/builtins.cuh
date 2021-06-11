@@ -100,6 +100,7 @@ sum_with_absolute_difference(I x, I y, typename std::make_unsigned<I>::type adde
 
 
 
+
 // Bit and byte manipulation
 // --------------------------------------------
 
@@ -240,6 +241,17 @@ template <typename I> I KAT_FD average(I x, I y) = delete; // don't worry, it's 
  * @note  ignoring type limits, average_rounded_up(x,y) = floor ((x + y + 1 ) / 2)
  */
 template <typename I> I KAT_FD average_rounded_up(I x, I y) = delete; // don't worry, it's not really deleted for all types
+
+/**
+ * @brief Compute the base-2 logarithm of a number
+ */
+template <typename T> T KAT_FD log2(T x) = delete; // don't worry, it's not really deleted for all types
+
+/**
+ * @brief Compute the natural-base logarithm of a number
+ */
+template <typename T> T KAT_FD log(T x) = delete; // don't worry, it's not really deleted for all types
+
 
 /**
  * Special register getter wrappers

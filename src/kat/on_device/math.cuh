@@ -126,7 +126,20 @@ template <typename I> KAT_FD int count_leading_zeros(I x)
 	return builtins::count_leading_zeros<native_clz_type>(static_cast<native_clz_type>(x)) - width_difference_in_bits;
 }
 
+template <typename T>
+KAT_FD T log2(std::false_type, T x)
+{
+	return builtins::log2<T>(x);
 }
+
+template <typename I>
+KAT_FD I log2(std::true_type, I x)
+{
+	assert(x > 0);
+	return I{CHAR_BIT * sizeof(I) - 1} - ::kat::detail::count_leading_zeros<I>(x);
+}
+
+} // namespace detail
 
 /**
  * @brief compute the (integral) base-two logarithm of a number
@@ -139,10 +152,9 @@ template <typename I> KAT_FD int count_leading_zeros(I x)
  * @param x a non-negative value
  * @return floor(log2(x)), i.e. the least exponent l such than 2^l >= x
  */
-template <typename I>
-KAT_FD unsigned log2(I x) {
-	assert(x > 0);
-	return I{CHAR_BIT * sizeof(I) - I{1} } - detail::count_leading_zeros<I>(x);
+template <typename T>
+KAT_FD T log2(T x) {
+	return detail::log2(std::integral_constant<bool, std::is_integral<T>::value>{}, x);
 }
 
 namespace detail {

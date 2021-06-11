@@ -171,6 +171,13 @@ template<> KAT_FD unsigned average<unsigned>(unsigned x, unsigned y)  { return _
 template<> KAT_FD int      average_rounded_up<int     >(int x,      int y)       { return __rhadd(x,y);   }
 template<> KAT_FD unsigned average_rounded_up<unsigned>(unsigned x, unsigned y)  { return __urhadd(x,y);  }
 
+template<> KAT_FD float  log2<float >(float  x)  { return ::log2f(x); }
+template<> KAT_FD double log2<double>(double x)  { return ::log2(x);  }
+
+template<> KAT_FD float  log<float >(float  x)  { return ::logf(x); }
+template<> KAT_FD double log<double>(double x)  { return ::log(x);  }
+
+
 namespace warp {
 
 #if (__CUDACC_VER_MAJOR__ < 9)

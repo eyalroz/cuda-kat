@@ -354,39 +354,186 @@ __global__ void try_out_integral_math_functions(I* results, I* __restrict expect
 	results[i] = kat::modulo_power_of_2<I>( I{   5 }, I{   4 } ); expected[i++] = I{ 1 };
 	results[i] = kat::modulo_power_of_2<I>( I{  63 }, I{   4 } ); expected[i++] = I{ 3 };
 
-#define NUM_TEST_LINES 268
+#define NUM_INTEGER_FUNCTION_TEST_LINES 268
 
 }
 
+template <typename F>
+__global__ void try_out_floating_point_math_functions(F* results, F* __restrict expected)
+{
+	size_t i { 0 };
+	bool print_first_indices_for_each_function { false };
+
+	auto maybe_print = [&](const char* section_title) {
+		if (print_first_indices_for_each_function) {
+			printf("%-30s tests start at index  %3d\n", section_title, (int) i);
+		}
+	};
+
+	maybe_print("log2");
+	results[i] = kat::log2<F>( F{    1       } ); expected[i++] =  0;
+	results[i] = kat::log2<F>( F{    2       } ); expected[i++] =  1;
+	results[i] = kat::log2<F>( F{    3       } ); expected[i++] =  log2(3);
+	results[i] = kat::log2<F>( F{    4       } ); expected[i++] =  2;
+	results[i] = kat::log2<F>( F{    6       } ); expected[i++] =  log2(6);
+	results[i] = kat::log2<F>( F{    7       } ); expected[i++] =  log2(7);
+	results[i] = kat::log2<F>( F{    8       } ); expected[i++] =  log2(8);
+	results[i] = kat::log2<F>( F{  127       } ); expected[i++] =  log2(127);
+	results[i] = kat::log2<F>( F{    0.5     } ); expected[i++] = -1;
+	results[i] = kat::log2<F>( F{    0.25    } ); expected[i++] = -2;
+	results[i] = kat::log2<F>( F{    0.125   } ); expected[i++] = -3;
+	results[i] = kat::log2<F>( F{    0.0625  } ); expected[i++] = -4;
+	results[i] = kat::log2<F>( F{    0.03125 } ); expected[i++] = -5;
+
+
+#define NUM_FLOATING_POINT_FUNCTION_TEST_LINES 13
+
+}
+
+
 } // namespace kernels
+
+template <typename T>
+const auto make_exact_comparison { optional<T>{} };
+
+namespace detail {
+
+template <typename T>
+auto tolerance_gadget(std::true_type, T x, optional<T> tolerance) {
+	auto eps = tolerance.value_or(0);
+	return doctest::Approx(x).epsilon(eps);
+}
+
+
+template <typename T>
+T tolerance_gadget(std::false_type, T x, optional<T>) { return x; }
+
+template <typename T>
+std::size_t required_width_to_fit(T max)
+{
+//	assert(std::is_integral<I>::value, "Only integer types supported for now");
+	std::stringstream ss;
+	ss << std::dec << max;
+	return ss.str().length();
+}
+
+} // namespace detail
+
+template <typename T>
+auto tolerance_gadget(T x, optional<T> tolerance)
+{
+	constexpr const auto is_arithmetic = std::is_arithmetic< std::decay_t<T> >::value;
+	return
+		detail::tolerance_gadget(std::integral_constant<bool, is_arithmetic>{}, x, tolerance);
+}
+
+template <typename T, typename F, typename... Is>
+void check_results(
+	std::string               title,
+	size_t                    num_values_to_check,
+	const T*  __restrict__    actual_values,
+	F                         expected_value_retriever,
+	optional<T>               comparison_tolerance_fraction,
+	const Is* __restrict__... inputs)
+{
+	std::stringstream ss;
+	auto index_width = detail::required_width_to_fit(num_values_to_check);
+
+	// TODO: Consider using the maximum/minimum result values to set field widths.
+
+	for(size_t i = 0; i < num_values_to_check; i++) {
+		ss.str("");
+		ss
+			<< "Assertion " << std::setw(index_width) << (i+1) << " for " << title
+			// << " :\n"
+			<< "(" << std::make_tuple(inputs[i]...) << ")"
+		;
+		std::string mismatch_message { ss.str() };
+		if (comparison_tolerance_fraction) {
+			const auto& actual = actual_values[i];
+			const auto expected = tolerance_gadget(expected_value_retriever(i), comparison_tolerance_fraction);
+			CHECK_MESSAGE(actual == expected, mismatch_message);
+		}
+		else {
+			const auto& ev = expected_value_retriever(i);
+			const auto& actual = actual_values[i];
+			const auto expected = expected_value_retriever(i);
+			CHECK_MESSAGE(actual == expected, mismatch_message);
+		}
+	}
+}
+
+template <typename T, typename F, typename... Is>
+void check_results(
+	size_t                    num_values_to_check,
+	const T*  __restrict__    actual_values,
+	F                         expected_value_retriever,
+	optional<T>               comparison_tolerance_fraction,
+	const Is* __restrict__... inputs)
+{
+	return check_results(
+		std::string("testcase ") + doctest::current_test_name(),
+		num_values_to_check,
+		actual_values,
+		expected_value_retriever,
+		comparison_tolerance_fraction,
+		inputs...);
+}
 
 TEST_SUITE("math") {
 
-TEST_CASE_TEMPLATE("run-time on-device", I, INTEGER_TYPES)
+TEST_CASE_TEMPLATE("run-time on-device integral math", I, INTEGER_TYPES)
 {
 	cuda::device_t device { cuda::device::current::get() };
 	auto block_size { 1 };
 	auto num_grid_blocks { 1 };
 	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
-	auto device_side_results { cuda::memory::device::make_unique<I[]>(device, NUM_TEST_LINES) };
-	auto device_side_expected_results { cuda::memory::device::make_unique<I[]>(device, NUM_TEST_LINES) };
-	auto host_side_results { std::unique_ptr<I[]>(new I[NUM_TEST_LINES]) };
-	auto host_side_expected_results { std::unique_ptr<I[]>(new I[NUM_TEST_LINES]) };
+	auto device_side_results { cuda::memory::device::make_unique<I[]>(device, NUM_INTEGER_FUNCTION_TEST_LINES) };
+	auto device_side_expected_results { cuda::memory::device::make_unique<I[]>(device, NUM_INTEGER_FUNCTION_TEST_LINES) };
+	auto host_side_results { std::unique_ptr<I[]>(new I[NUM_INTEGER_FUNCTION_TEST_LINES]) };
+	auto host_side_expected_results { std::unique_ptr<I[]>(new I[NUM_INTEGER_FUNCTION_TEST_LINES]) };
 
 	cuda::launch(
 		kernels::try_out_integral_math_functions<I>,
 		launch_config,
 		device_side_results.get(), device_side_expected_results.get());
 
-	cuda::memory::copy(host_side_results.get(), device_side_results.get(), sizeof(I) * NUM_TEST_LINES);
-	cuda::memory::copy(host_side_expected_results.get(), device_side_expected_results.get(), sizeof(I) * NUM_TEST_LINES);
+	cuda::memory::copy(host_side_results.get(), device_side_results.get(), sizeof(I) * NUM_INTEGER_FUNCTION_TEST_LINES);
+	cuda::memory::copy(host_side_expected_results.get(), device_side_expected_results.get(), sizeof(I) * NUM_INTEGER_FUNCTION_TEST_LINES);
 
-	for(auto i { 0 }; i < NUM_TEST_LINES; i++) {
-		CHECK(host_side_results.get()[i] == host_side_expected_results.get()[i]);
-		if (host_side_results.get()[i] != host_side_expected_results.get()[i]) {
-			MESSAGE("index of failure was: " << i);
-		}
-	}
+	check_results(
+		NUM_FLOATING_POINT_FUNCTION_TEST_LINES,
+		host_side_results.get(),
+		[ expected_results = host_side_expected_results.get() ](std::size_t i) { return expected_results[i]; },
+		make_exact_comparison<I>
+	);
 }
+
+TEST_CASE_TEMPLATE("run-time on-device floating-point math", F, FLOAT_TYPES)
+{
+	cuda::device_t device { cuda::device::current::get() };
+	auto block_size { 1 };
+	auto num_grid_blocks { 1 };
+	auto launch_config { cuda::make_launch_config(block_size, num_grid_blocks) };
+	auto device_side_results { cuda::memory::device::make_unique<F[]>(device, NUM_FLOATING_POINT_FUNCTION_TEST_LINES) };
+	auto device_side_expected_results { cuda::memory::device::make_unique<F[]>(device, NUM_FLOATING_POINT_FUNCTION_TEST_LINES) };
+	auto host_side_results { std::unique_ptr<F[]>(new F[NUM_FLOATING_POINT_FUNCTION_TEST_LINES]) };
+	auto host_side_expected_results { std::unique_ptr<F[]>(new F[NUM_FLOATING_POINT_FUNCTION_TEST_LINES]) };
+
+	cuda::launch(
+		kernels::try_out_floating_point_math_functions<F>,
+		launch_config,
+		device_side_results.get(), device_side_expected_results.get());
+
+	cuda::memory::copy(host_side_results.get(), device_side_results.get(), sizeof(F) * NUM_FLOATING_POINT_FUNCTION_TEST_LINES);
+	cuda::memory::copy(host_side_expected_results.get(), device_side_expected_results.get(), sizeof(F) * NUM_FLOATING_POINT_FUNCTION_TEST_LINES);
+
+	check_results(
+		NUM_FLOATING_POINT_FUNCTION_TEST_LINES,
+		host_side_results.get(),
+		[ expected_results = host_side_expected_results.get() ](std::size_t i) { return expected_results[i]; },
+		optional<F>{0.00001});
+}
+
 
 } // TEST_SUITE("math")
