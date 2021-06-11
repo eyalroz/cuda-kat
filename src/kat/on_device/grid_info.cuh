@@ -311,6 +311,8 @@ KAT_FD bool         is_linear()
 template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
 KAT_FD unsigned     num_warps()             { return num_blocks<OuterDimensionality>() * block::num_warps<InnerDimensionality>(); }
 template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
+KAT_FD unsigned     size_in_warps()         { return num_warps(); }
+template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
 KAT_FD unsigned     num_threads()           { return num_blocks<OuterDimensionality>() * block::size<InnerDimensionality>(); }
 template <unsigned OuterDimensionality = 3, unsigned InnerDimensionality = 3>
 KAT_FD unsigned     total_size()            { return num_threads<OuterDimensionality, InnerDimensionality>(); }
