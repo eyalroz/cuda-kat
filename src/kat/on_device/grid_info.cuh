@@ -516,9 +516,13 @@ KAT_FD unsigned index()             { return id<Dimensionality>();              
 template <unsigned Dimensionality = 3>
 KAT_FD unsigned index_in_warp()     { return id<Dimensionality>();                             }
 template <unsigned Dimensionality = 3>
-KAT_FD unsigned is_first()          { return id_in_warp<Dimensionality>() == warp::first_lane; }
+KAT_FD bool     is_first()          { return id_in_warp<Dimensionality>() == warp::first_lane; }
 template <unsigned Dimensionality = 3>
-KAT_FD unsigned is_last()           { return id_in_warp<Dimensionality>() == warp::last_lane;  }
+KAT_FD bool     is_last()           { return id_in_warp<Dimensionality>() == warp::last_lane;  }
+template <unsigned Dimensionality = 3>
+KAT_FD bool     is_first_in_warp()  { return id_in_warp<Dimensionality>() == warp::first_lane; }
+template <unsigned Dimensionality = 3>
+KAT_FD bool     is_last_in_warp()   { return id_in_warp<Dimensionality>() == warp::last_lane;  }
 
 } // namespace lane
 
@@ -730,8 +734,10 @@ KAT_FD unsigned id_in_warp()              { return id_of(threadIdx.x); }
 KAT_FD unsigned id()                      { return id_in_warp(); }
 KAT_FD unsigned index()                   { return id(); }
 KAT_FD unsigned index_in_warp()           { return id(); }
-KAT_FD unsigned is_first()                { return id_in_warp() == warp::first_lane; }
-KAT_FD unsigned is_last()                 { return id_in_warp() == warp::last_lane; }
+KAT_FD bool     is_first()                { return id_in_warp() == warp::first_lane; }
+KAT_FD bool     is_last()                 { return id_in_warp() == warp::last_lane; }
+KAT_FD bool     is_first_in_warp()        { return id_in_warp() == warp::first_lane; }
+KAT_FD bool     is_last_in_warp()         { return id_in_warp() == warp::last_lane; }
 
 
 KAT_FHD unsigned id_in_half_warp(unsigned thread_or_lane_index)
@@ -742,8 +748,8 @@ KAT_FHD unsigned id_in_half_warp(unsigned thread_or_lane_index)
 
 KAT_FD unsigned id_in_half_warp()         { return id_in_half_warp(threadIdx.x); }
 KAT_FD unsigned index_in_half_warp()      { return id_in_half_warp(threadIdx.x); }
-KAT_FD unsigned is_in_first_half_warp()   { return id_in_warp() < half_warp_size; }
-KAT_FD unsigned is_in_second_half_warp()  { return id_in_warp() >= half_warp_size; }
+KAT_FD bool is_in_first_half_warp()       { return id_in_warp() < half_warp_size; }
+KAT_FD bool is_in_second_half_warp()      { return id_in_warp() >= half_warp_size; }
 
 } // namespace lane
 
