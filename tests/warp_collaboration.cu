@@ -24,8 +24,8 @@ using fake_bool = int8_t; // so as not to have trouble with vector<bool>
 template <typename T>
 const auto make_exact_comparison { optional<T>{} };
 
-namespace kcw  = ::kat::collaborative::warp;
-namespace klcw = ::kat::linear_grid::collaborative::warp;
+namespace kcw  = ::kat::warp;
+namespace klcw = ::kat::linear_grid::warp;
 
 
 std::ostream& operator<<(std::ostream& os, klcw::detail::predicate_computation_length_slack_t ss)
@@ -60,7 +60,6 @@ __global__ void execute_testcase(
 
 namespace kat {
 namespace linear_grid {
-namespace collaborative {
 namespace warp {
 
 template <typename T>
@@ -82,7 +81,6 @@ KAT_FHD bool operator==(const search_result_t<T>& lhs, const search_result_t<T>&
 }
 
 } // namespace warp
-} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 
@@ -304,7 +302,7 @@ TEST_CASE("barrier") {
 
 			shared_array[gi::lane::id()] = 0;
 
-			kat::collaborative::block::barrier();
+			kat::block::barrier();
 
 			if (gi::lane::id() == gi::warp::id_in_block()) {
 				shared_array[gi::lane::id()] = make_thread_value(gi::warp::id_in_block(), gi::lane::id());
@@ -1499,7 +1497,7 @@ TEST_CASE("at_warp_stride")
 
 TEST_CASE("multisearch") {
 /*	using thread_value_type = int;
-	using checked_value_type = kat::linear_grid::collaborative::warp::search_result_t<thread_value_type>;
+	using checked_value_type = kat::linear_grid::warp::search_result_t<thread_value_type>;
 	static_assert(std::is_trivially_constructible<checked_value_type>::value,
 		"search results are supposed to be trivially-constructible!");
 	cuda::grid::dimensions_t grid_dimensions { 1 };

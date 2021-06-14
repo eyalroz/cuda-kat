@@ -26,7 +26,6 @@
 
 namespace kat {
 namespace linear_grid {
-namespace collaborative {
 namespace grid {
 
 // If we want to refer to other primitives, we'll make those references explicit;
@@ -83,7 +82,7 @@ namespace warp_per_input_element {
 
 /**
  * A variant of the one-position-per-thread applicator,
- * `collaborative::grid::at_grid_stride()`: Here each warp works on one
+ * `grid::at_grid_stride()`: Here each warp works on one
  * input position, advancing by 'grid stride' in the sense of total
  * warps in the grid.
  *
@@ -92,7 +91,7 @@ namespace warp_per_input_element {
  *
  * @note This version of `at_grid_stride` is specific to linear grids,
  * even though the text of its code looks the same as that of
- * @ref kat::collaborative::warp::at_grid_stride .
+ * @ref kat::warp::at_grid_stride .
  *
  * @param length The length of the range of positions on which to act
  * @param f The callable for warps to use each position in the sequence
@@ -207,7 +206,6 @@ KAT_FD void at_block_stride(
 }
 
 } // namespace grid
-} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 

@@ -19,7 +19,6 @@
 ///@endcond
 
 namespace kat {
-namespace collaborative {
 namespace warp_to_grid {
 
 /**
@@ -55,12 +54,12 @@ KAT_FD void append_to_global_memory(
 	T*     __restrict__  fragment_to_append,
 	Size   __restrict__  fragment_length)
 {
-	auto lane_to_perform_atomic_op = collaborative::warp::select_leader_lane();
+	auto lane_to_perform_atomic_op = warp::select_leader_lane();
 	auto f = [&]() {
 		return atomic::add(global_output_length, fragment_length);
 	};
-	Size previous_output_size = collaborative::warp::have_a_single_lane_compute(f,lane_to_perform_atomic_op);
-	previous_output_size = collaborative::warp::get_from_lane(previous_output_size, lane_to_perform_atomic_op);
+	Size previous_output_size = warp::have_a_single_lane_compute(f,lane_to_perform_atomic_op);
+	previous_output_size = warp::get_from_lane(previous_output_size, lane_to_perform_atomic_op);
 	Size start_offset_for_warp_data = previous_output_size;
 
 	// Now the (0-based) positions
@@ -81,7 +80,6 @@ KAT_FD void append_to_global_memory(
 }
 
 } // namespace warp_to_grid
-} // namespace collaborative
 } // namespace kat
 
 #endif // CUDA_KAT_GRID_COLLABORATIVE_SEQUENCE_OPS_CUH_

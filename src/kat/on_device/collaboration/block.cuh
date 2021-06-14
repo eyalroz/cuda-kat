@@ -28,8 +28,6 @@
 
 namespace kat {
 
-namespace collaborative {
-
 namespace block {
 
 /*
@@ -77,7 +75,7 @@ KAT_FD void share_per_warp_data(
 	return share_per_warp_data(
 		std::forward<T>(datum),
 		where_to_make_available,
-		collaborative::warp::select_leader_lane());
+		warp::select_leader_lane());
 }
 
 KAT_FD void barrier() { __syncthreads(); }
@@ -126,10 +124,8 @@ KAT_FD T get_from_first_thread(T&& value)
 }
 
 } // namespace block
-} // namespace collaborative
 
 namespace linear_grid {
-namespace collaborative {
 namespace block {
 
 /*
@@ -201,7 +197,7 @@ KAT_FD void share_per_warp_data(
 	return share_per_warp_data(
 		std::forward<T>(datum),
 		where_to_make_available,
-		::kat::collaborative::warp::select_leader_lane());
+		::kat::warp::select_leader_lane());
 }
 
 
@@ -241,7 +237,6 @@ KAT_FD T get_from_first_thread(T&& value)
 }
 
 } // namespace block
-} // namespace collaborative
 } // namespace linear_grid
 
 

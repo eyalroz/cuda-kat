@@ -44,7 +44,7 @@ KAT_FD void fill(
 	shared_memory::size_t  length)
 {
 	T tmp = value;
-	kat::linear_grid::collaborative::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
+	kat::linear_grid::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
 }
 
 /**
@@ -113,7 +113,7 @@ template <typename T>
 KAT_FD T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t length)
 {
 	T* __restrict__ data_in_shared_mem = shared_memory::dynamic::proxy<T>();
-	kat::linear_grid::collaborative::block::copy(data_in_shared_mem, source, length);
+	kat::linear_grid::block::copy(data_in_shared_mem, source, length);
 	return data_in_shared_mem;
 }
 
@@ -142,7 +142,7 @@ KAT_FD void fill(
 // TODO: Uncomment when the non-linear-grid block primitive is available
 //{
 //	T tmp = value;
-//	kat::collaborative::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
+//	kat::block::fill_n(shared_memory::dynamic::proxy<T>(), value, length);
 //}
 
 
@@ -215,7 +215,7 @@ KAT_FD T* __restrict__ set_to_copy_of(const T*  source, shared_memory::size_t le
 // TODO: Uncomment when the non-linear-grid block primitive is available
 //{
 //	T* __restrict__ data_in_shared_mem = shared_memory::dynamic::proxy<T>();
-//	kat::collaborative::block::copy(data_in_shared_mem, source, length);
+//	kat::block::copy(data_in_shared_mem, source, length);
 //	return data_in_shared_mem;
 //}
 

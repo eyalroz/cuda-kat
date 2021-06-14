@@ -37,7 +37,6 @@
 ///@endcond
 
 namespace kat {
-namespace collaborative {
 namespace warp {
 
 namespace detail {
@@ -302,7 +301,7 @@ KAT_FD void copy_n(
 	using namespace linear_grid;
 	enum {
 		elements_per_lane_in_full_warp_write =
-			kat::collaborative::detail::elements_per_lane_in_full_warp_write<T>::value
+			kat::detail::elements_per_lane_in_full_warp_write<T>::value
 	};
 
 	if ((elements_per_lane_in_full_warp_write == 1) or
@@ -440,7 +439,6 @@ KAT_FD void elementwise_accumulate(
 }
 
 } // namespace warp
-} // namespace collaborative
 } // namespace kat
 
 #endif // CUDA_KAT_WARP_COLLABORATIVE_SEQUENCE_OPS_CUH_

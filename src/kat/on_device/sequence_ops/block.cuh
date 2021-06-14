@@ -31,9 +31,8 @@
 
 namespace kat {
 namespace linear_grid {
-namespace collaborative {
 
-using kat::collaborative::inclusivity_t;
+using kat::inclusivity_t;
 
 namespace block {
 
@@ -260,9 +259,9 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 
 	static __shared__ T warp_reductions[warp_size];
 
-	auto intra_warp_result = kat::collaborative::warp::reduce<T, AccumulationOp>(value, op);
+	auto intra_warp_result = kat::warp::reduce<T, AccumulationOp>(value, op);
 
-	collaborative::block::share_per_warp_data(intra_warp_result, warp_reductions, kat::warp::first_lane);
+	block::share_per_warp_data(intra_warp_result, warp_reductions, kat::warp::first_lane);
 
 	// Note: assuming here that there are at most 32 warps per block;
 	// if/when this changes, more warps may need to be involved in this second
@@ -274,7 +273,7 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 		if (not kat::warp::is_first_in_block()) { return neutral_value; }
 	}
 
-	collaborative::block::barrier(); // Perhaps we can do with something weaker here?
+	block::barrier(); // Perhaps we can do with something weaker here?
 
 	// shared memory now holds all intra-warp reduction results
 
@@ -282,7 +281,7 @@ KAT_DEV T reduce(T value, AccumulationOp op)
 	auto other_warp_result  = (lane::id() < gi::block::num_warps()) ?
 		warp_reductions[lane::id()] : neutral_value;
 
-	return kat::collaborative::warp::reduce<T, AccumulationOp>(other_warp_result, op);
+	return kat::warp::reduce<T, AccumulationOp>(other_warp_result, op);
 		// TODO: Would it perhaps be faster to have only one warp compute this,
 		// and then use get_from_first_thread() ?
 }
@@ -313,13 +312,13 @@ template <
 KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 {
 	constexpr const T neutral_value {};
-	auto intra_warp_inclusive_scan_result =	kat::collaborative::warp::scan<
+	auto intra_warp_inclusive_scan_result =	kat::warp::scan<
 		T, AccumulationOp, inclusivity_t::Inclusive >(value, op);
 
 	auto last_active_lane_id =
 		// (AssumeFullWarps or not warp::is_last_in_block()) ?
 		kat::warp::last_lane
-		// : collaborative::warp::last_active_lane_index()
+		// : warp::last_active_lane_index()
 		;
 
 	// Note: At the moment, we assume the block is not made up of full warps,
@@ -327,11 +326,11 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 	// will write to shared memory. However, the assumptions is actually earlier,
 	// since our warp scan also assumes the participation of the full warp.
 
-	collaborative::block::share_per_warp_data(
+	block::share_per_warp_data(
 		intra_warp_inclusive_scan_result, scratch, last_active_lane_id);
 		// The last active lane writes, because only it has the whole warp's reduction value
 
-	collaborative::block::barrier();
+	block::barrier();
 
 	// scratch buffer now holds all full-warp _reductions_;
 
@@ -342,12 +341,12 @@ KAT_DEV T scan(T value, AccumulationOp op, T* __restrict__ scratch)
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto warp_reductions_scan_result =
-			kat::collaborative::warp::scan<T, AccumulationOp, inclusivity_t::Exclusive>(
+			kat::warp::scan<T, AccumulationOp, inclusivity_t::Exclusive>(
 				scratch[lane::id()], op);
 		scratch[lane::id()] = warp_reductions_scan_result;
 	}
 
-	collaborative::block::barrier();
+	block::barrier();
 
 	auto r = scratch[kat::warp::id()];
 	T intra_warp_scan_result;
@@ -412,13 +411,13 @@ template <
 {
 	constexpr const T neutral_value {};
 
-	auto intra_warp_inclusive_scan_result = kat::collaborative::warp::scan<
+	auto intra_warp_inclusive_scan_result = kat::warp::scan<
 		T, AccumulationOp, inclusivity_t::Inclusive>(value, op);
 
 	auto last_active_lane_id =
 		// (AssumeFullWarps or not warp::is_last_in_block()) ?
 		kat::warp::last_lane
-		// : collaborative::warp::last_active_lane_index()
+		// : warp::last_active_lane_index()
 		;
 
 	// Note: At the moment, we assume the block is not made up of full warps,
@@ -426,7 +425,7 @@ template <
 	// will write to shared memory. However, the assumptions is actually earlier,
 	// since our warp scan also assumes the participation of the full warp.
 
-	collaborative::block::share_per_warp_data(
+	block::share_per_warp_data(
 		intra_warp_inclusive_scan_result, scratch, last_active_lane_id);
 		// The last active lane writes, because only it has the whole warp's reduction value
 
@@ -445,13 +444,13 @@ template <
 		// and hence not affect any of the existing warps later on when they rely
 		// on what the first warp computes here.
 		auto other_warp_reduction_result = scratch[lane::id()];
-		auto warp_reductions_scan_result = kat::collaborative::warp::scan<
+		auto warp_reductions_scan_result = kat::warp::scan<
 			T, AccumulationOp, inclusivity_t::Exclusive>(
 				other_warp_reduction_result, op);
 		scratch[lane::id()] = warp_reductions_scan_result;
 	}
 
-	collaborative::block::barrier();
+	block::barrier();
 
 	// scratch[i] now contains the reduction result of the data of all threads in
 	// warps 0 ... i-1 of this block
@@ -572,7 +571,6 @@ KAT_FD void elementwise_apply(
 
 
 } // namespace block
-} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 

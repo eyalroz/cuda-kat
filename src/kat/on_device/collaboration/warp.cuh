@@ -75,7 +75,6 @@ KAT_FD int last_lane_in(lane_mask_t mask)
 }
 
 
-namespace collaborative {
 namespace warp {
 
 /**
@@ -484,10 +483,8 @@ KAT_FD void at_warp_stride(Size length, Function f)
 }
 
 } // namespace warp
-} // namespace collaborative
 
 namespace linear_grid {
-namespace collaborative {
 namespace warp {
 
 /**
@@ -746,7 +743,6 @@ template <
 }
 
 } // namespace warp
-} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 

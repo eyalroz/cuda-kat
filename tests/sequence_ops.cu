@@ -19,17 +19,17 @@ using fake_bool = int8_t; // so as not to have trouble with vector<bool>
 static_assert(sizeof(bool) == sizeof(fake_bool), "unexpected size mismatch");
 
 
-namespace klcg = kat::linear_grid::collaborative::grid;
-namespace klcb = kat::linear_grid::collaborative::block;
-// namespace kcg  = kat::collaborative::grid;
-namespace kcb  = kat::collaborative::block;
-namespace kcw  = kat::collaborative::warp;
+namespace klcg = kat::linear_grid::grid;
+namespace klcb = kat::linear_grid::block;
+// namespace kcg  = kat::grid;
+namespace kcb  = kat::block;
+namespace kcw  = kat::warp;
 
 template <typename T>
 const auto make_exact_comparison { optional<T>{} };
 
-namespace kcw  = ::kat::collaborative::warp;
-namespace klcw = ::kat::linear_grid::collaborative::warp;
+namespace kcw  = ::kat::warp;
+namespace klcw = ::kat::linear_grid::warp;
 
 
 std::ostream& operator<<(std::ostream& os, klcw::detail::predicate_computation_length_slack_t ss)
@@ -64,7 +64,6 @@ __global__ void execute_testcase(
 
 namespace kat {
 namespace linear_grid {
-namespace collaborative {
 namespace warp {
 
 template <typename T>
@@ -86,7 +85,6 @@ KAT_FHD bool operator==(const search_result_t<T>& lhs, const search_result_t<T>&
 }
 
 } // namespace warp
-} // namespace collaborative
 } // namespace linear_grid
 } // namespace kat
 
@@ -991,7 +989,7 @@ TEST_CASE_TEMPLATE("inclusive scan with specified scratch area", InputAndResultT
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			static __shared__ checked_value_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			target[gi::thread::global_id()] =
-				klcb::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Inclusive>(checked_value_type(thread_input), plus, scratch);
+				klcb::scan<checked_value_type, decltype(plus), kat::inclusivity_t::Inclusive>(checked_value_type(thread_input), plus, scratch);
 		};
 
 	std::vector<checked_value_type> scans;
@@ -1057,7 +1055,7 @@ TEST_CASE_TEMPLATE("inclusive scan without specified scratch area", InputAndResu
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
-				klcb::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Inclusive>(checked_value_type(thread_input), plus);
+				klcb::scan<checked_value_type, decltype(plus), kat::inclusivity_t::Inclusive>(checked_value_type(thread_input), plus);
 		};
 
 	std::vector<checked_value_type> scans;
@@ -1124,7 +1122,7 @@ TEST_CASE_TEMPLATE("exclusive scan with specified scratch area", InputAndResultT
 			static __shared__ checked_value_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
-				klcb::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Exclusive>(checked_value_type(thread_input), plus, scratch);
+				klcb::scan<checked_value_type, decltype(plus), kat::inclusivity_t::Exclusive>(checked_value_type(thread_input), plus, scratch);
 		};
 
 	std::vector<checked_value_type> scans;
@@ -1189,7 +1187,7 @@ TEST_CASE_TEMPLATE("exclusive scan without specified scratch area", InputAndResu
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
 			target[gi::thread::global_id()] =
-				klcb::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Exclusive>(checked_value_type(thread_input), plus);
+				klcb::scan<checked_value_type, decltype(plus), kat::inclusivity_t::Exclusive>(checked_value_type(thread_input), plus);
 		};
 
 	std::vector<checked_value_type> scans;
@@ -1258,7 +1256,7 @@ TEST_CASE_TEMPLATE("inclusive scan_and_reduce with specified scratch area", Inpu
 			static __shared__ scan_result_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
 			checked_value_type result;
-			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::collaborative::inclusivity_t::Inclusive>(
+			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::inclusivity_t::Inclusive>(
 				scratch, scan_result_type(thread_input), plus, result.first, result.second);
 			target[gi::thread::global_id()] = result;
 		};
@@ -1334,7 +1332,7 @@ TEST_CASE_TEMPLATE("exclusive scan_and_reduce with specified scratch area", Inpu
 			static __shared__ scan_result_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
 			checked_value_type result;
-			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::collaborative::inclusivity_t::Exclusive>(
+			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::inclusivity_t::Exclusive>(
 				scratch, scan_result_type(thread_input), plus, result.first, result.second);
 			target[gi::thread::global_id()] = result;
 		};
@@ -1411,7 +1409,7 @@ TEST_CASE_TEMPLATE("inclusive scan_and_reduce with specified scratch area", Inpu
 			static __shared__ scan_result_type scratch[kat::warp_size]; // assumes that there are no than warp_size warps per block
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
 			checked_value_type result;
-			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::collaborative::inclusivity_t::Inclusive>(
+			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::inclusivity_t::Inclusive>(
 				scratch, scan_result_type(thread_input), plus, result.first, result.second);
 			target[gi::thread::global_id()] = result;
 		};
@@ -1486,7 +1484,7 @@ TEST_CASE_TEMPLATE("exclusive scan_and_reduce without specified scratch area", I
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](scan_result_type& x, scan_result_type y) { x += y; };
 			checked_value_type result;
-			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::collaborative::inclusivity_t::Exclusive>(
+			klcb::scan_and_reduce<scan_result_type, decltype(plus), kat::inclusivity_t::Exclusive>(
 				scan_result_type(thread_input), plus, result.first, result.second);
 			target[gi::thread::global_id()] = result;
 		};
@@ -1809,7 +1807,7 @@ TEST_CASE("inclusive scan")
 			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
-			auto warp_scan_result = kcw::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Inclusive>(thread_input, plus);
+			auto warp_scan_result = kcw::scan<checked_value_type, decltype(plus), kat::inclusivity_t::Inclusive>(thread_input, plus);
 			target[gi::thread::global_id()] = warp_scan_result;
 		};
 
@@ -1876,7 +1874,7 @@ TEST_CASE("exclusive scan")
 			namespace gi = kat::linear_grid;
 			auto thread_input = input[gi::thread::global_id()];
 			const auto plus = [](checked_value_type& x, checked_value_type y) { x += y; };
-			auto warp_scan_result = kcw::scan<checked_value_type, decltype(plus), kat::collaborative::inclusivity_t::Exclusive>(thread_input, plus);
+			auto warp_scan_result = kcw::scan<checked_value_type, decltype(plus), kat::inclusivity_t::Exclusive>(thread_input, plus);
 			target[gi::thread::global_id()] = warp_scan_result;
 		};
 

@@ -104,14 +104,14 @@ __global__ void use_printfing_ostream()
 	cout << "String literal 1 with newline - to be printed on call of .flush() method\n";
 	cout.flush();
 
-	kat::collaborative::block::barrier();
+	kat::block::barrier();
 	if (kat::linear_grid::thread::index_in_block() == 0) {
 		printf("All threads in block %d have flushed cout.\n", blockIdx.x);
 	}
 	cout << "String literal 2 with newline - to be printed on use of flush manipulator\n";
 	cout << kat::flush;
 
-	kat::collaborative::block::barrier();
+	kat::block::barrier();
 	if (kat::linear_grid::thread::index_in_block() == 0) {
 		printf("All threads in block %d have streamed the flush manipulator to their cout.\n", blockIdx.x);
 	}

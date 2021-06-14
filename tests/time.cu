@@ -48,7 +48,7 @@ __global__ void measure_time_and_sleep(
 	else {
 		kat::sleep<kat::sleep_resolution::clock_cycles>(sleep_duration);
 	}
-	kat::collaborative::block::barrier();
+	kat::block::barrier();
 	auto time_after_sleep = clock64();
 	times_before_sleep[global_thread_id] = time_before_sleep;
 	times_after_sleep[global_thread_id] = time_after_sleep;

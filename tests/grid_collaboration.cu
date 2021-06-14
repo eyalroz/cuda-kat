@@ -22,11 +22,11 @@ using std::size_t;
 template <typename T>
 const auto make_exact_comparison { optional<T>{} };
 
-namespace klcg = kat::linear_grid::collaborative::grid;
-namespace klcb = kat::linear_grid::collaborative::block;
-// namespace kcg  = kat::collaborative::grid;
-namespace kcb  = kat::collaborative::block;
-namespace kcw  = kat::collaborative::warp;
+namespace klcg = kat::linear_grid::grid;
+namespace klcb = kat::linear_grid::block;
+// namespace kcg  = kat::grid;
+namespace kcb  = kat::block;
+namespace kcw  = kat::warp;
 
 namespace kernels {
 
