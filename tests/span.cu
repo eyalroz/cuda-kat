@@ -1235,7 +1235,7 @@ TEST_CASE("from_convertible_span_constructor")
 
 TEST_CASE("copy_move_and_assignment")
  {
-	constexpr const auto num_checks { 7 };
+	constexpr const auto num_checks { 8 };
 	result_of_check results[num_checks] = {};
 	copy_move_and_assignment{}(results, num_checks);
 	check_results(results, num_checks);
@@ -1320,7 +1320,7 @@ TEST_CASE("from_convertible_span_constructor")
 
 TEST_CASE("copy_move_and_assignment")
  {
-	constexpr const auto num_checks { 7 };
+	constexpr const auto num_checks { 8 };
 	auto results = execute_simple_testcase_on_gpu(copy_move_and_assignment{}, num_checks);
 	check_results(results);
  }
