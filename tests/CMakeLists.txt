@@ -20,7 +20,6 @@ find_package(cuda-api-wrappers 0.3.0 REQUIRED)
 find_package(cuda-nvtx REQUIRED) # Actually, it's sort-of required by cuda-api-wrappers
 
 include(CMakeDependentOption)
-CMAKE_DEPENDENT_OPTION(BUILD_PRINTING_RELATED_TESTS "Build (strf-based) printing-related tests" ON "BUILD_TESTS" ON)
 set(KEEP_PTX FALSE CACHE BOOL "Keep kernel PTX files for build targets")
 
 # This overcomes some linking issues I've encountered... I'm sure there's a better solution
@@ -77,10 +76,6 @@ set(tests
 	ranges
 )
 
-if (BUILD_PRINTING_RELATED_TESTS)
-	list(APPEND tests printing)
-endif()
-
 foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
@@ -108,10 +103,5 @@ foreach(TEST_TARGET ${tests})
 	        target_compile_options(${TEST_TARGET} PRIVATE "--keep")
 	endif()
 endforeach(TEST_TARGET)
-
-if (BUILD_PRINTING_RELATED_TESTS)
-	target_link_libraries(printing PRIVATE strf::strf-header-only)
-	target_compile_options(printing PRIVATE --ptxas-options --suppress-stack-size-warning)
-endif()
 
 # TODO: Something about code coverage perhaps?

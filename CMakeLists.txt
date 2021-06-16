@@ -30,12 +30,6 @@ project(cuda-kat
 ##  Package dependencies  ##
 ############################
 
-# cuda-kat can't use the standard library's string formatting and output stream code,
-# because most of it is host-side only; and it doesn't make sense to bundle a modified
-# half of the standard library just for that. Instead, we use the strf library
-# (available at: https://github.com/robhz786/strf )
-find_package(strf 0.12.2)
-
 ###############
 ##  OPTIONS  ##
 ###############
