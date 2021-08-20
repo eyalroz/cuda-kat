@@ -3,7 +3,7 @@
 
 #include <string>
 #include <ostream>
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 
 namespace detail {
 template <typename ToBeStreamed>

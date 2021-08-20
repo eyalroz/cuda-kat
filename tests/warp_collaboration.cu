@@ -1386,7 +1386,7 @@ TEST_CASE("active_lanes_atomically_increment")
 	cuda::device_t device { cuda::device::current::get() };
 	auto device_side_increment_target { cuda::memory::device::make_unique<incremeted_type>(device) };
 	incremeted_type* device_side_increment_target_raw = device_side_increment_target.get();
-	cuda::memory::zero(device_side_increment_target_raw, sizeof(incremeted_type));
+	cuda::memory::zero( { device_side_increment_target_raw, sizeof(incremeted_type) } );
 
 	auto determine_whether_to_stay_active = [] KAT_HD (unsigned warp_id, unsigned lane_id)
 		{
@@ -1599,7 +1599,7 @@ TEST_CASE_TEMPLATE ("compute_predicate_at_warp_stride", SlackSetting,
 	cuda::device_t device { cuda::device::current::get() };
 	auto device_side_pos_attendants { cuda::memory::device::make_unique<uint32_t[]>(device, pos_attendants_length) };
 	uint32_t* device_side_pos_attendants_raw = device_side_pos_attendants.get();
-	cuda::memory::zero(device_side_pos_attendants_raw, sizeof(uint32_t));
+	cuda::memory::zero( { device_side_pos_attendants_raw, sizeof(uint32_t) } );
 
 
 	auto pred = [] KAT_HD (uint32_t intra_warp_stretch_pos) -> bool { return (intra_warp_stretch_pos % 7 == 0); };

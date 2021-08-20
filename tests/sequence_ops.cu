@@ -6,7 +6,7 @@
 #include <kat/on_device/sequence_ops/block.cuh>
 #include <kat/on_device/sequence_ops/warp.cuh>
 
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 
 #include <limits>
 #include <algorithm>

@@ -7,7 +7,7 @@
 #include <kat/on_device/time.cuh>
 
 #include <doctest.h>
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 
 constexpr const auto num_grid_blocks {  2 };
 constexpr const auto block_size      {  2 };

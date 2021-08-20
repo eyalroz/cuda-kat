@@ -10,7 +10,7 @@
 
 
 #include <doctest.h>
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 #include <climits>
 #include <limits>
 #include <algorithm>

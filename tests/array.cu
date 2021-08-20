@@ -33,7 +33,7 @@
 
 #include <stdio.h>
 #include <doctest.h>
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 
 #include <type_traits>
 #include <cstdint>

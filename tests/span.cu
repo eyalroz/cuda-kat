@@ -4,7 +4,7 @@
 #include <kat/utility.hpp> // for kat::addressof
 
 #include <doctest.h>
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 
 
 #include <type_traits>

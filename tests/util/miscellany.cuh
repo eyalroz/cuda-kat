@@ -1,7 +1,7 @@
 #ifndef CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 #define CUDA_KAT_TEST_MISC_UTILITIES_CUH_
 
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 #include <doctest.h>
 
 #include <algorithm>

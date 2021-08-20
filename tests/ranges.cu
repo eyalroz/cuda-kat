@@ -5,7 +5,7 @@
 #include <kat/ranges.hpp>
 #include <kat/on_device/ranges.cuh>
 
-#include <cuda/api_wrappers.hpp>
+#include <cuda/runtime_api.hpp>
 
 #include <limits>
 #include <algorithm>
