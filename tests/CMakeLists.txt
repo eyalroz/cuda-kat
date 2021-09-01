@@ -15,25 +15,24 @@ include(DocTest)
 ##  Packages  ##
 ################
 
-find_package(CUDA 8.0 REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 find_package(cuda-api-wrappers 0.4.3 REQUIRED)
-find_package(cuda-nvtx REQUIRED) # Actually, it's sort-of required by cuda-api-wrappers
 
 include(CMakeDependentOption)
 set(KEEP_PTX FALSE CACHE BOOL "Keep kernel PTX files for build targets")
-
-# This overcomes some linking issues I've encountered... I'm sure there's a better solution
-set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_NVTX_LIBRARY} ${CUDA_cudadevrt_LIBRARY})
 
 
 #############
 ##  Tests  ##
 #############
 
-cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS_TMP Auto)
-set(CUDA_ARCH_FLAGS ${CUDA_ARCH_FLAGS_TMP} CACHE STRING "CUDA gencode parameters")
-string(REPLACE ";" " " CUDA_ARCH_FLAGS_STR "${CUDA_ARCH_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS_STR}")
+include(FindCUDA/select_compute_arch)
+CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
+string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
+string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
+string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
+
 
 #add_test(
 #    # Use some per-module/project prefix so that it is easier to run only tests for this module
@@ -84,17 +83,16 @@ foreach(TEST_TARGET ${tests})
 	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
 	target_include_directories(${TEST_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-	#	set_target_properties(
-	#	${TEST_TARGET}
-	#		PROPERTIES
-	#		CXX_STANDARD 14
-	#		CXX_STANDARD_REQUIRED YES
-	#		CXX_EXTENSIONS NO
-	#		CUDA_STANDARD 14
-	#		CUDA_STANDARD_REQUIRED YES
-	#		CUDA_EXTENSIONS NO
-	#		)
-	set_target_properties(${TEST_TARGET} PROPERTIES COMPILE_FLAGS "-std=c++14" )
+	set_target_properties(${TEST_TARGET}
+		PROPERTIES
+		CXX_STANDARD 14
+		CXX_STANDARD_REQUIRED YES
+		CXX_EXTENSIONS NO
+		CUDA_STANDARD 14
+		CUDA_STANDARD_REQUIRED YES
+		CUDA_EXTENSIONS NO
+	)
+	#	set_target_properties(${TEST_TARGET} PROPERTIES COMPILE_FLAGS "-std=c++14" )
 	add_test(
 		NAME ${PROJECT_NAME}.${TEST_TARGET}
 		COMMAND ${TEST_TARGET} ${TEST_RUNNER_PARAMS}
