@@ -56,7 +56,7 @@ public:
     }
 };
 
-KAT_FHD
+KAT_HOST
 std::ostream&
 operator<<(std::ostream& os, constexpr_string const& s)
 {
