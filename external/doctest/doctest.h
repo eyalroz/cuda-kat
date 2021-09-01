@@ -4803,6 +4803,7 @@ namespace {
 
         void test_case_exception(const TestCaseException& e) override {
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
 
             xml.scopedElement("Exception")
                     .writeAttribute("crash", e.is_crash)
@@ -4811,6 +4812,7 @@ namespace {
 
         void subcase_start(const SubcaseSignature& in) override {
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
 
             xml.startElement("SubCase")
                     .writeAttribute("name", in.m_name)
@@ -4826,6 +4828,7 @@ namespace {
                 return;
 
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
 
             xml.startElement("Expression")
                     .writeAttribute("success", !rb.m_failed)
@@ -4852,6 +4855,7 @@ namespace {
 
         void log_message(const MessageData& mb) override {
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
 
             xml.startElement("Message")
                     .writeAttribute("type", failureString(mb.m_severity))
@@ -5272,12 +5276,14 @@ namespace {
 
         void subcase_start(const SubcaseSignature& subc) override {
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
             subcasesStack.push_back(subc);
             hasLoggedCurrentTestStart = false;
         }
 
         void subcase_end() override {
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
             subcasesStack.pop_back();
             hasLoggedCurrentTestStart = false;
         }
@@ -5287,7 +5293,7 @@ namespace {
                 return;
 
             std::lock_guard<std::mutex> lock(mutex);
-
+            (void) lock;
             logTestStart();
 
             file_line_to_stream(s, rb.m_file, rb.m_line, " ");
@@ -5345,6 +5351,7 @@ namespace {
 
         void log_message(const MessageData& mb) override {
             std::lock_guard<std::mutex> lock(mutex);
+            (void) lock;
 
             logTestStart();
 
