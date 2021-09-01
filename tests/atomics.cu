@@ -67,8 +67,8 @@ namespace kernels {
 
 template <typename T, unsigned ElementsPerThread>
 __global__ void test_add(
-	T*       __restrict__ result,
-	const T* __restrict__ data,
+	T*        result,
+	const T*  data,
 	std::size_t           data_size)
 {
 	// Notes:
@@ -88,8 +88,8 @@ __global__ void test_add(
 
 template <typename T, unsigned ElementsPerThread>
 __global__ void test_subtract(
-	T*       __restrict__ result,
-	const T* __restrict__ data,
+	T*        result,
+	const T*  data,
 	std::size_t           data_size)
 {
 	// Notes:
@@ -110,8 +110,8 @@ __global__ void test_subtract(
 
 template <typename T, unsigned ElementsPerThread>
 __global__ void test_exchange(
-	T* __restrict__  extra_datum,
-	T* __restrict__  data,
+	T*   extra_datum,
+	T*   data,
 	std::size_t      data_size)
 {
 	auto global_thread_index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -129,8 +129,8 @@ __global__ void test_exchange(
 
 template <typename T, typename SeqType>
 __global__ void test_inc_dec_sequences(
-	T*       __restrict__  aggregate,
-	SeqType* __restrict__  inc_dec_sequences)
+	T*         aggregate,
+	SeqType*   inc_dec_sequences)
 {
 	auto global_thread_index = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -151,8 +151,8 @@ template <typename F, typename T, typename... Is>
 __global__ void execute_testcase(
 	F                           testcase_device_function,
 	size_t                      num_values_to_populate,
-	T*         __restrict__     values_to_populate,
-	const Is*  __restrict__ ... inputs
+	T*              values_to_populate,
+	const Is*   ... inputs
 	)
 {
 	testcase_device_function(num_values_to_populate, values_to_populate, inputs...);
@@ -180,7 +180,7 @@ auto execute_testcase_on_gpu(
 	cuda::launch_configuration_t     launch_config,
 	size_t                           num_values_to_populate,
 	T                                result_initial_fill_value,
-	Is* __restrict__ ...             inputs)
+	Is*  ...             inputs)
 {
 	cuda::device_t device { cuda::device::current::get() };
 	auto device_side_results { cuda::memory::device::make_unique<T[]>(device, num_values_to_populate) };
@@ -222,7 +222,7 @@ auto execute_non_uniform_testcase_on_gpu(
 	T                               result_initial_fill_value,
 	cuda::grid::dimensions_t        grid_dimensions,
 	cuda::grid::block_dimensions_t  block_dimensions,
-	Is* __restrict__ ...            inputs)
+	Is*  ...            inputs)
 {
 	auto launch_config { cuda::make_launch_config(grid_dimensions, block_dimensions) };
 
@@ -595,8 +595,8 @@ TEST_CASE_TEMPLATE("min - random values from host", T, INTEGER_TYPES, FLOAT_TYPE
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T* aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -645,8 +645,8 @@ TEST_CASE_TEMPLATE("max - random values from host", T, INTEGER_TYPES, FLOAT_TYPE
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -691,8 +691,8 @@ TEST_CASE_TEMPLATE("min - single outlier", T, INTEGER_TYPES, FLOAT_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -738,8 +738,8 @@ TEST_CASE_TEMPLATE("max - single outlier", T, INTEGER_TYPES, FLOAT_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -784,8 +784,8 @@ TEST_CASE_TEMPLATE("logical_and - single outlier", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -828,8 +828,8 @@ TEST_CASE_TEMPLATE("logical_or - single outlier", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -874,8 +874,8 @@ TEST_CASE_TEMPLATE("logical_xor - single outlier 0", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -919,8 +919,8 @@ TEST_CASE_TEMPLATE("logical_xor - single outlier 1", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -963,7 +963,7 @@ TEST_CASE_TEMPLATE("logical_not - single non-negator", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate)
+			T*  aggregate)
 		{
 			namespace gi = kat::linear_grid;
 
@@ -1004,7 +1004,7 @@ TEST_CASE_TEMPLATE("logical_not - single negater", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate)
+			T*  aggregate)
 		{
 			namespace gi = kat::linear_grid;
 
@@ -1049,8 +1049,8 @@ TEST_CASE_TEMPLATE("logical_not - by random threads", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T*               __restrict target,
-			const fake_bool* __restrict perform_op_indicators)
+			T*                target,
+			const fake_bool*  perform_op_indicators)
 		{
 			namespace gi = kat::linear_grid;
 			bool perform_op = perform_op_indicators[gi::thread::global_index()];
@@ -1103,8 +1103,8 @@ TEST_CASE_TEMPLATE("bitwise_and - single outliers", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -1153,8 +1153,8 @@ TEST_CASE_TEMPLATE("bitwise_or - single outliers", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict aggregate,
-			const T* __restrict input_data)
+			T*  aggregate,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -1200,8 +1200,8 @@ TEST_CASE_TEMPLATE("bitwise_xor - random values from host", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict target,
-			const T* __restrict input_data)
+			T*  target,
+			const T*  input_data)
 		{
 			namespace gi = kat::linear_grid;
 			auto thread_element = input_data[gi::thread::global_index()];
@@ -1249,8 +1249,8 @@ TEST_CASE_TEMPLATE("bitwise_not - by random threads", T, INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T*               __restrict target,
-			const fake_bool* __restrict perform_op_indicators)
+			T*                target,
+			const fake_bool*  perform_op_indicators)
 		{
 			namespace gi = kat::linear_grid;
 			bool perform_op = perform_op_indicators[gi::thread::global_index()];
@@ -1315,8 +1315,8 @@ TEST_CASE_TEMPLATE("set_bit - few outliers", T, long int) { // INTEGER_TYPES) {
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict target,
-			const bit_index_type* __restrict bit_indices
+			T*  target,
+			const bit_index_type*  bit_indices
 			)
 		{
 			namespace gi = kat::linear_grid;
@@ -1380,8 +1380,8 @@ TEST_CASE_TEMPLATE("unset_bit - few outliers", T, long int) { // INTEGER_TYPES) 
 	auto testcase_device_function =
 		[=] KAT_DEV (
 			size_t,
-			T* __restrict target,
-			const bit_index_type* __restrict bit_indices
+			T*  target,
+			const bit_index_type*  bit_indices
 			)
 		{
 			namespace gi = kat::linear_grid;

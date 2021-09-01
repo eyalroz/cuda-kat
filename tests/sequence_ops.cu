@@ -52,8 +52,8 @@ template <typename F, typename T, typename... Is>
 __global__ void execute_testcase(
 	F                           testcase_device_function,
 	size_t                      num_values_to_populate,
-	T*         __restrict__     values_to_populate,
-	const Is*  __restrict__ ... inputs
+	T*                          values_to_populate,
+	const Is*               ... inputs
 	)
 {
 	testcase_device_function(num_values_to_populate, values_to_populate, inputs...);
@@ -123,10 +123,10 @@ template <typename T, typename F, typename... Is>
 void check_results(
 	std::string               title,
 	size_t                    num_values_to_check,
-	const T*  __restrict__    actual_values,
+	const T*                  actual_values,
 	F                         expected_value_retriever,
 	optional<T>               comparison_tolerance_fraction,
-	const Is* __restrict__... inputs)
+	const Is*             ... inputs)
 {
 	std::stringstream ss;
 	auto index_width = set_width_for_up_to(num_values_to_check);
@@ -158,10 +158,10 @@ void check_results(
 template <typename T, typename F, typename... Is>
 void check_results(
 	size_t                    num_values_to_check,
-	const T*  __restrict__    actual_values,
+	const T*                  actual_values,
 	F                         expected_value_retriever,
 	optional<T>               comparison_tolerance_fraction,
-	const Is* __restrict__... inputs)
+	const Is*             ... inputs)
 {
 	return check_results(
 		std::string("testcase ") + doctest::current_test_name(),
@@ -193,7 +193,7 @@ auto execute_testcase_on_gpu(
 	F                                testcase_device_function,
 	cuda::launch_configuration_t     launch_config,
 	size_t                           num_values_to_populate,
-	Is* __restrict__ ...             inputs)
+	Is*              ...             inputs)
 {
 	cuda::device_t device { cuda::device::current::get() };
 	auto device_side_results { cuda::memory::device::make_unique<T[]>(device, num_values_to_populate) };
@@ -231,7 +231,7 @@ void execute_non_uniform_testcase_on_gpu_and_check(
 	cuda::grid::dimensions_t        grid_dimensions,
 	cuda::grid::block_dimensions_t  block_dimensions,
 	optional<T>                     comparison_tolerance_fraction,
-	Is* __restrict__ ...            inputs)
+	Is*              ...            inputs)
 {
 	auto launch_config { cuda::make_launch_config(grid_dimensions, block_dimensions) };
 
@@ -261,7 +261,7 @@ auto execute_non_uniform_testcase_on_gpu(
 	size_t                          num_values_to_populate,
 	cuda::grid::dimensions_t        grid_dimensions,
 	cuda::grid::block_dimensions_t  block_dimensions,
-	Is* __restrict__ ...            inputs)
+	Is*              ...            inputs)
 {
 	auto launch_config { cuda::make_launch_config(grid_dimensions, block_dimensions) };
 
@@ -292,10 +292,10 @@ TEST_CASE("append_to_global_memory")
 {
 //	template <typename T, typename Size = size_t>
 //	KAT_FD void collaborative_append_to_global_memory(
-//		T*     __restrict__  global_output,
-//		Size*  __restrict__  global_output_length,
-//		T*     __restrict__  fragment_to_append,
-//		Size   __restrict__  fragment_length)
+//		T*                   global_output,
+//		Size*                global_output_length,
+//		T*                   fragment_to_append,
+//		Size                 fragment_length)
 
 }
 

@@ -115,9 +115,9 @@ template <typename DeviceFunctionHook, typename R, typename... Is>
 __global__ void execute_testcases(
 //	F                           f,
 	size_t                      num_checks,
-	fake_bool* __restrict__     execution_complete,
-	R*         __restrict__     results,
-	const Is*  __restrict__ ... inputs
+	fake_bool*                  execution_complete,
+	R*                          results,
+	const Is*               ... inputs
 	)
 {
 	auto global_thread_index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -244,10 +244,10 @@ void check_results(
 	size_t                    num_checks,
 	const char*               testcase_name,
 	// perhaps add another parameter for specific individual-check details?
-	const R*  __restrict__    actual_results,
+	const R*                  actual_results,
 	F                         expected_result_retriever,
 	optional<R>               comparison_tolerance_fraction,
-	const Is* __restrict__... inputs)
+	const Is*             ... inputs)
 {
 	std::stringstream ss;
 	auto index_width = set_width_for_up_to(num_checks);
@@ -295,7 +295,7 @@ auto execute_testcase_on_gpu(
 	const char*                      testcase_name,
 	cuda::launch_configuration_t     launch_config,
 	size_t                           num_checks,
-	Is* __restrict__ ...             inputs)
+	Is*              ...             inputs)
 {
 	cuda::device_t device { cuda::device::current::get() };
 	auto device_side_results { cuda::memory::device::make_unique<R[]>(device, num_checks) };
@@ -333,13 +333,13 @@ auto execute_testcase_on_gpu(
 template <typename K, typename R, typename... Is, size_t... Indices>
 void execute_testcase_on_gpu_and_check(
 	std::index_sequence<Indices...>  is,
-	const R* __restrict__            expected_results,
+	const R*                         expected_results,
 	K                                testcase_kernel,
 	const char*                      testcase_name,
 	cuda::launch_configuration_t     launch_config,
 	size_t                           num_checks,
 	optional<R>                      comparison_tolerance_fraction,
-	Is* __restrict__ ...             inputs)
+	Is*              ...             inputs)
 {
 	auto host_side_results = execute_testcase_on_gpu(
 		tag<R>{},
@@ -365,10 +365,10 @@ void execute_testcase_on_gpu_and_check(
 template <typename DeviceFunctionHook, typename R, typename... Is>
 void execute_uniform_builtin_testcase_on_gpu_and_check(
 	DeviceFunctionHook     dfh,
-	const R* __restrict__  expected_results,
+	const R*               expected_results,
 	size_t                 num_checks,
 	optional<R>            comparison_tolerance_fraction,
-	Is* __restrict__ ...   inputs)
+	Is*              ...   inputs)
 {
 	auto block_size { 128 };
 	auto num_grid_blocks { div_rounding_up(num_checks, block_size) };
@@ -400,12 +400,12 @@ void execute_uniform_builtin_testcase_on_gpu_and_check(
 template <typename DeviceFunctionHook, typename R, typename... Is>
 void execute_non_uniform_builtin_testcase_on_gpu_and_check(
 	DeviceFunctionHook             dfh,
-	const R* __restrict__          expected_results,
+	const R*                       expected_results,
 	size_t                         num_checks,
 	cuda::grid::dimension_t        num_grid_blocks,
 	cuda::grid::block_dimension_t  block_size,
 	optional<R>                    comparison_tolerance_fraction,
-	Is* __restrict__ ...           inputs)
+	Is*              ...           inputs)
 {
 	auto launch_config { cuda::make_launch_config(num_grid_blocks, block_size) };
 	// TODO: Should we check that num_checks is equal to the number of grid threads?
