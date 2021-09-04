@@ -155,5 +155,11 @@ KAT_HD F for_each_arg(F f, Ts&&...a) {
 	return (void)std::initializer_list<int>{(ref(f)((Ts&&)a),0)...}, f;
 }
 
+bool cpu_is_little_endian(void)
+{
+	static_assert(sizeof(int64_t) > sizeof(char), "Unsupported integer sizes configuration");
+	int64_t num = 1;
+	return (*(char *) &num == 1);
+}
 
 #endif /* CUDA_KAT_TEST_MISC_UTILITIES_CUH_ */

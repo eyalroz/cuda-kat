@@ -748,5 +748,3 @@ TEST_CASE("pass tuple to kernel") {
 }
 
 } // TEST_SUITE("tuple")
-
-// EA_RESTORE_VC_WARNING()

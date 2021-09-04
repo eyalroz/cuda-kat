@@ -70,6 +70,7 @@ set(tests
 	grid_collaboration
 	block_collaboration
 	warp_collaboration
+	pair
 	tuple
 	sequence_ops
 	ranges
