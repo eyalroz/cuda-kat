@@ -48,7 +48,7 @@ std::ostream& operator<<(std::ostream& os, cuda::grid::dimensions_t dims)
 std::ostream& operator<<(std::ostream& os, cuda::launch_configuration_t lc)
 {
 	return os
-		<< "grid x block dimensions = " << lc.grid_dimensions << " x " << lc.block_dimensions << ", "
+		<< "grid x block dimensions = " << lc.dimensions.grid << " x " << lc.dimensions.block << ", "
 		<< lc.dynamic_shared_memory_size << " bytes dynamic shared memory" << '\n';
 }
 

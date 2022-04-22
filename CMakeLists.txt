@@ -14,7 +14,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
 project(cuda-kat
 	DESCRIPTION "CUDA kernel author's tools"
-	VERSION 0.1.0
+	VERSION 0.2.0
 	HOMEPAGE_URL "https://github.com/eyalroz/cuda-kat"
 	LANGUAGES CXX CUDA)
 
@@ -23,6 +23,8 @@ project(cuda-kat
 ###############
 
 # Standard CMake modules
+
+include(CMakeDependentOption)
 
 # Custom modules
 
@@ -36,19 +38,25 @@ project(cuda-kat
 
 #message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(BUILD_TESTS FALSE CACHE BOOL "Build tests for the library")
+
+option(BUILD_TESTS "Build tests for the library" OFF)
 
 ###############
 ##  Targets  ##
 ###############
 
 add_library(cuda-kat INTERFACE)
-target_include_directories(
-	cuda-kat
-	INTERFACE
-	"$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
-	"$<INSTALL_INTERFACE:include>"
-)
+set(targets cuda-kat)
+
+foreach(tgt ${targets})
+	target_include_directories(
+		${tgt}
+		INTERFACE
+		"$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
+		"$<INSTALL_INTERFACE:include>"
+	)
+endforeach()
+
 
 
 # TODO: Consider enabling the following command. It helps IDEs
@@ -79,9 +87,12 @@ endif()
 include(GNUInstallDirs)
 
 install(
-	TARGETS cuda-kat
-	EXPORT cuda-kat_export
-	INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+		TARGETS ${targets}
+		EXPORT cuda-kat_export
+		RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+		ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+		LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+		INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
 install(

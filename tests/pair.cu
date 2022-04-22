@@ -318,6 +318,7 @@ TEST_CASE("pass a pair to a kernel") {
 	auto uptr = cuda::memory::device::make_unique<int>(dev);
 	cuda::memory::device::zero(uptr.get(), sizeof(int));
 	auto kernel = kernels::combine_a_pair;
+	static_assert(std::is_trivially_copy_constructible<kat::pair<int, double>>::value, "pair is not trivially copy-constructible");
 	dev.launch(
 		kernel,
 		cuda::make_launch_config(1, 1),

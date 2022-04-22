@@ -436,7 +436,7 @@ KAT_HD void operator()(
 	};
 
 #pragma push
-#pragma diag_suppress = missing_default_constructor_on_const
+#pragma nv_diag_suppress = missing_default_constructor_on_const
 	const kat::array<A, 1> a;
 	const A& aa = a.at(0);
 	GPU_CHECK(aa.valid);
@@ -935,7 +935,7 @@ TEST_CASE("element access") {
 		~A() { valid = false; }
 		};
 #pragma push
-#pragma diag_suppress = missing_default_constructor_on_const
+#pragma nv_diag_suppress = missing_default_constructor_on_const
 		const kat::array<A, 1> a;
 		const A& aa = a.at(0);
 		CHECK(aa.valid);

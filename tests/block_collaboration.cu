@@ -168,6 +168,13 @@ void execute_non_uniform_builtin_testcase_on_gpu_and_check(
 	optional<T>                     comparison_tolerance_fraction,
 	Is* __restrict__ ...            inputs)
 {
+	static_assert(
+		::std::is_trivially_copy_constructible<cuda::detail_::kernel_parameter_decay_t<F>>::value,
+		"testcase_device_function must have a trivially copyable (decayed) type.");
+	static_assert(
+		::std::is_trivially_copy_constructible<cuda::detail_::kernel_parameter_decay_t<ExpectedResultRetriever>>::value,
+		"ExpectedResultRetriever must be a trivially copyable (decayed) type.");
+
 	auto launch_config { cuda::make_launch_config(grid_dimensions, block_dimensions) };
 	// TODO: Should we check that num_values_to_populate is equal to the number of grid threads?
 
@@ -359,30 +366,48 @@ TEST_CASE("get_from_thread")
 {
 	using datum_type = uint32_t;
 	cuda::grid::dimension_t num_grid_blocks { 2 };
-	cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 7 };
+	constexpr const cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 7 };
 	auto num_total_threads = num_threads_per_block * num_grid_blocks;
 	auto num_values_to_populate = num_total_threads;
 
-	auto make_thread_datum =
-		[] KAT_HD (
-			cuda::grid::dimension_t block_id,
-			cuda::grid::block_dimension_t thread_index)
-		{
-			return datum_type{(thread_index + 1) + (block_id + 1) * 10000};
-		};
-
-	auto make_source_thread_index =
-		[=] KAT_HD (cuda::grid::dimension_t block_id)
-		{
-			return unsigned{(block_id + 1) * 11 % num_threads_per_block};
-		};
+//	static const auto make_thread_datum =
+//		[] KAT_HD (
+//			cuda::grid::dimension_t block_id,
+//			cuda::grid::block_dimension_t thread_index)
+//		{
+//			return datum_type{(thread_index + 1) + (block_id + 1) * 10000};
+//		};
+//
+//	static const auto make_source_thread_index =
+//		[] KAT_HD (cuda::grid::dimension_t block_id)
+//		{
+//			return unsigned{(block_id + 1) * 11 % num_threads_per_block};
+//		};
 
 	auto testcase_device_function =
-		[=] KAT_DEV (
+		[] KAT_DEV (
 			size_t,
 			datum_type* thread_obtained_values
 		)
 		{
+			// Sorry for the code duplication - need to avoid capturing. In C++17,
+			// make the lambdas outside constexpr as well, and you should be able
+			// to remove them here
+			auto make_source_thread_index =
+			[] KAT_HD (cuda::grid::dimension_t block_id)
+			{
+				constexpr const cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 7 };
+				return unsigned{(block_id + 1) * 11 % num_threads_per_block};
+			};
+
+			auto make_thread_datum =
+				[] KAT_HD (
+				cuda::grid::dimension_t block_id,
+				cuda::grid::block_dimension_t thread_index)
+				{
+					return datum_type{(thread_index + 1) + (block_id + 1) * 10000};
+				};
+
 			namespace gi = kat::linear_grid;
 			datum_type thread_datum { make_thread_datum(gi::block::id(), gi::thread::id()) };
 			auto source_thread_index { make_source_thread_index(gi::block::id()) };
@@ -392,7 +417,26 @@ TEST_CASE("get_from_thread")
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
+	auto expected_value_retriever = [] (size_t global_thread_index) {
+		// Sorry for the code duplication - need to avoid capturing. In C++17,
+		// make the lambdas outside constexpr as well, and you should be able
+		// to remove them here
+		auto make_source_thread_index =
+			[] KAT_HD (cuda::grid::dimension_t block_id)
+			{
+				constexpr const cuda::grid::block_dimension_t num_threads_per_block { kat::warp_size * 7 };
+				return unsigned{(block_id + 1) * 11 % num_threads_per_block};
+			};
+
+		auto make_thread_datum =
+			[] KAT_HD (
+			cuda::grid::dimension_t block_id,
+			cuda::grid::block_dimension_t thread_index)
+			{
+				return datum_type{(thread_index + 1) + (block_id + 1) * 10000};
+			};
+
+
 		auto block_id { global_thread_index / num_threads_per_block };
 		auto source_thread_index { make_source_thread_index(block_id) };
 		return make_thread_datum(block_id, source_thread_index);
@@ -584,7 +628,7 @@ TEST_CASE("get_from_thread")
 {
 	using datum_type = uint32_t;
 	cuda::grid::dimensions_t grid_dimensions { 1 };
-	cuda::grid::block_dimensions_t block_dimensions { kat::warp_size, 2, 1 };
+	constexpr const cuda::grid::block_dimensions_t block_dimensions = { kat::warp_size, 2, 1 };
 	auto num_total_threads = block_dimensions.volume() * grid_dimensions.volume();
 	auto num_values_to_populate = num_total_threads;
 
@@ -596,8 +640,8 @@ TEST_CASE("get_from_thread")
 			return datum_type{(thread_id + 1) + (block_id + 1) * 10000};
 		};
 
-	auto make_source_thread_index =
-		[=] KAT_HD (cuda::grid::dimension_t block_id)
+	const auto make_source_thread_index =
+		[] KAT_HD (cuda::grid::dimension_t block_id)
 		{
 			return kat::position_t { block_id, 1, 0 };
 		};
@@ -620,7 +664,17 @@ TEST_CASE("get_from_thread")
 			thread_obtained_values[gi::thread::global_id()] = obtained_value;
 		};
 
-	auto expected_value_retriever = [=] (size_t global_thread_index) {
+	auto expected_value_retriever = [] (size_t global_thread_index) {
+		// Sorry, code duplication to avoid capture; maybe I can avoid it with C++17?
+		const auto make_source_thread_index =
+			[] KAT_HD (cuda::grid::dimension_t block_id)
+			{ return kat::position_t { block_id, 1, 0 }; };
+
+		auto make_thread_datum =
+			[] KAT_HD (cuda::grid::dimension_t block_id,cuda::grid::block_dimension_t thread_id)
+			{ return datum_type{(thread_id + 1) + (block_id + 1) * 10000}; };
+
+		constexpr const cuda::grid::block_dimensions_t block_dimensions = { kat::warp_size, 2, 1 };
 		auto block_id { global_thread_index / block_dimensions.volume() };
 		auto source_thread_index { make_source_thread_index(block_id) };
 		auto source_thread_id = kat::detail::row_major_linearization(source_thread_index, uint3(block_dimensions));

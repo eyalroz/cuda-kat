@@ -16,9 +16,8 @@ include(DocTest)
 ################
 
 find_package(CUDAToolkit REQUIRED)
-find_package(cuda-api-wrappers 0.4.3 REQUIRED)
+find_package(cuda-api-wrappers 0.5.1 REQUIRED)
 
-include(CMakeDependentOption)
 set(KEEP_PTX FALSE CACHE BOOL "Keep kernel PTX files for build targets")
 
 
@@ -80,7 +79,7 @@ foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-extended-lambda")
-	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cuda-api-wrappers::runtime-api doctest  ${CUDA_LIBRARIES} test_utils)
+	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cuda-api-wrappers::runtime-and-driver doctest ${CUDA_LIBRARIES} test_utils)
 	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
 	target_include_directories(${TEST_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 

@@ -239,7 +239,7 @@ auto execute_non_uniform_testcase_on_gpu(
 
 size_t num_threads_in_grid(const cuda::launch_configuration_t& launch_config)
 {
-	return static_cast<size_t>(launch_config.grid_dimensions.volume()) * launch_config.block_dimensions.volume();
+	return static_cast<size_t>(launch_config.dimensions.grid.volume()) * launch_config.dimensions.block.volume();
 }
 
 enum { largest_type_size = 8  };
