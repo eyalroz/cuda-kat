@@ -75,6 +75,10 @@ set(tests
 	ranges
 )
 
+if (BUILD_PRINTF)
+	list(APPEND tests printf)
+endif()
+
 foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
@@ -102,5 +106,10 @@ foreach(TEST_TARGET ${tests})
 	        target_compile_options(${TEST_TARGET} PRIVATE "--keep")
 	endif()
 endforeach(TEST_TARGET)
+
+if (BUILD_PRINTF)
+	target_link_libraries(printf PRIVATE kat-printf)
+    set_target_properties(printf PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+endif()
 
 # TODO: Something about code coverage perhaps?

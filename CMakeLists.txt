@@ -1,14 +1,3 @@
-#
-# Note:
-#
-# cuda-kat is a _header-only_ library. You can't build it, and you don't need
-# to run CMake in order to use it or install it. Just add the `src/` directory
-# to your include path (or copy its contents to some `include/` directory.
-# cuda-kat only depends on having a C++11 compiler and the CUDA toolkit
-# installed.
-#
-# This file is provided mostly in order to build the library unit tests.
-
 cmake_minimum_required(VERSION 3.8.2)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
@@ -36,10 +25,18 @@ include(CMakeDependentOption)
 ##  OPTIONS  ##
 ###############
 
-#message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
-
+option(BUILD_PRINTF "Build with (non-header-only) printf-family functions support" OFF)
 option(BUILD_TESTS "Build tests for the library" OFF)
+
+# Ugly-but-necessary CUDA architectures detection
+
+include(FindCUDA/select_compute_arch)
+CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
+string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
+string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
+string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
+
 
 ###############
 ##  Targets  ##
@@ -47,6 +44,22 @@ option(BUILD_TESTS "Build tests for the library" OFF)
 
 add_library(cuda-kat INTERFACE)
 set(targets cuda-kat)
+if (BUILD_PRINTF)
+	add_library(kat-printf STATIC)
+    set_target_properties(kat-printf PROPERTIES LINKER_LANGUAGE CUDA)
+
+	target_sources(kat-printf PRIVATE src/kat/on_device/c_standard_library/printf.cu)
+	#	set_property(TARGET kat-printf PROPERTY CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
+    set_target_properties(
+        kat-printf
+        PROPERTIES
+        CUDA_STANDARD_REQUIRED YES
+        CUDA_EXTENSIONS OFF
+        CUDA_SEPARABLE_COMPILATION ON
+    )
+	target_include_directories(kat-printf PRIVATE "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>")
+	list(APPEND targets kat-printf)
+endif()
 
 foreach(tgt ${targets})
 	target_include_directories(
@@ -99,6 +112,7 @@ install(
 	DIRECTORY src/kat
 	DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 	FILES_MATCHING REGEX "\\.(h|hpp|cuh)$"
+	#REGEX "on_device/c_standard_library/printf\\.cuh" EXCLUDE
 )
 
 install(
