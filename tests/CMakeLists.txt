@@ -78,6 +78,7 @@ set(tests
 foreach(TEST_TARGET ${tests})
 	add_executable(${TEST_TARGET} "${TEST_TARGET}.cu")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-relaxed-constexpr")
+	target_compile_options(${TEST_TARGET} PRIVATE "--generate-line-info")
 	target_compile_options(${TEST_TARGET} PRIVATE "--expt-extended-lambda")
 	target_link_libraries(${TEST_TARGET} PRIVATE cuda-kat cuda-api-wrappers::runtime-and-driver doctest ${CUDA_LIBRARIES} test_utils)
 	# I don't see why the following line should even be necessary. Depending on the libraries should be enough to get us their include dirs!
