@@ -285,6 +285,12 @@ bool operator==(const poor_mans_pair<T1, T2>& lhs, const poor_mans_pair<T1, T2>&
 	return lhs.first == rhs.first and lhs.second == rhs.second;
 }
 
+template <typename T1, typename T2>
+std::ostream& operator<<(std::ostream& os, const poor_mans_pair<T1, T2>& p)
+{
+       return os << '(' << p.first << ", " << p.second << ')';
+}
+
 
 TEST_SUITE("warp-to-grid") {
 
